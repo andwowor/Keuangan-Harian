@@ -61,6 +61,20 @@ var SUMBER_DANA_REKENING = 'PENDAPATAN USAHA';
 // Daftar bank/rekening (dipelajari dari history kolom Rekening).
 var BANK_REKENING = ['Mandiri', 'BNI', 'BRI', 'BCA', 'Kas Tunai Maumbi'];
 
+// Pemetaan nomor rekening/akun SUMBER DANA (rekening pengirim pada bukti) -> SUMBER DANA.
+// 'bank' hanya diisi untuk PENDAPATAN USAHA (akan dimasukkan ke kolom Rekening).
+var ACCOUNTS = [
+  { no: '154301003768507', label: 'BRI 154301003768507', sumberDana: 'PENDAPATAN USAHA', bank: 'BRI' },
+  { no: '1860031055', label: 'BNI 1860031055', sumberDana: 'PENDAPATAN USAHA', bank: 'BNI' },
+  { no: '0263632785', label: 'BCA 0263632785', sumberDana: 'PENDAPATAN USAHA', bank: 'BCA' },
+  { no: '1500034495620', label: 'Mandiri 1500034495620', sumberDana: 'PENDAPATAN USAHA', bank: 'Mandiri' },
+  { no: '0263935851', label: 'BCA 0263935851', sumberDana: 'KAS LAIN USAHA', bank: '' },
+  { no: '002929331804', label: 'BLU BCA Digital 002929331804', sumberDana: 'THR/CUTI (SALDO BERGERAK)', bank: '' },
+  { no: '085242081620', label: 'Allo 085242081620', sumberDana: 'THR/CUTI (SALDO BERGERAK)', bank: '' },
+  { no: '1966320708', label: 'BNI Multicurrency 1966320708', sumberDana: 'THR/CUTI (SALDO BERGERAK)', bank: '' },
+  { no: '005401232138503', label: 'BRI 005401232138503', sumberDana: 'THR/CUTI (SALDO BERGERAK)', bank: '' }
+];
+
 // Nama bulan (HURUF BESAR seperti format di sheet) dan Title Case (untuk teks tanggal).
 var BULAN_UPPER = ['JANUARI', 'FEBRUARI', 'MARET', 'APRIL', 'MEI', 'JUNI',
   'JULI', 'AGUSTUS', 'SEPTEMBER', 'OKTOBER', 'NOVEMBER', 'DESEMBER'];
@@ -230,9 +244,12 @@ function analyzeImage(dataUrl) {
     'keterangan_yakin=false.\n' +
     '- keterangan_yakin: true hanya jika Anda cukup yakin keterangan-nya tepat.\n' +
     '- keterangan_opsi: hingga 4 usulan label singkat yang cocok (boleh kosong array).\n' +
+    '- akun_sumber: nomor rekening/akun SUMBER DANA pada bukti, yaitu rekening PENGIRIM / yang ' +
+    'DIDEBIT (biasanya berlabel "Sumber Dana", "Rekening Sumber", "Dari", "From"), tulis ANGKANYA ' +
+    '(boleh sertakan nama bank). Bukan rekening tujuan/penerima. Bila tidak ada, isi "".\n' +
     '- is_boc_1201: true bila pada bukti tertulis "BOC Debit Card (1201)".\n' +
-    '- bank_rekening: bila bukti adalah transfer dari rekening bank, petakan bank pengirim ' +
-    'ke salah satu dari Mandiri/BNI/BRI/BCA. Jika tidak ada/tidak jelas, isi "". ' +
+    '- bank_rekening: cadangan bila akun_sumber tidak terbaca — bila bukti transfer dari bank, ' +
+    'petakan bank pengirim ke Mandiri/BNI/BRI/BCA; jika tidak jelas isi "". ' +
     '(Hanya dipakai bila sumber dana = PENDAPATAN USAHA.)\n' +
     '- confidence: keyakinan keseluruhan.\n' +
     '- catatan: catatan singkat bila ada yang ambigu, selain itu "".';
@@ -257,13 +274,14 @@ function analyzeImage(dataUrl) {
       keterangan: { type: 'string' },
       keterangan_yakin: { type: 'boolean' },
       keterangan_opsi: { type: 'array', items: { type: 'string' } },
+      akun_sumber: { type: 'string', description: 'Nomor rekening/akun sumber dana (pengirim) pada bukti, atau ""' },
       is_boc_1201: { type: 'boolean' },
       bank_rekening: { type: 'string', enum: ['Mandiri', 'BNI', 'BRI', 'BCA', 'Kas Tunai Maumbi', ''] },
       confidence: { type: 'string', enum: ['tinggi', 'sedang', 'rendah'] },
       catatan: { type: 'string' }
     },
     required: ['nominal_asli', 'mata_uang', 'tanggal', 'pos_biaya', 'keterangan', 'keterangan_yakin',
-      'keterangan_opsi', 'is_boc_1201', 'bank_rekening', 'confidence', 'catatan'],
+      'keterangan_opsi', 'akun_sumber', 'is_boc_1201', 'bank_rekening', 'confidence', 'catatan'],
     additionalProperties: false
   };
 
@@ -325,6 +343,20 @@ function analyzeImage(dataUrl) {
       data.konversi = { error: true, mataUang: cur, nominalAsli: amt, message: String(e2) };
     }
   }
+  // Saran SUMBER DANA & Rekening dari nomor rekening sumber (deterministik), lalu aturan BOC.
+  var acct = detectAccount_(data.akun_sumber);
+  data.sumberDanaSaran = '';
+  data.rekeningSaran = '';
+  data.sumberDanaAlasan = '';
+  if (acct) {
+    data.sumberDanaSaran = acct.sumberDana;
+    data.rekeningSaran = acct.bank || '';
+    data.sumberDanaAlasan = 'Rekening ' + acct.label + ' → ' + acct.sumberDana;
+  } else if (data.is_boc_1201) {
+    data.sumberDanaSaran = 'UANG SAKU';
+    data.sumberDanaAlasan = 'BOC Debit Card (1201) → Uang Saku';
+  }
+
   data.nominalFormatted = formatRupiah_(data.nominal);
   return data;
 }
@@ -357,6 +389,17 @@ function normalizeCurrency_(c) {
     'HKD': 'HKD', 'HK$': 'HKD', 'GBP': 'GBP', 'KRW': 'KRW', 'THB': 'THB'
   };
   return map[c] || c;
+}
+
+/** Cocokkan teks akun sumber dari bukti ke daftar ACCOUNTS. Mengembalikan entri atau null. */
+function detectAccount_(text) {
+  var d = String(text || '').replace(/\D/g, '');
+  if (d.length < 6) return null;
+  for (var i = 0; i < ACCOUNTS.length; i++) {
+    var k = ACCOUNTS[i].no;
+    if (d.indexOf(k) >= 0 || k.indexOf(d) >= 0 || d.slice(-6) === k.slice(-6)) return ACCOUNTS[i];
+  }
+  return null;
 }
 
 /** Kurs 1 unit `currency` -> IDR pada tanggal (sumber: Frankfurter/ECB), di-cache 6 jam. */

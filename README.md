@@ -22,7 +22,7 @@ otomatis terhitung dari tabel transaksi — dashboard hanya menambah baris baru.
 | **NOMINAL** | Dibaca dari bukti. Bila mata uang asing (mis. **RMB/CNY**, USD, SGD), otomatis dikonversi ke Rupiah memakai **kurs pada tanggal transaksi** (sumber: Frankfurter/ECB). Info kurs ditampilkan; nominal tetap bisa dikoreksi. |
 | **TANGGAL** | Selalu diambil dari tanggal pada bukti transaksi. |
 | **BIAYA BULAN, TAHUN BIAYA, BUDGET BULAN, TAHUN BUDGET** | **Terisi otomatis** dari tanggal transaksi (pola history ~82%); tinggal dikonfirmasi/koreksi. |
-| **SUMBER DANA** | **Terisi otomatis**: BOC(1201)→Uang Saku; transfer bank usaha→Pendapatan Usaha; selain itu → sumber dana yang paling sering dipakai untuk POS tersebut (dipelajari dari history). Bisa dikoreksi. |
+| **SUMBER DANA** | **Terisi otomatis dari nomor rekening sumber pada bukti** (pemetaan rekening → Pendapatan Usaha / Kas Lain Usaha / THR-CUTI). Bila tak terbaca: BOC(1201)→Uang Saku, atau pola SUMBER DANA tersering per POS dari history. Bisa dikoreksi. |
 | **Rekening** | Hanya aktif bila SUMBER DANA = **PENDAPATAN USAHA**. Isi nama bank dari bukti transfer (`Mandiri / BNI / BRI / BCA / Kas Tunai Maumbi`). Dikosongkan = dana dari **kas tunai usaha**. Untuk sumber dana lain, Rekening selalu kosong. |
 | **Aturan khusus** | Jika bukti menampilkan **"BOC Debit Card (1201)"**, SUMBER DANA otomatis terisi **UANG SAKU**. |
 

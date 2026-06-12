@@ -285,7 +285,10 @@
 
       // === Auto-fill dari history & pola (boleh dikoreksi) ===
       window._isBoc = !!d.is_boc_1201;
-      window._bankSaran = d.bank_rekening || '';
+      window._sdSaran = d.sumberDanaSaran || '';   // saran deterministik (dari rekening sumber/BOC)
+      window._sdAlasan = d.sumberDanaAlasan || '';
+      window._rekSaran = d.rekeningSaran || '';     // bank utk kolom Rekening (pendapatan usaha)
+      window._bankModel = d.bank_rekening || '';    // cadangan tebakan bank dari model
 
       // Periode: BIAYA/BUDGET BULAN = bulan transaksi, TAHUN = tahun transaksi
       var my = deriveMonthYear(d.tanggal);
@@ -320,8 +323,8 @@
     function onPosChange() {
       var pos = document.getElementById('posBiaya').value;
       loadKeteranganOptions(pos, [], true);
-      // Bila bukan BOC & bukan transfer bank, perbarui saran sumber dana dari pola POS baru.
-      if (!window._isBoc && !window._bankSaran) { applySumberDanaSuggestion(pos); onSumberDanaChange(); }
+      // Bila tidak ada saran deterministik (rekening/BOC), perbarui saran sumber dana dari pola POS baru.
+      if (!window._sdSaran) { applySumberDanaSuggestion(pos); onSumberDanaChange(); }
     }
 
     // Bulan & tahun dari tanggal ISO.
@@ -331,17 +334,18 @@
       return { bulan: CFG.bulan[Number(m[2]) - 1], tahun: Number(m[1]) };
     }
 
-    // Saran SUMBER DANA: BOC(1201)->Uang Saku; transfer bank usaha->Pendapatan Usaha; lainnya->pola history POS.
+    // Saran SUMBER DANA: utamakan saran deterministik dari nomor rekening sumber / BOC,
+    // jika tidak ada -> pola history per POS.
     function applySumberDanaSuggestion(pos) {
       var sd = '', note = '';
-      if (window._isBoc) {
-        sd = 'UANG SAKU'; note = 'Terdeteksi "BOC Debit Card (1201)" → Uang Saku.';
-      } else if (window._bankSaran && CFG.bankRekening.indexOf(window._bankSaran) >= 0) {
-        sd = 'PENDAPATAN USAHA'; note = 'Transfer dari ' + window._bankSaran + ' → Pendapatan Usaha.';
+      if (window._sdSaran) {
+        sd = window._sdSaran; note = window._sdAlasan || '';
       } else if (CFG.sumberDanaByPos && CFG.sumberDanaByPos[pos]) {
         sd = CFG.sumberDanaByPos[pos]; note = 'Saran dari pola history untuk POS ini.';
       }
       setSelect('sumberDana', sd);
+      // Bank untuk kolom Rekening (jika Pendapatan Usaha): dari rekening terdeteksi, lalu cadangan model.
+      window._bankSaran = window._rekSaran || window._bankModel || '';
       var n = document.getElementById('bocNote');
       if (note) { n.textContent = 'ℹ️ ' + note; n.classList.remove('hidden'); }
       else { n.classList.add('hidden'); }
@@ -504,7 +508,8 @@
 
     function resetAll() {
       currentDataUrl = null;
-      window._bankSaran = ''; window._isBoc = false; window._mataUang = 'IDR'; window._nominalAsli = 0;
+      window._bankSaran = ''; window._isBoc = false; window._sdSaran = ''; window._sdAlasan = '';
+      window._rekSaran = ''; window._bankModel = ''; window._mataUang = 'IDR'; window._nominalAsli = 0;
       fileInput.value = '';
       var img = document.getElementById('preview'); img.src = ''; img.style.display = 'none';
       document.getElementById('btnAnalyze').classList.add('hidden');
