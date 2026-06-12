@@ -203,19 +203,21 @@
       });
     }
 
-    function buildYears(selId, val) {
+    // includeYear hanya memastikan tahun transaksi tersedia sebagai opsi —
+    // selalu mulai kosong agar pemilik wajib memilih.
+    function buildYears(selId, includeYear) {
       var sel = document.getElementById(selId);
       sel.innerHTML = '';
       var years = CFG.tahun.slice();
-      if (val && years.indexOf(val) === -1) years.push(val);
+      if (includeYear && years.indexOf(includeYear) === -1) years.push(includeYear);
       years.sort();
       var ph = document.createElement('option');
-      ph.value = ''; ph.textContent = '— pilih tahun —'; ph.disabled = true;
+      ph.value = ''; ph.textContent = '— pilih tahun —'; ph.disabled = true; ph.selected = true;
       sel.appendChild(ph);
       years.forEach(function (y) {
         var o = document.createElement('option'); o.value = y; o.textContent = y; sel.appendChild(o);
       });
-      sel.value = val ? String(val) : '';
+      sel.value = '';
     }
 
     // --- Upload ---
