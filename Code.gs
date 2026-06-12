@@ -160,6 +160,38 @@ function getHistoryContext() {
   return ctx;
 }
 
+/**
+ * Contoh keterangan/merchant per POS BIAYA dari history (untuk memandu pemilihan POS).
+ * Dipakai sebagai "panduan kategorisasi" pada prompt analyzeImage. Cache 5 menit.
+ */
+function getPosExamples() {
+  var cache = CacheService.getScriptCache();
+  var hit = cache.get('posex');
+  if (hit) return JSON.parse(hit);
+
+  var sheet = getSheet_();
+  var hdr = findHeaderRow_(sheet);
+  var last = findLastDataRow_(sheet, hdr);
+  var map = {};
+  if (last > hdr) {
+    var vals = sheet.getRange(hdr + 1, 1, last - hdr, 2).getValues(); // A POS, B KETERANGAN
+    var freq = {};
+    for (var i = 0; i < vals.length; i++) {
+      var p = String(vals[i][0]).trim(), k = String(vals[i][1]).trim();
+      if (!p) continue;
+      freq[p] = freq[p] || {};
+      if (k) freq[p][k] = (freq[p][k] || 0) + 1;
+    }
+    for (var pp in freq) {
+      var arr = Object.keys(freq[pp]).map(function (k) { return [k, freq[pp][k]]; });
+      arr.sort(function (a, b) { return b[1] - a[1]; });
+      map[pp] = arr.slice(0, 8).map(function (x) { return x[0]; });
+    }
+  }
+  cache.put('posex', JSON.stringify(map), 300);
+  return map;
+}
+
 // ====================== EKSTRAKSI GAMBAR (CLAUDE VISION) ======================
 
 /**
@@ -186,7 +218,11 @@ function analyzeImage(dataUrl) {
     'US$/USD -> "USD" ; S$/SGD -> "SGD" ; dst. Jika tidak jelas, gunakan "IDR".\n' +
     '- tanggal: tanggal transaksi PADA BUKTI, format ISO YYYY-MM-DD. WAJIB diambil dari ' +
     'bukti. Jika benar-benar tidak terbaca, isi string kosong "".\n' +
-    '- pos_biaya: pilih kategori paling sesuai dari daftar enum.\n' +
+    '- pos_biaya: pilih dari daftar enum dengan MENCOCOKKAN nama merchant/toko/barang pada bukti ' +
+    'ke PANDUAN KATEGORISASI di bawah (dibuat dari history pengisian pemilik). Sinyal kuat: bila ' +
+    'mata uang CNY/RMB (belanja di China) -> umumnya "BIAYA KULIAH CHINA", kecuali tiket transportasi ' +
+    'pulang ke Indonesia -> "BIAYA PULANG". Merchant kopi/makanan/hiburan domestik (mis. Starbucks, ' +
+    'Fore, bioskop, restoran) -> "DAILY DRIVER".\n' +
     '- keterangan: label SINGKAT gaya pencatatan pemilik untuk transaksi ini ' +
     '(nama merchant/barang/keperluan). Contoh gaya: "Makanan", "Snack", "Starbucks", ' +
     '"Kopi", "Kebutuhan harian", "Sepeda", "Transport", "Refill galon", "Tarik tunai", ' +
@@ -200,6 +236,16 @@ function analyzeImage(dataUrl) {
     '(Hanya dipakai bila sumber dana = PENDAPATAN USAHA.)\n' +
     '- confidence: keyakinan keseluruhan.\n' +
     '- catatan: catatan singkat bila ada yang ambigu, selain itu "".';
+
+  // Tambahkan panduan kategorisasi POS dari history (belajar dari data yang sudah diisi).
+  var posExamples = getPosExamples();
+  var panduan = '';
+  for (var pi = 0; pi < POS_BIAYA.length; pi++) {
+    var pp = POS_BIAYA[pi], ex = posExamples[pp];
+    panduan += '- ' + pp + (ex && ex.length ? ': ' + ex.join(', ') : '') + '\n';
+  }
+  systemPrompt += '\n\nPANDUAN KATEGORISASI POS BIAYA (dari history pengisian pemilik — ' +
+    'cocokkan merchant/barang pada bukti dengan contoh POS terdekat):\n' + panduan;
 
   var schema = {
     type: 'object',
@@ -404,7 +450,7 @@ function appendTransaction(payload) {
 
   newRange.setValues([row]);
   SpreadsheetApp.flush();
-  try { CacheService.getScriptCache().remove('histctx'); } catch (e) {} // agar pola history ter-update
+  try { CacheService.getScriptCache().remove('histctx'); CacheService.getScriptCache().remove('posex'); } catch (e) {} // refresh pola history
   return { ok: true, row: newRow };
 }
 
