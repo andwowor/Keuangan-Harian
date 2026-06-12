@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <style>
+    :root {
+      --bg: #f4f6f8; --card: #ffffff; --ink: #1f2933; --muted: #6b7785;
+      --line: #e2e8f0; --accent: #2563eb; --accent-d: #1d4ed8;
+      --ok: #16a34a; --warn: #d97706; --err: #dc2626;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      background: var(--bg); color: var(--ink); padding: 16px;
+    }
+    .wrap { max-width: 560px; margin: 0 auto; }
+    h1 { font-size: 20px; margin: 4px 0 2px; }
+    .sub { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+    .card {
+      background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+      padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    }
+    .drop {
+      border: 2px dashed var(--line); border-radius: 12px; padding: 22px 14px;
+      text-align: center; color: var(--muted); cursor: pointer; transition: .15s;
+    }
+    .drop:hover, .drop.over { border-color: var(--accent); color: var(--accent); background: #f0f6ff; }
+    .drop strong { color: var(--ink); }
+    #preview { display: none; width: 100%; border-radius: 10px; margin-top: 12px; border: 1px solid var(--line); }
+    label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin: 12px 0 4px; }
+    input, select {
+      width: 100%; padding: 10px 11px; font-size: 15px; border: 1px solid var(--line);
+      border-radius: 9px; background: #fff; color: var(--ink);
+    }
+    input:focus, select:focus { outline: none; border-color: var(--accent); }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    button {
+      width: 100%; padding: 12px; font-size: 15px; font-weight: 600; border: none;
+      border-radius: 10px; cursor: pointer; transition: .15s;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-d); }
+    .btn-ghost { background: #eef2f7; color: var(--ink); }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+    .row-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+    .hidden { display: none; }
+    .msg { padding: 10px 12px; border-radius: 9px; font-size: 13px; margin-top: 12px; }
+    .msg.ok { background: #ecfdf3; color: var(--ok); border: 1px solid #bbf7d0; }
+    .msg.err { background: #fef2f2; color: var(--err); border: 1px solid #fecaca; }
+    .msg.info { background: #eff6ff; color: var(--accent-d); border: 1px solid #bfdbfe; }
+    .spin {
+      display: inline-block; width: 15px; height: 15px; border: 2px solid #fff;
+      border-top-color: transparent; border-radius: 50%; animation: sp .7s linear infinite;
+      vertical-align: -2px; margin-right: 7px;
+    }
+    @keyframes sp { to { transform: rotate(360deg); } }
+    .pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+    .pill.tinggi { background: #ecfdf3; color: var(--ok); }
+    .pill.sedang { background: #fffbeb; color: var(--warn); }
+    .pill.rendah { background: #fef2f2; color: var(--err); }
+    .note { font-size: 12px; color: var(--warn); margin-top: 8px; }
+    .nominal-prefix { position: relative; }
+    .nominal-prefix span { position: absolute; left: 11px; top: 11px; color: var(--muted); font-size: 15px; }
+    .nominal-prefix input { padding-left: 30px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>💸 Dashboard Biaya Harian</h1>
+    <div class="sub">Unggah screenshot / bukti transfer → dibaca otomatis → tinjau → simpan ke sheet TRANSAKSI.</div>
+
+    <!-- Langkah 1: Upload -->
+    <div class="card">
+      <div id="drop" class="drop">
+        <div style="font-size:28px">📷</div>
+        <div><strong>Ketuk untuk pilih gambar</strong> atau jatuhkan di sini</div>
+        <div style="font-size:12px;margin-top:4px">PNG / JPG · screenshot atau foto bukti transfer</div>
+      </div>
+      <input id="file" type="file" accept="image/*" class="hidden">
+      <img id="preview" alt="preview">
+      <button id="btnAnalyze" class="btn-primary hidden" style="margin-top:12px" onclick="analyze()">
+        Baca Otomatis
+      </button>
+    </div>
+
+    <!-- Langkah 2: Form review -->
+    <div id="formCard" class="card hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong style="font-size:15px">Tinjau & Koreksi</strong>
+        <span id="confPill" class="pill"></span>
+      </div>
+      <div id="catatan" class="note hidden"></div>
+
+      <label>POS BIAYA</label>
+      <select id="posBiaya"></select>
+
+      <label>KETERANGAN</label>
+      <input id="keterangan" type="text" placeholder="(opsional)">
+
+      <label>NOMINAL</label>
+      <div class="nominal-prefix">
+        <span>Rp</span>
+        <input id="nominal" type="text" inputmode="numeric" placeholder="0" oninput="onNominalInput()">
+      </div>
+
+      <label>TANGGAL</label>
+      <input id="tanggal" type="date">
+
+      <div class="grid2">
+        <div>
+          <label>BIAYA BULAN</label>
+          <select id="biayaBulan"></select>
+        </div>
+        <div>
+          <label>TAHUN BIAYA</label>
+          <input id="tahunBiaya" type="number">
+        </div>
+      </div>
+
+      <label>SUMBER DANA</label>
+      <select id="sumberDana"></select>
+
+      <div class="grid2">
+        <div>
+          <label>BUDGET BULAN</label>
+          <select id="budgetBulan"></select>
+        </div>
+        <div>
+          <label>TAHUN BUDGET</label>
+          <input id="tahunBudget" type="number">
+        </div>
+      </div>
+
+      <div class="row-btns">
+        <button class="btn-ghost" onclick="resetAll()">Batal</button>
+        <button id="btnSave" class="btn-primary" onclick="save()">Simpan ke Spreadsheet</button>
+      </div>
+    </div>
+
+    <div id="msg"></div>
+  </div>
+
+  <script>
+    var CFG = null;
+    var currentDataUrl = null;
+
+    // --- Inisialisasi ---
+    google.script.run.withSuccessHandler(function (cfg) {
+      CFG = cfg;
+      fillSelect('posBiaya', cfg.posBiaya);
+      fillSelect('sumberDana', cfg.sumberDana);
+      fillSelect('biayaBulan', cfg.bulan);
+      fillSelect('budgetBulan', cfg.bulan);
+    }).withFailureHandler(showErr).getConfig();
+
+    function fillSelect(id, items) {
+      var sel = document.getElementById(id);
+      sel.innerHTML = '';
+      items.forEach(function (it) {
+        var o = document.createElement('option');
+        o.value = it; o.textContent = it;
+        sel.appendChild(o);
+      });
+    }
+
+    // --- Upload handling ---
+    var drop = document.getElementById('drop');
+    var fileInput = document.getElementById('file');
+    drop.addEventListener('click', function () { fileInput.click(); });
+    fileInput.addEventListener('change', function (e) {
+      if (e.target.files.length) loadFile(e.target.files[0]);
+    });
+    ['dragover', 'dragenter'].forEach(function (ev) {
+      drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('over'); });
+    });
+    ['dragleave', 'drop'].forEach(function (ev) {
+      drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('over'); });
+    });
+    drop.addEventListener('drop', function (e) {
+      if (e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]);
+    });
+
+    function loadFile(file) {
+      if (!file.type.match('image.*')) { showErr('File harus berupa gambar.'); return; }
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        currentDataUrl = e.target.result;
+        var img = document.getElementById('preview');
+        img.src = currentDataUrl;
+        img.style.display = 'block';
+        document.getElementById('btnAnalyze').classList.remove('hidden');
+        clearMsg();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // --- Analisis (Claude Vision) ---
+    function analyze() {
+      if (!currentDataUrl) return;
+      var btn = document.getElementById('btnAnalyze');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spin"></span>Membaca gambar...';
+      showInfo('Sedang membaca bukti dengan Claude…');
+      google.script.run
+        .withSuccessHandler(function (data) {
+          btn.disabled = false; btn.textContent = 'Baca Ulang';
+          fillForm(data);
+          clearMsg();
+        })
+        .withFailureHandler(function (err) {
+          btn.disabled = false; btn.textContent = 'Baca Otomatis';
+          showErr(err.message || err);
+        })
+        .analyzeImage(currentDataUrl);
+    }
+
+    function fillForm(d) {
+      document.getElementById('formCard').classList.remove('hidden');
+      setSelect('posBiaya', d.pos_biaya);
+      document.getElementById('keterangan').value = d.keterangan || '';
+      document.getElementById('nominal').value = groupThousands(String(d.nominal || ''));
+      document.getElementById('tanggal').value = d.tanggal || CFG.today;
+      setSelect('biayaBulan', d.biaya_bulan);
+      document.getElementById('tahunBiaya').value = d.tahun_biaya || CFG.tahunIni;
+      setSelect('sumberDana', d.sumber_dana);
+      setSelect('budgetBulan', d.budget_bulan);
+      document.getElementById('tahunBudget').value = d.tahun_budget || CFG.tahunIni;
+
+      var pill = document.getElementById('confPill');
+      pill.textContent = 'keyakinan: ' + (d.confidence || '-');
+      pill.className = 'pill ' + (d.confidence || '');
+
+      var note = document.getElementById('catatan');
+      if (d.catatan && d.catatan.trim()) {
+        note.textContent = '⚠️ ' + d.catatan; note.classList.remove('hidden');
+      } else { note.classList.add('hidden'); }
+
+      document.getElementById('formCard').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function setSelect(id, val) {
+      var sel = document.getElementById(id);
+      var found = false;
+      for (var i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value === val) { sel.selectedIndex = i; found = true; break; }
+      }
+      if (!found && val) {
+        var o = document.createElement('option');
+        o.value = val; o.textContent = val + ' (baru)';
+        sel.appendChild(o); sel.value = val;
+      }
+    }
+
+    // --- Format nominal dengan pemisah ribuan ---
+    function onNominalInput() {
+      var el = document.getElementById('nominal');
+      el.value = groupThousands(el.value);
+    }
+    function groupThousands(s) {
+      var digits = String(s).replace(/[^\d]/g, '');
+      if (!digits) return '';
+      return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+    function unformatNominal() {
+      return Number(document.getElementById('nominal').value.replace(/[^\d]/g, ''));
+    }
+
+    // --- Simpan ---
+    function save() {
+      var payload = {
+        posBiaya: document.getElementById('posBiaya').value,
+        keterangan: document.getElementById('keterangan').value,
+        nominal: unformatNominal(),
+        tanggal: document.getElementById('tanggal').value,
+        biayaBulan: document.getElementById('biayaBulan').value,
+        tahunBiaya: document.getElementById('tahunBiaya').value,
+        sumberDana: document.getElementById('sumberDana').value,
+        budgetBulan: document.getElementById('budgetBulan').value,
+        tahunBudget: document.getElementById('tahunBudget').value,
+        rekening: ''
+      };
+      if (!(payload.nominal > 0)) { showErr('Nominal harus lebih dari 0.'); return; }
+
+      var btn = document.getElementById('btnSave');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spin"></span>Menyimpan...';
+      google.script.run
+        .withSuccessHandler(function (res) {
+          btn.disabled = false; btn.textContent = 'Simpan ke Spreadsheet';
+          showOk('✅ Tersimpan ke baris ' + res.row + ' pada sheet TRANSAKSI.');
+          resetAll();
+        })
+        .withFailureHandler(function (err) {
+          btn.disabled = false; btn.textContent = 'Simpan ke Spreadsheet';
+          showErr(err.message || err);
+        })
+        .appendTransaction(payload);
+    }
+
+    function resetAll() {
+      currentDataUrl = null;
+      fileInput.value = '';
+      var img = document.getElementById('preview');
+      img.src = ''; img.style.display = 'none';
+      document.getElementById('btnAnalyze').classList.add('hidden');
+      document.getElementById('btnAnalyze').textContent = 'Baca Otomatis';
+      document.getElementById('formCard').classList.add('hidden');
+    }
+
+    // --- Pesan ---
+    function showOk(t) { setMsg(t, 'ok'); }
+    function showErr(e) { setMsg(typeof e === 'string' ? e : (e.message || 'Terjadi kesalahan.'), 'err'); }
+    function showInfo(t) { setMsg(t, 'info'); }
+    function clearMsg() { document.getElementById('msg').innerHTML = ''; }
+    function setMsg(t, cls) {
+      document.getElementById('msg').innerHTML = '<div class="msg ' + cls + '">' + t + '</div>';
+    }
+  </script>
+</body>
+</html>
