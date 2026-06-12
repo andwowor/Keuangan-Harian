@@ -127,6 +127,39 @@ function getKeteranganOptions(posBiaya) {
   return arr.slice(0, 12).map(function (x) { return x[0]; });
 }
 
+/**
+ * Konteks pembelajaran dari history sheet (di-cache 5 menit, di-refresh tiap simpan).
+ * - sumberDanaByPos: SUMBER DANA paling sering dipakai untuk tiap POS BIAYA.
+ */
+function getHistoryContext() {
+  var cache = CacheService.getScriptCache();
+  var cached = cache.get('histctx');
+  if (cached) return JSON.parse(cached);
+
+  var sheet = getSheet_();
+  var hdr = findHeaderRow_(sheet);
+  var last = findLastDataRow_(sheet, hdr);
+  var ctx = { sumberDanaByPos: {} };
+
+  if (last > hdr) {
+    var vals = sheet.getRange(hdr + 1, 1, last - hdr, 7).getValues(); // kolom A..G
+    var freq = {}; // pos -> { sumberDana: jumlah }
+    for (var i = 0; i < vals.length; i++) {
+      var pos = String(vals[i][0]).trim();   // A POS BIAYA
+      var sd = String(vals[i][6]).trim();    // G SUMBER DANA
+      if (!pos || !sd) continue;
+      (freq[pos] = freq[pos] || {})[sd] = (freq[pos][sd] || 0) + 1;
+    }
+    for (var p in freq) {
+      var best = '', bc = -1;
+      for (var s in freq[p]) { if (freq[p][s] > bc) { bc = freq[p][s]; best = s; } }
+      ctx.sumberDanaByPos[p] = best;
+    }
+  }
+  cache.put('histctx', JSON.stringify(ctx), 300);
+  return ctx;
+}
+
 // ====================== EKSTRAKSI GAMBAR (CLAUDE VISION) ======================
 
 /**
@@ -147,8 +180,10 @@ function analyzeImage(dataUrl) {
     'pengeluaran (umumnya dari aplikasi bank / e-wallet Indonesia). Baca gambar dan ' +
     'ekstrak data sesuai skema. Jangan menebak field yang tidak terlihat pada bukti.\n\n' +
     'Aturan:\n' +
-    '- nominal: total uang yang KELUAR, angka bulat Rupiah tanpa titik/koma/simbol ' +
-    '(contoh "Rp2.392.144" -> 2392144).\n' +
+    '- nominal_asli: total uang yang KELUAR dalam MATA UANG ASLI pada bukti, sebagai angka ' +
+    '(boleh desimal). Contoh "Rp2.392.144" -> 2392144 ; "¥85,50"/"RMB 85.50" -> 85.5.\n' +
+    '- mata_uang: kode ISO 4217 mata uang pada bukti. Rupiah/Rp -> "IDR" ; RMB/¥/元/yuan -> "CNY" ; ' +
+    'US$/USD -> "USD" ; S$/SGD -> "SGD" ; dst. Jika tidak jelas, gunakan "IDR".\n' +
     '- tanggal: tanggal transaksi PADA BUKTI, format ISO YYYY-MM-DD. WAJIB diambil dari ' +
     'bukti. Jika benar-benar tidak terbaca, isi string kosong "".\n' +
     '- pos_biaya: pilih kategori paling sesuai dari daftar enum.\n' +
@@ -169,7 +204,8 @@ function analyzeImage(dataUrl) {
   var schema = {
     type: 'object',
     properties: {
-      nominal: { type: 'integer', description: 'Pengeluaran dalam Rupiah, angka bulat' },
+      nominal_asli: { type: 'number', description: 'Jumlah dalam mata uang asli pada bukti' },
+      mata_uang: { type: 'string', description: 'Kode ISO 4217, mis. IDR/CNY/USD/SGD' },
       tanggal: { type: 'string', description: 'Tanggal transaksi YYYY-MM-DD, atau "" bila tak terbaca' },
       pos_biaya: { type: 'string', enum: POS_BIAYA },
       keterangan: { type: 'string' },
@@ -180,7 +216,7 @@ function analyzeImage(dataUrl) {
       confidence: { type: 'string', enum: ['tinggi', 'sedang', 'rendah'] },
       catatan: { type: 'string' }
     },
-    required: ['nominal', 'tanggal', 'pos_biaya', 'keterangan', 'keterangan_yakin',
+    required: ['nominal_asli', 'mata_uang', 'tanggal', 'pos_biaya', 'keterangan', 'keterangan_yakin',
       'keterangan_opsi', 'is_boc_1201', 'bank_rekening', 'confidence', 'catatan'],
     additionalProperties: false
   };
@@ -225,8 +261,64 @@ function analyzeImage(dataUrl) {
   try { data = JSON.parse(raw); }
   catch (e) { throw new Error('Gagal membaca hasil dari model: ' + raw); }
 
+  // Konversi ke IDR memakai kurs tanggal transaksi bila mata uang asing (mis. RMB/CNY).
+  var cur = String(data.mata_uang || 'IDR').toUpperCase();
+  var amt = Number(data.nominal_asli) || 0;
+  data.mataUang = cur;
+  data.nominalAsli = amt;
+  if (cur === 'IDR' || cur === '') {
+    data.nominal = Math.round(amt);
+    data.konversi = null;
+  } else {
+    try {
+      var conv = convertToIdr_(amt, cur, data.tanggal);
+      data.nominal = Math.round(conv.idr);
+      data.konversi = { mataUang: cur, nominalAsli: amt, rate: conv.rate, tanggalKurs: conv.date };
+    } catch (e2) {
+      data.nominal = 0;
+      data.konversi = { error: true, mataUang: cur, nominalAsli: amt, message: String(e2) };
+    }
+  }
   data.nominalFormatted = formatRupiah_(data.nominal);
   return data;
+}
+
+// ====================== KONVERSI MATA UANG ======================
+
+/** Konversi nominal mata uang asing ke IDR memakai kurs tanggal tertentu (dipanggil UI). */
+function convertCurrency(amount, currency, isoDate) {
+  var c = convertToIdr_(Number(amount) || 0, String(currency || '').toUpperCase(), isoDate);
+  return { idr: Math.round(c.idr), rate: c.rate, date: c.date, currency: String(currency).toUpperCase() };
+}
+
+function convertToIdr_(amount, currency, isoDate) {
+  if (!currency || currency === 'IDR') return { idr: amount, rate: 1, date: isoDate || '' };
+  var info = getFxRate_(currency, isoDate);
+  return { idr: amount * info.rate, rate: info.rate, date: info.date };
+}
+
+/** Kurs 1 unit `currency` -> IDR pada tanggal (sumber: Frankfurter/ECB), di-cache 6 jam. */
+function getFxRate_(currency, isoDate) {
+  var date = /^\d{4}-\d{2}-\d{2}/.test(isoDate || '')
+    ? isoDate.slice(0, 10)
+    : Utilities.formatDate(new Date(), TIMEZONE, 'yyyy-MM-dd');
+  var key = 'fx_' + currency + '_' + date;
+  var cache = CacheService.getScriptCache();
+  var hit = cache.get(key);
+  if (hit) return JSON.parse(hit);
+
+  var url = 'https://api.frankfurter.app/' + date + '?from=' + encodeURIComponent(currency) + '&to=IDR';
+  var resp = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+  if (resp.getResponseCode() !== 200) {
+    throw new Error('Gagal mengambil kurs ' + currency + '->IDR untuk ' + date);
+  }
+  var j = JSON.parse(resp.getContentText());
+  if (!j.rates || !j.rates.IDR) {
+    throw new Error('Kurs ' + currency + '->IDR tidak tersedia untuk ' + date);
+  }
+  var out = { rate: j.rates.IDR, date: j.date || date };
+  cache.put(key, JSON.stringify(out), 21600);
+  return out;
 }
 
 // ====================== SIMPAN KE SHEET ======================
@@ -296,6 +388,7 @@ function appendTransaction(payload) {
 
   newRange.setValues([row]);
   SpreadsheetApp.flush();
+  try { CacheService.getScriptCache().remove('histctx'); } catch (e) {} // agar pola history ter-update
   return { ok: true, row: newRow };
 }
 

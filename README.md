@@ -19,9 +19,10 @@ otomatis terhitung dari tabel transaksi — dashboard hanya menambah baris baru.
 |-------|----------|
 | **POS BIAYA** | Hanya pilih dari dropdown (tidak bisa diketik). |
 | **KETERANGAN** | Ditebak dari isi bukti, dipandu **history pengisian per POS** dari sheet (muncul sebagai autocomplete + chip rekomendasi). Bila model tidak yakin, rekomendasi ditonjolkan untuk Anda pilih. |
-| **NOMINAL** | Dibaca dari bukti (boleh dikoreksi). |
+| **NOMINAL** | Dibaca dari bukti. Bila mata uang asing (mis. **RMB/CNY**, USD, SGD), otomatis dikonversi ke Rupiah memakai **kurs pada tanggal transaksi** (sumber: Frankfurter/ECB). Info kurs ditampilkan; nominal tetap bisa dikoreksi. |
 | **TANGGAL** | Selalu diambil dari tanggal pada bukti transaksi. |
-| **BIAYA BULAN, TAHUN BIAYA, SUMBER DANA, BUDGET BULAN, TAHUN BUDGET** | **Selalu Anda tentukan sendiri** setiap input (tidak ditebak otomatis) — ada di bagian "❓ Wajib Anda tentukan". |
+| **BIAYA BULAN, TAHUN BIAYA, BUDGET BULAN, TAHUN BUDGET** | **Terisi otomatis** dari tanggal transaksi (pola history ~82%); tinggal dikonfirmasi/koreksi. |
+| **SUMBER DANA** | **Terisi otomatis**: BOC(1201)→Uang Saku; transfer bank usaha→Pendapatan Usaha; selain itu → sumber dana yang paling sering dipakai untuk POS tersebut (dipelajari dari history). Bisa dikoreksi. |
 | **Rekening** | Hanya aktif bila SUMBER DANA = **PENDAPATAN USAHA**. Isi nama bank dari bukti transfer (`Mandiri / BNI / BRI / BCA / Kas Tunai Maumbi`). Dikosongkan = dana dari **kas tunai usaha**. Untuk sumber dana lain, Rekening selalu kosong. |
 | **Aturan khusus** | Jika bukti menampilkan **"BOC Debit Card (1201)"**, SUMBER DANA otomatis terisi **UANG SAKU**. |
 
@@ -79,11 +80,16 @@ Cara termudah — terikat langsung ke spreadsheet:
 1. Buka URL dashboard.
 2. Ketuk area upload → pilih/foto bukti transfer.
 3. Klik **Baca Otomatis** — tunggu beberapa detik.
-4. Periksa hasil baca (POS BIAYA, KETERANGAN, NOMINAL, TANGGAL).
-5. Pada bagian **❓ Wajib Anda tentukan**, pilih SUMBER DANA, BIAYA BULAN,
-   TAHUN BIAYA, BUDGET BULAN, dan TAHUN BUDGET. Bila SUMBER DANA = Pendapatan
-   Usaha, pilih juga Rekening (atau biarkan "kas tunai usaha").
+4. Periksa hasil baca (POS BIAYA, KETERANGAN, NOMINAL, TANGGAL). Bila bukti
+   memakai mata uang asing, NOMINAL sudah dikonversi ke Rupiah (info kurs tampil).
+5. Bagian **✅ Terisi otomatis** sudah diisi dari pola history (SUMBER DANA,
+   BIAYA/BUDGET BULAN & TAHUN, serta Rekening bila Pendapatan Usaha) —
+   cukup **koreksi yang meleset**.
 6. Klik **Simpan ke Spreadsheet**. Baris masuk di posisi kosong terbawah.
+
+> **Makin lama makin otomatis:** dashboard membaca sheet TRANSAKSI secara *live*
+> setiap kali dipakai, sehingga setiap transaksi baru yang Anda simpan ikut
+> memperbaiki tebakan (KETERANGAN & SUMBER DANA) berikutnya — koreksi Anda makin sedikit.
 
 ---
 

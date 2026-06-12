@@ -106,13 +106,14 @@
         <span>Rp</span>
         <input id="nominal" type="text" inputmode="numeric" placeholder="0" oninput="onNominalInput()">
       </div>
+      <div id="kursNote" class="note hidden" style="color:var(--muted)"></div>
 
       <label>TANGGAL <span style="color:var(--muted);font-weight:400">(dari bukti)</span></label>
       <input id="tanggal" type="date" onchange="onTanggalChange()">
 
       <!-- Wajib dipilih pemilik -->
       <div class="ask-box">
-        <div class="ask-title">❓ Wajib Anda tentukan</div>
+        <div class="ask-title">✅ Terisi otomatis dari history — konfirmasi</div>
         <div id="askHint" class="ask-hint"></div>
 
         <label>SUMBER DANA</label>
@@ -167,6 +168,11 @@
       fillSelect('biayaBulan', cfg.bulan, true, '— pilih bulan —');
       fillSelect('budgetBulan', cfg.bulan, true, '— pilih bulan —');
       buildRekening();
+      // Pelajari pola SUMBER DANA per POS dari history (live).
+      CFG.sumberDanaByPos = {};
+      google.script.run.withSuccessHandler(function (ctx) {
+        CFG.sumberDanaByPos = (ctx && ctx.sumberDanaByPos) || {};
+      }).getHistoryContext();
     }).withFailureHandler(showErr).getConfig();
 
     refreshTarget();
@@ -203,8 +209,7 @@
       });
     }
 
-    // includeYear hanya memastikan tahun transaksi tersedia sebagai opsi —
-    // selalu mulai kosong agar pemilik wajib memilih.
+    // Membuat opsi tahun & memilih tahun transaksi (auto-fill, tetap bisa diubah).
     function buildYears(selId, includeYear) {
       var sel = document.getElementById(selId);
       sel.innerHTML = '';
@@ -212,12 +217,12 @@
       if (includeYear && years.indexOf(includeYear) === -1) years.push(includeYear);
       years.sort();
       var ph = document.createElement('option');
-      ph.value = ''; ph.textContent = '— pilih tahun —'; ph.disabled = true; ph.selected = true;
+      ph.value = ''; ph.textContent = '— pilih tahun —'; ph.disabled = true;
       sel.appendChild(ph);
       years.forEach(function (y) {
         var o = document.createElement('option'); o.value = y; o.textContent = y; sel.appendChild(o);
       });
-      sel.value = '';
+      sel.value = includeYear ? String(includeYear) : '';
     }
 
     // --- Upload ---
@@ -273,30 +278,29 @@
       document.getElementById('nominal').value = groupThousands(String(d.nominal || ''));
       document.getElementById('tanggal').value = d.tanggal || '';
 
-      // Field wajib dipilih -> dikosongkan agar pemilik menentukan
-      document.getElementById('sumberDana').value = '';
-      document.getElementById('biayaBulan').value = '';
-      document.getElementById('budgetBulan').value = '';
-      var ty = d.tanggal ? Number(d.tanggal.slice(0, 4)) : CFG.tahunIni;
-      buildYears('tahunBiaya', ty);
-      buildYears('tahunBudget', ty);
+      // Mata uang asing -> sudah dikonversi ke IDR (kurs tanggal transaksi)
+      window._mataUang = d.mataUang || 'IDR';
+      window._nominalAsli = d.nominalAsli || 0;
+      showKursNote(d.konversi);
 
-      // Aturan khusus: BOC Debit Card (1201) -> sumber dana UANG SAKU
-      var bocNote = document.getElementById('bocNote');
-      if (d.is_boc_1201) {
-        setSelect('sumberDana', 'UANG SAKU');
-        bocNote.textContent = 'ℹ️ Terdeteksi "BOC Debit Card (1201)" → Sumber Dana diisi UANG SAKU.';
-        bocNote.classList.remove('hidden');
-      } else { bocNote.classList.add('hidden'); }
-
-      // Simpan saran bank dari model untuk dipakai bila pilih Pendapatan Usaha
+      // === Auto-fill dari history & pola (boleh dikoreksi) ===
+      window._isBoc = !!d.is_boc_1201;
       window._bankSaran = d.bank_rekening || '';
-      onSumberDanaChange();
 
-      // Hint tanggal transaksi (acuan memilih bulan)
+      // Periode: BIAYA/BUDGET BULAN = bulan transaksi, TAHUN = tahun transaksi
+      var my = deriveMonthYear(d.tanggal);
+      setSelect('biayaBulan', my.bulan);
+      setSelect('budgetBulan', my.bulan);
+      buildYears('tahunBiaya', my.tahun || CFG.tahunIni);
+      buildYears('tahunBudget', my.tahun || CFG.tahunIni);
+
+      // Sumber dana: BOC(1201)->Uang Saku ; transfer bank usaha->Pendapatan Usaha ; lainnya->pola POS
+      applySumberDanaSuggestion(d.pos_biaya);
+      onSumberDanaChange(); // tampilkan/isi Rekening bila Pendapatan Usaha
+
       document.getElementById('askHint').textContent = d.tanggal
-        ? ('Tanggal transaksi: ' + formatTglHint(d.tanggal) + '. Tentukan bulan/tahun & sumber dana.')
-        : '⚠️ Tanggal tidak terbaca dari bukti — mohon isi tanggal di atas.';
+        ? ('Tanggal transaksi: ' + formatTglHint(d.tanggal) + '. Terisi otomatis dari pola — koreksi bila perlu.')
+        : '⚠️ Tanggal tidak terbaca dari bukti — mohon isi tanggal (periode menyesuaikan otomatis).';
 
       // KETERANGAN: rekomendasi history + usulan model
       loadKeteranganOptions(d.pos_biaya, d.keterangan_opsi || [], d.keterangan_yakin);
@@ -314,7 +318,57 @@
 
     // --- KETERANGAN: rekomendasi dari history sheet + usulan model ---
     function onPosChange() {
-      loadKeteranganOptions(document.getElementById('posBiaya').value, [], true);
+      var pos = document.getElementById('posBiaya').value;
+      loadKeteranganOptions(pos, [], true);
+      // Bila bukan BOC & bukan transfer bank, perbarui saran sumber dana dari pola POS baru.
+      if (!window._isBoc && !window._bankSaran) { applySumberDanaSuggestion(pos); onSumberDanaChange(); }
+    }
+
+    // Bulan & tahun dari tanggal ISO.
+    function deriveMonthYear(iso) {
+      var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
+      if (!m) return { bulan: '', tahun: '' };
+      return { bulan: CFG.bulan[Number(m[2]) - 1], tahun: Number(m[1]) };
+    }
+
+    // Saran SUMBER DANA: BOC(1201)->Uang Saku; transfer bank usaha->Pendapatan Usaha; lainnya->pola history POS.
+    function applySumberDanaSuggestion(pos) {
+      var sd = '', note = '';
+      if (window._isBoc) {
+        sd = 'UANG SAKU'; note = 'Terdeteksi "BOC Debit Card (1201)" → Uang Saku.';
+      } else if (window._bankSaran && CFG.bankRekening.indexOf(window._bankSaran) >= 0) {
+        sd = 'PENDAPATAN USAHA'; note = 'Transfer dari ' + window._bankSaran + ' → Pendapatan Usaha.';
+      } else if (CFG.sumberDanaByPos && CFG.sumberDanaByPos[pos]) {
+        sd = CFG.sumberDanaByPos[pos]; note = 'Saran dari pola history untuk POS ini.';
+      }
+      setSelect('sumberDana', sd);
+      var n = document.getElementById('bocNote');
+      if (note) { n.textContent = 'ℹ️ ' + note; n.classList.remove('hidden'); }
+      else { n.classList.add('hidden'); }
+    }
+
+    // Tampilkan info konversi kurs (mata uang asing -> IDR).
+    function showKursNote(konv) {
+      var n = document.getElementById('kursNote');
+      if (!konv) { n.classList.add('hidden'); n.textContent = ''; return; }
+      n.classList.remove('hidden');
+      if (konv.error) {
+        n.style.color = 'var(--err)';
+        n.textContent = '⚠️ ' + konv.mataUang + ' ' + fmtNum(konv.nominalAsli) +
+          ' — kurs gagal diambil, isi NOMINAL (Rp) manual.';
+        return;
+      }
+      n.style.color = 'var(--muted)';
+      var idr = Math.round(konv.nominalAsli * konv.rate);
+      n.textContent = '💱 ' + konv.mataUang + ' ' + fmtNum(konv.nominalAsli) + ' × ' + fmtNum(konv.rate) +
+        ' (kurs ' + formatTglHint(konv.tanggalKurs) + ') = Rp' + groupThousands(String(idr));
+    }
+
+    function fmtNum(x) {
+      x = Number(x) || 0;
+      var p = x.toFixed(x % 1 ? 2 : 0).split('.');
+      p[0] = p[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      return p.join(',');
     }
     function loadKeteranganOptions(pos, modelOpts, yakin) {
       var chips = document.getElementById('ketChips');
@@ -363,8 +417,22 @@
 
     function onTanggalChange() {
       var v = document.getElementById('tanggal').value;
-      if (v) document.getElementById('askHint').textContent =
-        'Tanggal transaksi: ' + formatTglHint(v) + '. Tentukan bulan/tahun & sumber dana.';
+      var my = deriveMonthYear(v);
+      if (my.bulan) {
+        setSelect('biayaBulan', my.bulan); setSelect('budgetBulan', my.bulan);
+        buildYears('tahunBiaya', my.tahun); buildYears('tahunBudget', my.tahun);
+        document.getElementById('askHint').textContent =
+          'Tanggal transaksi: ' + formatTglHint(v) + '. Terisi otomatis dari pola — koreksi bila perlu.';
+      }
+      // Mata uang asing -> hitung ulang kurs di tanggal baru.
+      if (window._mataUang && window._mataUang !== 'IDR' && window._nominalAsli > 0 && v) {
+        google.script.run.withSuccessHandler(function (res) {
+          document.getElementById('nominal').value = groupThousands(String(res.idr));
+          showKursNote({ mataUang: window._mataUang, nominalAsli: window._nominalAsli, rate: res.rate, tanggalKurs: res.date });
+        }).withFailureHandler(function () {
+          showKursNote({ error: true, mataUang: window._mataUang, nominalAsli: window._nominalAsli });
+        }).convertCurrency(window._nominalAsli, window._mataUang, v);
+      }
     }
 
     function setSelect(id, val) {
@@ -432,7 +500,8 @@
     }
 
     function resetAll() {
-      currentDataUrl = null; window._bankSaran = '';
+      currentDataUrl = null;
+      window._bankSaran = ''; window._isBoc = false; window._mataUang = 'IDR'; window._nominalAsli = 0;
       fileInput.value = '';
       var img = document.getElementById('preview'); img.src = ''; img.style.display = 'none';
       document.getElementById('btnAnalyze').classList.add('hidden');
@@ -441,6 +510,7 @@
       document.getElementById('ketChips').innerHTML = '';
       document.getElementById('rekWrap').classList.add('hidden');
       document.getElementById('bocNote').classList.add('hidden');
+      document.getElementById('kursNote').classList.add('hidden');
     }
 
     // --- Pesan ---
