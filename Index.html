@@ -7,59 +7,58 @@
     :root {
       --bg: #f4f6f8; --card: #ffffff; --ink: #1f2933; --muted: #6b7785;
       --line: #e2e8f0; --accent: #2563eb; --accent-d: #1d4ed8;
-      --ok: #16a34a; --warn: #d97706; --err: #dc2626;
+      --ok: #16a34a; --warn: #d97706; --err: #dc2626; --ask: #7c3aed;
     }
     * { box-sizing: border-box; }
-    body {
-      margin: 0; font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-      background: var(--bg); color: var(--ink); padding: 16px;
-    }
+    body { margin: 0; font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      background: var(--bg); color: var(--ink); padding: 16px; }
     .wrap { max-width: 560px; margin: 0 auto; }
     h1 { font-size: 20px; margin: 4px 0 2px; }
-    .sub { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
-    .card {
-      background: var(--card); border: 1px solid var(--line); border-radius: 14px;
-      padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 2px rgba(0,0,0,.04);
-    }
-    .drop {
-      border: 2px dashed var(--line); border-radius: 12px; padding: 22px 14px;
-      text-align: center; color: var(--muted); cursor: pointer; transition: .15s;
-    }
+    .sub { color: var(--muted); font-size: 13px; margin-bottom: 12px; }
+    .target { font-size: 12px; color: var(--accent-d); background: #eff6ff;
+      border: 1px solid #bfdbfe; border-radius: 8px; padding: 7px 10px; margin-bottom: 14px; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+      padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+    .drop { border: 2px dashed var(--line); border-radius: 12px; padding: 22px 14px;
+      text-align: center; color: var(--muted); cursor: pointer; transition: .15s; }
     .drop:hover, .drop.over { border-color: var(--accent); color: var(--accent); background: #f0f6ff; }
     .drop strong { color: var(--ink); }
     #preview { display: none; width: 100%; border-radius: 10px; margin-top: 12px; border: 1px solid var(--line); }
     label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin: 12px 0 4px; }
-    input, select {
-      width: 100%; padding: 10px 11px; font-size: 15px; border: 1px solid var(--line);
-      border-radius: 9px; background: #fff; color: var(--ink);
-    }
+    input, select { width: 100%; padding: 10px 11px; font-size: 15px; border: 1px solid var(--line);
+      border-radius: 9px; background: #fff; color: var(--ink); }
     input:focus, select:focus { outline: none; border-color: var(--accent); }
     .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    button {
-      width: 100%; padding: 12px; font-size: 15px; font-weight: 600; border: none;
-      border-radius: 10px; cursor: pointer; transition: .15s;
-    }
+    button { width: 100%; padding: 12px; font-size: 15px; font-weight: 600; border: none;
+      border-radius: 10px; cursor: pointer; transition: .15s; }
     .btn-primary { background: var(--accent); color: #fff; }
     .btn-primary:hover { background: var(--accent-d); }
     .btn-ghost { background: #eef2f7; color: var(--ink); }
     button:disabled { opacity: .55; cursor: not-allowed; }
-    .row-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+    .row-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
     .hidden { display: none; }
+    .ask-box { border: 1px solid #ddd6fe; background: #faf5ff; border-radius: 12px;
+      padding: 12px 12px 14px; margin-top: 14px; }
+    .ask-title { font-size: 12px; font-weight: 700; color: var(--ask); text-transform: uppercase; letter-spacing: .03em; }
+    .ask-hint { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .chip { font-size: 13px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px;
+      background: #fff; cursor: pointer; }
+    .chip:hover { border-color: var(--accent); color: var(--accent); }
     .msg { padding: 10px 12px; border-radius: 9px; font-size: 13px; margin-top: 12px; }
     .msg.ok { background: #ecfdf3; color: var(--ok); border: 1px solid #bbf7d0; }
     .msg.err { background: #fef2f2; color: var(--err); border: 1px solid #fecaca; }
     .msg.info { background: #eff6ff; color: var(--accent-d); border: 1px solid #bfdbfe; }
-    .spin {
-      display: inline-block; width: 15px; height: 15px; border: 2px solid #fff;
+    .spin { display: inline-block; width: 15px; height: 15px; border: 2px solid #fff;
       border-top-color: transparent; border-radius: 50%; animation: sp .7s linear infinite;
-      vertical-align: -2px; margin-right: 7px;
-    }
+      vertical-align: -2px; margin-right: 7px; }
     @keyframes sp { to { transform: rotate(360deg); } }
     .pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
     .pill.tinggi { background: #ecfdf3; color: var(--ok); }
     .pill.sedang { background: #fffbeb; color: var(--warn); }
     .pill.rendah { background: #fef2f2; color: var(--err); }
     .note { font-size: 12px; color: var(--warn); margin-top: 8px; }
+    .note.boc { color: var(--ask); }
     .nominal-prefix { position: relative; }
     .nominal-prefix span { position: absolute; left: 11px; top: 11px; color: var(--muted); font-size: 15px; }
     .nominal-prefix input { padding-left: 30px; }
@@ -68,7 +67,8 @@
 <body>
   <div class="wrap">
     <h1>💸 Dashboard Biaya Harian</h1>
-    <div class="sub">Unggah screenshot / bukti transfer → dibaca otomatis → tinjau → simpan ke sheet TRANSAKSI.</div>
+    <div class="sub">Unggah bukti → dibaca otomatis → konfirmasi → simpan ke sheet TRANSAKSI.</div>
+    <div id="target" class="target">Memeriksa baris kosong terbawah…</div>
 
     <!-- Langkah 1: Upload -->
     <div class="card">
@@ -84,19 +84,22 @@
       </button>
     </div>
 
-    <!-- Langkah 2: Form review -->
+    <!-- Langkah 2: Form -->
     <div id="formCard" class="card hidden">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <strong style="font-size:15px">Tinjau & Koreksi</strong>
+        <strong style="font-size:15px">Tinjau & Konfirmasi</strong>
         <span id="confPill" class="pill"></span>
       </div>
       <div id="catatan" class="note hidden"></div>
 
-      <label>POS BIAYA</label>
-      <select id="posBiaya"></select>
+      <!-- Dibaca dari bukti (boleh dikoreksi) -->
+      <label>POS BIAYA <span style="color:var(--muted);font-weight:400">(pilih dari daftar)</span></label>
+      <select id="posBiaya" onchange="onPosChange()"></select>
 
       <label>KETERANGAN</label>
-      <input id="keterangan" type="text" placeholder="(opsional)">
+      <input id="keterangan" type="text" list="ketList" autocomplete="off" placeholder="(ketik atau pilih rekomendasi)">
+      <datalist id="ketList"></datalist>
+      <div id="ketChips" class="chips"></div>
 
       <label>NOMINAL</label>
       <div class="nominal-prefix">
@@ -104,31 +107,42 @@
         <input id="nominal" type="text" inputmode="numeric" placeholder="0" oninput="onNominalInput()">
       </div>
 
-      <label>TANGGAL</label>
-      <input id="tanggal" type="date">
+      <label>TANGGAL <span style="color:var(--muted);font-weight:400">(dari bukti)</span></label>
+      <input id="tanggal" type="date" onchange="onTanggalChange()">
 
-      <div class="grid2">
-        <div>
-          <label>BIAYA BULAN</label>
-          <select id="biayaBulan"></select>
-        </div>
-        <div>
-          <label>TAHUN BIAYA</label>
-          <input id="tahunBiaya" type="number">
-        </div>
-      </div>
+      <!-- Wajib dipilih pemilik -->
+      <div class="ask-box">
+        <div class="ask-title">❓ Wajib Anda tentukan</div>
+        <div id="askHint" class="ask-hint"></div>
 
-      <label>SUMBER DANA</label>
-      <select id="sumberDana"></select>
+        <label>SUMBER DANA</label>
+        <select id="sumberDana" onchange="onSumberDanaChange()"></select>
+        <div id="bocNote" class="note boc hidden"></div>
 
-      <div class="grid2">
-        <div>
-          <label>BUDGET BULAN</label>
-          <select id="budgetBulan"></select>
+        <div id="rekWrap" class="hidden">
+          <label>Rekening <span style="color:var(--muted);font-weight:400">(khusus Pendapatan Usaha)</span></label>
+          <select id="rekening"></select>
         </div>
-        <div>
-          <label>TAHUN BUDGET</label>
-          <input id="tahunBudget" type="number">
+
+        <div class="grid2">
+          <div>
+            <label>BIAYA BULAN</label>
+            <select id="biayaBulan"></select>
+          </div>
+          <div>
+            <label>TAHUN BIAYA</label>
+            <select id="tahunBiaya"></select>
+          </div>
+        </div>
+        <div class="grid2">
+          <div>
+            <label>BUDGET BULAN</label>
+            <select id="budgetBulan"></select>
+          </div>
+          <div>
+            <label>TAHUN BUDGET</label>
+            <select id="tahunBudget"></select>
+          </div>
         </div>
       </div>
 
@@ -148,38 +162,74 @@
     // --- Inisialisasi ---
     google.script.run.withSuccessHandler(function (cfg) {
       CFG = cfg;
-      fillSelect('posBiaya', cfg.posBiaya);
-      fillSelect('sumberDana', cfg.sumberDana);
-      fillSelect('biayaBulan', cfg.bulan);
-      fillSelect('budgetBulan', cfg.bulan);
+      fillSelect('posBiaya', cfg.posBiaya, true, '— pilih pos biaya —');
+      fillSelect('sumberDana', cfg.sumberDana, true, '— pilih sumber dana —');
+      fillSelect('biayaBulan', cfg.bulan, true, '— pilih bulan —');
+      fillSelect('budgetBulan', cfg.bulan, true, '— pilih bulan —');
+      buildRekening();
     }).withFailureHandler(showErr).getConfig();
 
-    function fillSelect(id, items) {
+    refreshTarget();
+
+    function refreshTarget() {
+      google.script.run.withSuccessHandler(function (info) {
+        document.getElementById('target').textContent =
+          '🧾 Baris terisi terbawah: ' + info.lastRow + ' · akan disimpan ke baris ' + info.targetRow + '.';
+      }).withFailureHandler(function () {}).getNextRowInfo();
+    }
+
+    function fillSelect(id, items, placeholder, phText) {
       var sel = document.getElementById(id);
       sel.innerHTML = '';
+      if (placeholder) {
+        var p = document.createElement('option');
+        p.value = ''; p.textContent = phText || '— pilih —'; p.disabled = true; p.selected = true;
+        sel.appendChild(p);
+      }
       items.forEach(function (it) {
         var o = document.createElement('option');
-        o.value = it; o.textContent = it;
-        sel.appendChild(o);
+        o.value = it; o.textContent = it; sel.appendChild(o);
       });
     }
 
-    // --- Upload handling ---
+    function buildRekening() {
+      var sel = document.getElementById('rekening');
+      sel.innerHTML = '';
+      var kas = document.createElement('option');
+      kas.value = ''; kas.textContent = '— Kas tunai usaha (kosongkan) —';
+      sel.appendChild(kas);
+      CFG.bankRekening.forEach(function (b) {
+        var o = document.createElement('option'); o.value = b; o.textContent = b; sel.appendChild(o);
+      });
+    }
+
+    function buildYears(selId, val) {
+      var sel = document.getElementById(selId);
+      sel.innerHTML = '';
+      var years = CFG.tahun.slice();
+      if (val && years.indexOf(val) === -1) years.push(val);
+      years.sort();
+      var ph = document.createElement('option');
+      ph.value = ''; ph.textContent = '— pilih tahun —'; ph.disabled = true;
+      sel.appendChild(ph);
+      years.forEach(function (y) {
+        var o = document.createElement('option'); o.value = y; o.textContent = y; sel.appendChild(o);
+      });
+      sel.value = val ? String(val) : '';
+    }
+
+    // --- Upload ---
     var drop = document.getElementById('drop');
     var fileInput = document.getElementById('file');
     drop.addEventListener('click', function () { fileInput.click(); });
-    fileInput.addEventListener('change', function (e) {
-      if (e.target.files.length) loadFile(e.target.files[0]);
-    });
+    fileInput.addEventListener('change', function (e) { if (e.target.files.length) loadFile(e.target.files[0]); });
     ['dragover', 'dragenter'].forEach(function (ev) {
       drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('over'); });
     });
     ['dragleave', 'drop'].forEach(function (ev) {
       drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('over'); });
     });
-    drop.addEventListener('drop', function (e) {
-      if (e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]);
-    });
+    drop.addEventListener('drop', function (e) { if (e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]); });
 
     function loadFile(file) {
       if (!file.type.match('image.*')) { showErr('File harus berupa gambar.'); return; }
@@ -187,26 +237,23 @@
       reader.onload = function (e) {
         currentDataUrl = e.target.result;
         var img = document.getElementById('preview');
-        img.src = currentDataUrl;
-        img.style.display = 'block';
+        img.src = currentDataUrl; img.style.display = 'block';
         document.getElementById('btnAnalyze').classList.remove('hidden');
         clearMsg();
       };
       reader.readAsDataURL(file);
     }
 
-    // --- Analisis (Claude Vision) ---
+    // --- Analisis ---
     function analyze() {
       if (!currentDataUrl) return;
       var btn = document.getElementById('btnAnalyze');
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spin"></span>Membaca gambar...';
+      btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Membaca gambar...';
       showInfo('Sedang membaca bukti dengan Claude…');
       google.script.run
         .withSuccessHandler(function (data) {
           btn.disabled = false; btn.textContent = 'Baca Ulang';
-          fillForm(data);
-          clearMsg();
+          fillForm(data); clearMsg();
         })
         .withFailureHandler(function (err) {
           btn.disabled = false; btn.textContent = 'Baca Otomatis';
@@ -217,79 +264,163 @@
 
     function fillForm(d) {
       document.getElementById('formCard').classList.remove('hidden');
+
+      // Dibaca dari bukti
       setSelect('posBiaya', d.pos_biaya);
       document.getElementById('keterangan').value = d.keterangan || '';
       document.getElementById('nominal').value = groupThousands(String(d.nominal || ''));
-      document.getElementById('tanggal').value = d.tanggal || CFG.today;
-      setSelect('biayaBulan', d.biaya_bulan);
-      document.getElementById('tahunBiaya').value = d.tahun_biaya || CFG.tahunIni;
-      setSelect('sumberDana', d.sumber_dana);
-      setSelect('budgetBulan', d.budget_bulan);
-      document.getElementById('tahunBudget').value = d.tahun_budget || CFG.tahunIni;
+      document.getElementById('tanggal').value = d.tanggal || '';
 
+      // Field wajib dipilih -> dikosongkan agar pemilik menentukan
+      document.getElementById('sumberDana').value = '';
+      document.getElementById('biayaBulan').value = '';
+      document.getElementById('budgetBulan').value = '';
+      var ty = d.tanggal ? Number(d.tanggal.slice(0, 4)) : CFG.tahunIni;
+      buildYears('tahunBiaya', ty);
+      buildYears('tahunBudget', ty);
+
+      // Aturan khusus: BOC Debit Card (1201) -> sumber dana UANG SAKU
+      var bocNote = document.getElementById('bocNote');
+      if (d.is_boc_1201) {
+        setSelect('sumberDana', 'UANG SAKU');
+        bocNote.textContent = 'ℹ️ Terdeteksi "BOC Debit Card (1201)" → Sumber Dana diisi UANG SAKU.';
+        bocNote.classList.remove('hidden');
+      } else { bocNote.classList.add('hidden'); }
+
+      // Simpan saran bank dari model untuk dipakai bila pilih Pendapatan Usaha
+      window._bankSaran = d.bank_rekening || '';
+      onSumberDanaChange();
+
+      // Hint tanggal transaksi (acuan memilih bulan)
+      document.getElementById('askHint').textContent = d.tanggal
+        ? ('Tanggal transaksi: ' + formatTglHint(d.tanggal) + '. Tentukan bulan/tahun & sumber dana.')
+        : '⚠️ Tanggal tidak terbaca dari bukti — mohon isi tanggal di atas.';
+
+      // KETERANGAN: rekomendasi history + usulan model
+      loadKeteranganOptions(d.pos_biaya, d.keterangan_opsi || [], d.keterangan_yakin);
+
+      // Keyakinan & catatan
       var pill = document.getElementById('confPill');
       pill.textContent = 'keyakinan: ' + (d.confidence || '-');
       pill.className = 'pill ' + (d.confidence || '');
-
       var note = document.getElementById('catatan');
-      if (d.catatan && d.catatan.trim()) {
-        note.textContent = '⚠️ ' + d.catatan; note.classList.remove('hidden');
-      } else { note.classList.add('hidden'); }
+      if (d.catatan && d.catatan.trim()) { note.textContent = '⚠️ ' + d.catatan; note.classList.remove('hidden'); }
+      else { note.classList.add('hidden'); }
 
       document.getElementById('formCard').scrollIntoView({ behavior: 'smooth' });
     }
 
-    function setSelect(id, val) {
-      var sel = document.getElementById(id);
-      var found = false;
-      for (var i = 0; i < sel.options.length; i++) {
-        if (sel.options[i].value === val) { sel.selectedIndex = i; found = true; break; }
-      }
-      if (!found && val) {
-        var o = document.createElement('option');
-        o.value = val; o.textContent = val + ' (baru)';
-        sel.appendChild(o); sel.value = val;
+    // --- KETERANGAN: rekomendasi dari history sheet + usulan model ---
+    function onPosChange() {
+      loadKeteranganOptions(document.getElementById('posBiaya').value, [], true);
+    }
+    function loadKeteranganOptions(pos, modelOpts, yakin) {
+      var chips = document.getElementById('ketChips');
+      chips.innerHTML = '';
+      if (!pos) { document.getElementById('ketList').innerHTML = ''; return; }
+      google.script.run.withSuccessHandler(function (hist) {
+        // Gabungkan usulan model + history (unik), utamakan usulan model.
+        var seen = {}, merged = [];
+        (modelOpts || []).concat(hist || []).forEach(function (k) {
+          k = (k || '').trim();
+          if (k && !seen[k.toLowerCase()]) { seen[k.toLowerCase()] = 1; merged.push(k); }
+        });
+        // datalist (autocomplete)
+        var dl = document.getElementById('ketList');
+        dl.innerHTML = '';
+        merged.forEach(function (k) { var o = document.createElement('option'); o.value = k; dl.appendChild(o); });
+        // chips (klik untuk mengisi)
+        chips.innerHTML = '';
+        if (!yakin && merged.length) {
+          var lbl = document.createElement('div');
+          lbl.className = 'ask-hint'; lbl.style.width = '100%';
+          lbl.textContent = 'Rekomendasi keterangan — ketuk untuk pilih:';
+          chips.appendChild(lbl);
+        }
+        merged.slice(0, 10).forEach(function (k) {
+          var c = document.createElement('span'); c.className = 'chip'; c.textContent = k;
+          c.onclick = function () { document.getElementById('keterangan').value = k; };
+          chips.appendChild(c);
+        });
+      }).withFailureHandler(function () {}).getKeteranganOptions(pos);
+    }
+
+    // --- Sumber dana -> tampilkan/atur Rekening ---
+    function onSumberDanaChange() {
+      var sd = document.getElementById('sumberDana').value;
+      var wrap = document.getElementById('rekWrap');
+      if (sd === CFG.sumberDanaRekening) {
+        wrap.classList.remove('hidden');
+        var bank = window._bankSaran || '';
+        document.getElementById('rekening').value = (CFG.bankRekening.indexOf(bank) >= 0) ? bank : '';
+      } else {
+        wrap.classList.add('hidden');
+        document.getElementById('rekening').value = '';
       }
     }
 
-    // --- Format nominal dengan pemisah ribuan ---
+    function onTanggalChange() {
+      var v = document.getElementById('tanggal').value;
+      if (v) document.getElementById('askHint').textContent =
+        'Tanggal transaksi: ' + formatTglHint(v) + '. Tentukan bulan/tahun & sumber dana.';
+    }
+
+    function setSelect(id, val) {
+      var sel = document.getElementById(id);
+      for (var i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value === val) { sel.selectedIndex = i; return; }
+      }
+    }
+
+    // --- Nominal format ---
     function onNominalInput() {
-      var el = document.getElementById('nominal');
-      el.value = groupThousands(el.value);
+      var el = document.getElementById('nominal'); el.value = groupThousands(el.value);
     }
     function groupThousands(s) {
-      var digits = String(s).replace(/[^\d]/g, '');
-      if (!digits) return '';
-      return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      var d = String(s).replace(/[^\d]/g, '');
+      return d ? d.replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '';
     }
-    function unformatNominal() {
-      return Number(document.getElementById('nominal').value.replace(/[^\d]/g, ''));
+    function unformatNominal() { return Number(document.getElementById('nominal').value.replace(/[^\d]/g, '')); }
+
+    function formatTglHint(iso) {
+      var b = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso); if (!m) return iso;
+      return Number(m[3]) + ' ' + b[Number(m[2]) - 1] + ' ' + m[1];
     }
 
     // --- Simpan ---
     function save() {
+      var sd = document.getElementById('sumberDana').value;
       var payload = {
         posBiaya: document.getElementById('posBiaya').value,
-        keterangan: document.getElementById('keterangan').value,
+        keterangan: document.getElementById('keterangan').value.trim(),
         nominal: unformatNominal(),
         tanggal: document.getElementById('tanggal').value,
+        sumberDana: sd,
         biayaBulan: document.getElementById('biayaBulan').value,
         tahunBiaya: document.getElementById('tahunBiaya').value,
-        sumberDana: document.getElementById('sumberDana').value,
         budgetBulan: document.getElementById('budgetBulan').value,
         tahunBudget: document.getElementById('tahunBudget').value,
-        rekening: ''
+        rekening: (sd === CFG.sumberDanaRekening) ? document.getElementById('rekening').value : ''
       };
-      if (!(payload.nominal > 0)) { showErr('Nominal harus lebih dari 0.'); return; }
+
+      // Validasi sesuai aturan
+      if (!payload.posBiaya) return showErr('POS BIAYA wajib dipilih.');
+      if (!(payload.nominal > 0)) return showErr('Nominal harus lebih dari 0.');
+      if (!payload.tanggal) return showErr('Tanggal wajib diisi (dari bukti).');
+      if (!payload.sumberDana) return showErr('Sumber Dana wajib dipilih.');
+      if (!payload.biayaBulan) return showErr('Biaya Bulan wajib dipilih.');
+      if (!payload.tahunBiaya) return showErr('Tahun Biaya wajib dipilih.');
+      if (!payload.budgetBulan) return showErr('Budget Bulan wajib dipilih.');
+      if (!payload.tahunBudget) return showErr('Tahun Budget wajib dipilih.');
 
       var btn = document.getElementById('btnSave');
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spin"></span>Menyimpan...';
+      btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Menyimpan...';
       google.script.run
         .withSuccessHandler(function (res) {
           btn.disabled = false; btn.textContent = 'Simpan ke Spreadsheet';
           showOk('✅ Tersimpan ke baris ' + res.row + ' pada sheet TRANSAKSI.');
-          resetAll();
+          resetAll(); refreshTarget();
         })
         .withFailureHandler(function (err) {
           btn.disabled = false; btn.textContent = 'Simpan ke Spreadsheet';
@@ -299,13 +430,15 @@
     }
 
     function resetAll() {
-      currentDataUrl = null;
+      currentDataUrl = null; window._bankSaran = '';
       fileInput.value = '';
-      var img = document.getElementById('preview');
-      img.src = ''; img.style.display = 'none';
+      var img = document.getElementById('preview'); img.src = ''; img.style.display = 'none';
       document.getElementById('btnAnalyze').classList.add('hidden');
       document.getElementById('btnAnalyze').textContent = 'Baca Otomatis';
       document.getElementById('formCard').classList.add('hidden');
+      document.getElementById('ketChips').innerHTML = '';
+      document.getElementById('rekWrap').classList.add('hidden');
+      document.getElementById('bocNote').classList.add('hidden');
     }
 
     // --- Pesan ---
@@ -313,9 +446,7 @@
     function showErr(e) { setMsg(typeof e === 'string' ? e : (e.message || 'Terjadi kesalahan.'), 'err'); }
     function showInfo(t) { setMsg(t, 'info'); }
     function clearMsg() { document.getElementById('msg').innerHTML = ''; }
-    function setMsg(t, cls) {
-      document.getElementById('msg').innerHTML = '<div class="msg ' + cls + '">' + t + '</div>';
-    }
+    function setMsg(t, cls) { document.getElementById('msg').innerHTML = '<div class="msg ' + cls + '">' + t + '</div>'; }
   </script>
 </body>
 </html>

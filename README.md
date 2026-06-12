@@ -13,6 +13,22 @@ Upload bukti  →  Claude membaca (nominal, tanggal, kategori, sumber dana)
 Ringkasan & pivot di sheet lain (saldo bulanan, budget vs realisasi, proyeksi)
 otomatis terhitung dari tabel transaksi — dashboard hanya menambah baris baru.
 
+### Aturan pengisian yang diterapkan
+
+| Kolom | Perilaku |
+|-------|----------|
+| **POS BIAYA** | Hanya pilih dari dropdown (tidak bisa diketik). |
+| **KETERANGAN** | Ditebak dari isi bukti, dipandu **history pengisian per POS** dari sheet (muncul sebagai autocomplete + chip rekomendasi). Bila model tidak yakin, rekomendasi ditonjolkan untuk Anda pilih. |
+| **NOMINAL** | Dibaca dari bukti (boleh dikoreksi). |
+| **TANGGAL** | Selalu diambil dari tanggal pada bukti transaksi. |
+| **BIAYA BULAN, TAHUN BIAYA, SUMBER DANA, BUDGET BULAN, TAHUN BUDGET** | **Selalu Anda tentukan sendiri** setiap input (tidak ditebak otomatis) — ada di bagian "❓ Wajib Anda tentukan". |
+| **Rekening** | Hanya aktif bila SUMBER DANA = **PENDAPATAN USAHA**. Isi nama bank dari bukti transfer (`Mandiri / BNI / BRI / BCA / Kas Tunai Maumbi`). Dikosongkan = dana dari **kas tunai usaha**. Untuk sumber dana lain, Rekening selalu kosong. |
+| **Aturan khusus** | Jika bukti menampilkan **"BOC Debit Card (1201)"**, SUMBER DANA otomatis terisi **UANG SAKU**. |
+
+Baris baru selalu ditulis di **baris kosong terbawah** setelah baris terbawah yang
+sudah berisi data — dashboard mengecek posisi ini secara live sebelum menyimpan
+(ditampilkan di bagian atas: "akan disimpan ke baris …").
+
 ---
 
 ## Arsitektur
@@ -63,9 +79,11 @@ Cara termudah — terikat langsung ke spreadsheet:
 1. Buka URL dashboard.
 2. Ketuk area upload → pilih/foto bukti transfer.
 3. Klik **Baca Otomatis** — tunggu beberapa detik.
-4. Periksa hasil di form (terutama **POS BIAYA** & **SUMBER DANA**). Ada label
-   *keyakinan* (tinggi/sedang/rendah) dan catatan bila model ragu.
-5. Klik **Simpan ke Spreadsheet**.
+4. Periksa hasil baca (POS BIAYA, KETERANGAN, NOMINAL, TANGGAL).
+5. Pada bagian **❓ Wajib Anda tentukan**, pilih SUMBER DANA, BIAYA BULAN,
+   TAHUN BIAYA, BUDGET BULAN, dan TAHUN BUDGET. Bila SUMBER DANA = Pendapatan
+   Usaha, pilih juga Rekening (atau biarkan "kas tunai usaha").
+6. Klik **Simpan ke Spreadsheet**. Baris masuk di posisi kosong terbawah.
 
 ---
 

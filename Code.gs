@@ -2,11 +2,22 @@
  * Dashboard Pengisian Biaya Harian — Keuangan Harian
  * --------------------------------------------------
  * Alur: upload screenshot / bukti transfer  ->  dibaca otomatis oleh Claude Vision
- *       ->  ditinjau & dikoreksi pada form  ->  disimpan ke sheet TRANSAKSI.
+ *       ->  ditinjau & dikonfirmasi pada form  ->  disimpan ke sheet TRANSAKSI.
  *
  * Sheet TRANSAKSI memakai 10 kolom:
  *   A POS BIAYA | B KETERANGAN | C NOMINAL | D TANGGAL | E BIAYA BULAN
  *   F TAHUN BIAYA | G SUMBER DANA | H BUDGET BULAN | I TAHUN BUDGET | J Rekening
+ *
+ * Aturan pengisian (sesuai permintaan pemilik):
+ *  - POS BIAYA   : hanya pilih dari daftar (dropdown), tidak boleh diketik.
+ *  - KETERANGAN  : ditebak dari isi bukti + dipandu history pengisian per POS.
+ *  - TANGGAL     : selalu dari tanggal pada bukti transaksi.
+ *  - BIAYA BULAN, TAHUN BIAYA, SUMBER DANA, BUDGET BULAN, TAHUN BUDGET:
+ *                  selalu ditanyakan/dipilih oleh pemilik (tidak ditebak otomatis).
+ *  - Rekening    : hanya diisi bila SUMBER DANA = PENDAPATAN USAHA, berisi nama bank
+ *                  pada bukti transfer. Kosong (PENDAPATAN USAHA) = kas tunai usaha.
+ *                  Jika bukti menampilkan "BOC Debit Card (1201)" -> SUMBER DANA = UANG SAKU.
+ *  - Baris baru selalu ditulis di baris kosong terbawah setelah baris terbawah berisi data.
  *
  * Sebelum dipakai, set Script Property "ANTHROPIC_API_KEY" (lihat README.md).
  */
@@ -21,31 +32,34 @@ var TIMEZONE = 'Asia/Jakarta';
 // 'claude-sonnet-4-6' bila ingin lebih hemat biaya.
 var CLAUDE_MODEL = 'claude-opus-4-8';
 
-// Daftar kategori POS BIAYA yang valid (gabungan dari seluruh pos di spreadsheet).
+// Daftar kategori POS BIAYA yang valid (urut perkiraan frekuensi pemakaian).
 var POS_BIAYA = [
-  'BIAYA KULIAH CHINA', 'BIAYA PULANG', 'DAILY DRIVER',
-  'Pembelian Barang', 'Acara', 'Liburan', 'Kesehatan', 'Perjalanan',
-  'Perbaikan/Pemeliharaan', 'Dokumen', 'Pendidikan', 'Tambahan Modal Usaha',
-  'Pengeluaran Tidak Terduga',
-  'Pulsa', 'XL Home', 'Token Listrik', 'Rantang Bulanan', 'Belanja Bulanan',
-  'Isi Bensin', 'Sabun Cuci Baju', 'Retribusi Sampah', 'Beras', 'Air Galon',
-  'Gaji ART', 'Tagihan PDAM',
-  'SPP Colin', 'SPP Darlene', 'Les Colin Darlene',
-  'Cicilan KTA Flexy', 'Cicilan KPR', 'Bayar Kredit',
+  'DAILY DRIVER', 'BIAYA KULIAH CHINA', 'Pengeluaran Tidak Terduga', 'Acara',
+  'Liburan', 'Pembelian Barang', 'Isi Bensin', 'BIAYA PULANG', 'Perjalanan',
+  'Les Colin Darlene', 'Pulsa', 'Belanja Bulanan', 'Cicilan KPR', 'Gaji ART',
+  'Cicilan KTA Flexy', 'XL Home', 'Token Listrik', 'Tagihan PDAM',
+  'SPP Colin', 'SPP Darlene', 'Kesehatan', 'Perbaikan/Pemeliharaan',
+  'Tambahan Modal Usaha', 'Rantang Bulanan', 'Sabun Cuci Baju',
+  'Retribusi Sampah', 'Beras', 'Air Galon', 'Bayar Kredit',
   'Tagihan Kredivo', 'Tagihan Shopee Paylater', 'Paylater Traveloka',
   'Tagihan Indodana', 'Tagihan Ada Kami', 'Tagihan Allo Paylater',
   'Tagihan OVO Paylater', 'Tagihan Gojek Paylater',
   'BNI Platinum AMEX Card', 'BNI Platinum Card', 'BNI Corporate Card',
-  'BRI Card Mega',
-  'Parkir', 'Biaya Admin dan Biaya Transfer'
+  'BRI Card Mega', 'Parkir', 'Biaya Admin dan Biaya Transfer'
 ];
 
 // Daftar SUMBER DANA yang valid.
 var SUMBER_DANA = [
-  'UANG SAKU', 'GAJI', 'PENDAPATAN USAHA', 'PENGEMBALIAN USAHA',
-  'THR/CUTI (SALDO BERGERAK)', 'KK', 'IKS', 'BONUS', 'SPPD',
-  'KARTU KREDIT', 'PINJAMAN LAIN', 'LAIN-LAIN'
+  'PENDAPATAN USAHA', 'UANG SAKU', 'THR/CUTI (SALDO BERGERAK)', 'KARTU KREDIT',
+  'GAJI', 'PINJAMAN LAIN', 'KAS LAIN USAHA', 'PENGEMBALIAN USAHA',
+  'KK', 'IKS', 'BONUS', 'SPPD', 'LAIN-LAIN'
 ];
+
+// Nilai SUMBER DANA yang mengaktifkan kolom Rekening.
+var SUMBER_DANA_REKENING = 'PENDAPATAN USAHA';
+
+// Daftar bank/rekening (dipelajari dari history kolom Rekening).
+var BANK_REKENING = ['Mandiri', 'BNI', 'BRI', 'BCA', 'Kas Tunai Maumbi'];
 
 // Nama bulan (HURUF BESAR seperti format di sheet) dan Title Case (untuk teks tanggal).
 var BULAN_UPPER = ['JANUARI', 'FEBRUARI', 'MARET', 'APRIL', 'MEI', 'JUNI',
@@ -73,23 +87,52 @@ function include(filename) {
 function getConfig() {
   var now = new Date();
   var year = Number(Utilities.formatDate(now, TIMEZONE, 'yyyy'));
-  var monthIdx = Number(Utilities.formatDate(now, TIMEZONE, 'MM')) - 1;
   return {
     posBiaya: POS_BIAYA,
     sumberDana: SUMBER_DANA,
+    sumberDanaRekening: SUMBER_DANA_REKENING,
+    bankRekening: BANK_REKENING,
     bulan: BULAN_UPPER,
     tahun: [year - 1, year, year + 1],
     today: Utilities.formatDate(now, TIMEZONE, 'yyyy-MM-dd'),
-    bulanIni: BULAN_UPPER[monthIdx],
     tahunIni: year
   };
+}
+
+/** Posisi baris kosong terbawah (target penulisan) pada sheet TRANSAKSI. */
+function getNextRowInfo() {
+  var sheet = getSheet_();
+  var hdr = findHeaderRow_(sheet);
+  var last = findLastDataRow_(sheet, hdr);
+  return { targetRow: last + 1, lastRow: last };
+}
+
+/** Rekomendasi KETERANGAN (dari history sheet) untuk POS BIAYA tertentu. */
+function getKeteranganOptions(posBiaya) {
+  if (!posBiaya) return [];
+  var sheet = getSheet_();
+  var hdr = findHeaderRow_(sheet);
+  var last = findLastDataRow_(sheet, hdr);
+  if (last <= hdr) return [];
+  var vals = sheet.getRange(hdr + 1, 1, last - hdr, 2).getValues(); // kolom A & B
+  var freq = {};
+  for (var i = 0; i < vals.length; i++) {
+    if (String(vals[i][0]).trim() === posBiaya) {
+      var k = String(vals[i][1]).trim();
+      if (k) freq[k] = (freq[k] || 0) + 1;
+    }
+  }
+  var arr = Object.keys(freq).map(function (k) { return [k, freq[k]]; });
+  arr.sort(function (a, b) { return b[1] - a[1]; });
+  return arr.slice(0, 12).map(function (x) { return x[0]; });
 }
 
 // ====================== EKSTRAKSI GAMBAR (CLAUDE VISION) ======================
 
 /**
- * Membaca satu gambar (data URL) dan mengembalikan field transaksi hasil baca.
- * Dipanggil dari front-end via google.script.run.analyzeImage(dataUrl).
+ * Membaca satu gambar (data URL). Mengembalikan field yang BISA dibaca dari bukti:
+ * nominal, tanggal, pos_biaya, keterangan (+rekomendasi), deteksi BOC, dan bank rekening.
+ * Field yang HARUS dipilih pemilik (sumber dana, bulan/tahun) TIDAK ditebak di sini.
  */
 function analyzeImage(dataUrl) {
   var apiKey = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
@@ -98,42 +141,47 @@ function analyzeImage(dataUrl) {
   }
 
   var img = parseDataUrl_(dataUrl);
-  var cfg = getConfig();
 
   var systemPrompt =
     'Anda asisten pencatat keuangan. Anda menerima screenshot atau bukti transfer ' +
     'pengeluaran (umumnya dari aplikasi bank / e-wallet Indonesia). Baca gambar dan ' +
-    'ekstrak data pengeluaran ke dalam skema yang diminta.\n\n' +
+    'ekstrak data sesuai skema. Jangan menebak field yang tidak terlihat pada bukti.\n\n' +
     'Aturan:\n' +
-    '- nominal: total uang yang KELUAR, sebagai angka bulat Rupiah tanpa titik/koma/simbol ' +
-    '(contoh "Rp2.392.144" -> 2392144). Abaikan biaya admin kecuali memang itu transaksinya.\n' +
-    '- tanggal: tanggal transaksi pada bukti, format ISO YYYY-MM-DD. Jika tahun tidak tertera, ' +
-    'gunakan tahun ' + cfg.tahunIni + '. Jika tanggal tidak terbaca sama sekali, gunakan ' + cfg.today + '.\n' +
+    '- nominal: total uang yang KELUAR, angka bulat Rupiah tanpa titik/koma/simbol ' +
+    '(contoh "Rp2.392.144" -> 2392144).\n' +
+    '- tanggal: tanggal transaksi PADA BUKTI, format ISO YYYY-MM-DD. WAJIB diambil dari ' +
+    'bukti. Jika benar-benar tidak terbaca, isi string kosong "".\n' +
     '- pos_biaya: pilih kategori paling sesuai dari daftar enum.\n' +
-    '- sumber_dana: pilih dari daftar enum; jika sumber dana/rekening tidak jelas gunakan "UANG SAKU".\n' +
-    '- keterangan: deskripsi singkat (penerima/merchant/keperluan), boleh string kosong.\n' +
-    '- biaya_bulan & budget_bulan: default ke nama bulan dari tanggal transaksi (HURUF BESAR Bahasa Indonesia).\n' +
-    '- tahun_biaya & tahun_budget: default ke tahun dari tanggal transaksi.\n' +
-    '- confidence: seberapa yakin Anda terhadap hasil baca.\n' +
-    '- catatan: catatan singkat bila ada yang tidak yakin/ambigu, selain itu kosong.';
+    '- keterangan: label SINGKAT gaya pencatatan pemilik untuk transaksi ini ' +
+    '(nama merchant/barang/keperluan). Contoh gaya: "Makanan", "Snack", "Starbucks", ' +
+    '"Kopi", "Kebutuhan harian", "Sepeda", "Transport", "Refill galon", "Tarik tunai", ' +
+    '"Oleh-oleh", "Internet", "Bensin Manado". Jika tidak yakin, isi "" dan ' +
+    'keterangan_yakin=false.\n' +
+    '- keterangan_yakin: true hanya jika Anda cukup yakin keterangan-nya tepat.\n' +
+    '- keterangan_opsi: hingga 4 usulan label singkat yang cocok (boleh kosong array).\n' +
+    '- is_boc_1201: true bila pada bukti tertulis "BOC Debit Card (1201)".\n' +
+    '- bank_rekening: bila bukti adalah transfer dari rekening bank, petakan bank pengirim ' +
+    'ke salah satu dari Mandiri/BNI/BRI/BCA. Jika tidak ada/tidak jelas, isi "". ' +
+    '(Hanya dipakai bila sumber dana = PENDAPATAN USAHA.)\n' +
+    '- confidence: keyakinan keseluruhan.\n' +
+    '- catatan: catatan singkat bila ada yang ambigu, selain itu "".';
 
   var schema = {
     type: 'object',
     properties: {
-      nominal: { type: 'integer', description: 'Jumlah pengeluaran dalam Rupiah, angka bulat' },
-      tanggal: { type: 'string', description: 'Tanggal transaksi, format YYYY-MM-DD' },
+      nominal: { type: 'integer', description: 'Pengeluaran dalam Rupiah, angka bulat' },
+      tanggal: { type: 'string', description: 'Tanggal transaksi YYYY-MM-DD, atau "" bila tak terbaca' },
       pos_biaya: { type: 'string', enum: POS_BIAYA },
       keterangan: { type: 'string' },
-      sumber_dana: { type: 'string', enum: SUMBER_DANA },
-      biaya_bulan: { type: 'string', enum: BULAN_UPPER },
-      tahun_biaya: { type: 'integer' },
-      budget_bulan: { type: 'string', enum: BULAN_UPPER },
-      tahun_budget: { type: 'integer' },
+      keterangan_yakin: { type: 'boolean' },
+      keterangan_opsi: { type: 'array', items: { type: 'string' } },
+      is_boc_1201: { type: 'boolean' },
+      bank_rekening: { type: 'string', enum: ['Mandiri', 'BNI', 'BRI', 'BCA', 'Kas Tunai Maumbi', ''] },
       confidence: { type: 'string', enum: ['tinggi', 'sedang', 'rendah'] },
       catatan: { type: 'string' }
     },
-    required: ['nominal', 'tanggal', 'pos_biaya', 'keterangan', 'sumber_dana',
-      'biaya_bulan', 'tahun_biaya', 'budget_bulan', 'tahun_budget', 'confidence', 'catatan'],
+    required: ['nominal', 'tanggal', 'pos_biaya', 'keterangan', 'keterangan_yakin',
+      'keterangan_opsi', 'is_boc_1201', 'bank_rekening', 'confidence', 'catatan'],
     additionalProperties: false
   };
 
@@ -161,9 +209,7 @@ function analyzeImage(dataUrl) {
 
   var code = resp.getResponseCode();
   var text = resp.getContentText();
-  if (code !== 200) {
-    throw new Error('Claude API error ' + code + ': ' + text);
-  }
+  if (code !== 200) throw new Error('Claude API error ' + code + ': ' + text);
 
   var json = JSON.parse(text);
   if (json.stop_reason === 'refusal') {
@@ -172,15 +218,12 @@ function analyzeImage(dataUrl) {
 
   var raw = '';
   for (var i = 0; i < json.content.length; i++) {
-    if (json.content[i].type === 'text') { raw += json.content[i].text; }
+    if (json.content[i].type === 'text') raw += json.content[i].text;
   }
 
   var data;
-  try {
-    data = JSON.parse(raw);
-  } catch (e) {
-    throw new Error('Gagal membaca hasil dari model: ' + raw);
-  }
+  try { data = JSON.parse(raw); }
+  catch (e) { throw new Error('Gagal membaca hasil dari model: ' + raw); }
 
   data.nominalFormatted = formatRupiah_(data.nominal);
   return data;
@@ -189,57 +232,70 @@ function analyzeImage(dataUrl) {
 // ====================== SIMPAN KE SHEET ======================
 
 /**
- * Menambahkan satu baris transaksi ke sheet TRANSAKSI.
+ * Menambahkan satu baris transaksi di baris kosong terbawah sheet TRANSAKSI.
  * payload: {posBiaya, keterangan, nominal, tanggal(YYYY-MM-DD),
  *           biayaBulan, tahunBiaya, sumberDana, budgetBulan, tahunBudget, rekening}
  */
 function appendTransaction(payload) {
-  if (!payload || !payload.posBiaya) throw new Error('POS BIAYA wajib diisi.');
-  if (!(payload.nominal > 0)) throw new Error('NOMINAL harus berupa angka lebih dari 0.');
+  // Validasi field wajib.
+  if (!payload || !payload.posBiaya) throw new Error('POS BIAYA wajib dipilih.');
+  if (POS_BIAYA.indexOf(payload.posBiaya) === -1) throw new Error('POS BIAYA tidak valid.');
+  if (!(payload.nominal > 0)) throw new Error('NOMINAL harus angka lebih dari 0.');
+  if (!payload.tanggal) throw new Error('TANGGAL wajib diisi (dari bukti).');
+  if (!payload.sumberDana) throw new Error('SUMBER DANA wajib dipilih.');
+  if (SUMBER_DANA.indexOf(payload.sumberDana) === -1) throw new Error('SUMBER DANA tidak valid.');
+  if (!payload.biayaBulan) throw new Error('BIAYA BULAN wajib dipilih.');
+  if (!payload.tahunBiaya) throw new Error('TAHUN BIAYA wajib dipilih.');
+  if (!payload.budgetBulan) throw new Error('BUDGET BULAN wajib dipilih.');
+  if (!payload.tahunBudget) throw new Error('TAHUN BUDGET wajib dipilih.');
+
+  // Aturan Rekening: hanya untuk PENDAPATAN USAHA; selain itu paksa kosong.
+  var rekening = '';
+  if (payload.sumberDana === SUMBER_DANA_REKENING) {
+    rekening = (payload.rekening || '').trim(); // boleh kosong = kas tunai usaha
+    if (rekening && BANK_REKENING.indexOf(rekening) === -1) {
+      throw new Error('Rekening tidak valid: ' + rekening);
+    }
+  }
 
   var sheet = getSheet_();
   var headerRow = findHeaderRow_(sheet);
-  var lastRow = sheet.getLastRow();
-  var prevRow = lastRow >= headerRow + 1 ? lastRow : headerRow; // baris contoh format
-  var newRow = lastRow + 1;
+  var lastData = findLastDataRow_(sheet, headerRow);   // baris terbawah yang berisi data
+  var prevRow = lastData > headerRow ? lastData : headerRow;
+  var newRow = lastData + 1;                            // baris kosong terbawah
 
-  // Salin format & data validation dari baris transaksi terakhir agar tampilan konsisten.
+  // Salin format & data validation dari baris transaksi terakhir.
   var prevRange = sheet.getRange(prevRow, 1, 1, 10);
   var newRange = sheet.getRange(newRow, 1, 1, 10);
   prevRange.copyTo(newRange, { formatOnly: true });
-  try {
-    newRange.setDataValidations(prevRange.getDataValidations());
-  } catch (e) { /* abaikan bila tidak ada validasi */ }
+  try { newRange.setDataValidations(prevRange.getDataValidations()); } catch (e) {}
 
   var tanggalDate = parseIsoDate_(payload.tanggal);
 
-  // Kolom C (NOMINAL) & D (TANGGAL) mengikuti tipe baris sebelumnya (angka/teks, date/teks).
+  // NOMINAL (C) & TANGGAL (D) mengikuti tipe baris sebelumnya (angka/teks, date/teks).
   var prevNominal = sheet.getRange(prevRow, 3).getValue();
   var nominalValue = (typeof prevNominal === 'number' || prevNominal === '' || prevNominal == null)
-    ? Number(payload.nominal)
-    : formatRupiah_(payload.nominal);
+    ? Number(payload.nominal) : formatRupiah_(payload.nominal);
 
   var prevTanggal = sheet.getRange(prevRow, 4).getValue();
   var tanggalValue = (prevTanggal instanceof Date || prevTanggal === '' || prevTanggal == null)
-    ? tanggalDate
-    : formatTanggalId_(tanggalDate);
+    ? tanggalDate : formatTanggalId_(tanggalDate);
 
   var row = [
-    payload.posBiaya,                       // A POS BIAYA
-    payload.keterangan || '',               // B KETERANGAN
-    nominalValue,                           // C NOMINAL
-    tanggalValue,                           // D TANGGAL
-    payload.biayaBulan,                     // E BIAYA BULAN
-    Number(payload.tahunBiaya),             // F TAHUN BIAYA
-    payload.sumberDana,                     // G SUMBER DANA
-    payload.budgetBulan,                    // H BUDGET BULAN
-    Number(payload.tahunBudget),            // I TAHUN BUDGET
-    payload.rekening || ''                  // J Rekening
+    payload.posBiaya,                 // A POS BIAYA
+    payload.keterangan || '',         // B KETERANGAN
+    nominalValue,                     // C NOMINAL
+    tanggalValue,                     // D TANGGAL
+    payload.biayaBulan,               // E BIAYA BULAN
+    Number(payload.tahunBiaya),       // F TAHUN BIAYA
+    payload.sumberDana,               // G SUMBER DANA
+    payload.budgetBulan,              // H BUDGET BULAN
+    Number(payload.tahunBudget),      // I TAHUN BUDGET
+    rekening                          // J Rekening
   ];
 
   newRange.setValues([row]);
   SpreadsheetApp.flush();
-
   return { ok: true, row: newRow };
 }
 
@@ -252,28 +308,37 @@ function getSheet_() {
   return sheet;
 }
 
-/** Mencari baris header (yang memuat "POS BIAYA" di kolom A). */
+/** Baris header (memuat "POS BIAYA" di kolom A). */
 function findHeaderRow_(sheet) {
   var n = Math.min(sheet.getLastRow(), 50);
   if (n === 0) return 1;
   var colA = sheet.getRange(1, 1, n, 1).getValues();
   for (var i = 0; i < colA.length; i++) {
-    var v = String(colA[i][0]).trim().toUpperCase();
-    if (v === 'POS BIAYA') return i + 1;
+    if (String(colA[i][0]).trim().toUpperCase() === 'POS BIAYA') return i + 1;
   }
-  return 1; // fallback
+  return 1;
+}
+
+/** Baris terbawah yang masih berisi data transaksi (berdasarkan kolom A). */
+function findLastDataRow_(sheet, headerRow) {
+  var lastSheetRow = sheet.getLastRow();
+  if (lastSheetRow <= headerRow) return headerRow;
+  var colA = sheet.getRange(headerRow + 1, 1, lastSheetRow - headerRow, 1).getValues();
+  var last = headerRow;
+  for (var i = 0; i < colA.length; i++) {
+    if (String(colA[i][0]).trim() !== '') last = headerRow + 1 + i;
+  }
+  return last;
 }
 
 function parseDataUrl_(dataUrl) {
   var m = /^data:([^;]+);base64,(.*)$/.exec(dataUrl || '');
   if (!m) throw new Error('Format gambar tidak dikenali.');
   var mediaType = m[1];
-  if (['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'].indexOf(mediaType) === -1) {
-    // Claude menerima png/jpeg/gif/webp; jpg dipetakan ke jpeg.
-    if (mediaType === 'image/jpg') mediaType = 'image/jpeg';
-    else throw new Error('Tipe gambar tidak didukung: ' + mediaType);
-  }
   if (mediaType === 'image/jpg') mediaType = 'image/jpeg';
+  if (['image/png', 'image/jpeg', 'image/gif', 'image/webp'].indexOf(mediaType) === -1) {
+    throw new Error('Tipe gambar tidak didukung: ' + mediaType);
+  }
   return { mediaType: mediaType, data: m[2] };
 }
 
@@ -289,8 +354,7 @@ function formatTanggalId_(d) {
 
 function formatRupiah_(n) {
   n = Math.round(Number(n) || 0);
-  var s = String(Math.abs(n));
-  var out = '';
+  var s = String(Math.abs(n)), out = '';
   while (s.length > 3) { out = '.' + s.slice(-3) + out; s = s.slice(0, -3); }
   out = s + out;
   return 'Rp' + (n < 0 ? '-' : '') + out;
