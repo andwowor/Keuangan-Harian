@@ -262,7 +262,7 @@ function analyzeImage(dataUrl) {
   catch (e) { throw new Error('Gagal membaca hasil dari model: ' + raw); }
 
   // Konversi ke IDR memakai kurs tanggal transaksi bila mata uang asing (mis. RMB/CNY).
-  var cur = String(data.mata_uang || 'IDR').toUpperCase();
+  var cur = normalizeCurrency_(data.mata_uang);
   var amt = Number(data.nominal_asli) || 0;
   data.mataUang = cur;
   data.nominalAsli = amt;
@@ -287,14 +287,30 @@ function analyzeImage(dataUrl) {
 
 /** Konversi nominal mata uang asing ke IDR memakai kurs tanggal tertentu (dipanggil UI). */
 function convertCurrency(amount, currency, isoDate) {
-  var c = convertToIdr_(Number(amount) || 0, String(currency || '').toUpperCase(), isoDate);
-  return { idr: Math.round(c.idr), rate: c.rate, date: c.date, currency: String(currency).toUpperCase() };
+  var cur = normalizeCurrency_(currency);
+  var c = convertToIdr_(Number(amount) || 0, cur, isoDate);
+  return { idr: Math.round(c.idr), rate: c.rate, date: c.date, currency: cur };
 }
 
 function convertToIdr_(amount, currency, isoDate) {
   if (!currency || currency === 'IDR') return { idr: amount, rate: 1, date: isoDate || '' };
   var info = getFxRate_(currency, isoDate);
   return { idr: amount * info.rate, rate: info.rate, date: info.date };
+}
+
+/** Normalisasi kode mata uang ke ISO 4217 yang dikenal Frankfurter/ECB. */
+function normalizeCurrency_(c) {
+  c = String(c || '').trim().toUpperCase();
+  var map = {
+    '': 'IDR', 'RP': 'IDR', 'IDR': 'IDR', 'RUPIAH': 'IDR',
+    'RMB': 'CNY', 'CNH': 'CNY', 'CNY': 'CNY', 'YUAN': 'CNY', 'RENMINBI': 'CNY', '¥': 'CNY', '元': 'CNY', '￥': 'CNY',
+    'US$': 'USD', 'USD': 'USD', '$': 'USD', 'US DOLLAR': 'USD', 'DOLLAR': 'USD',
+    'S$': 'SGD', 'SGD': 'SGD', 'SG$': 'SGD',
+    'JPY': 'JPY', 'YEN': 'JPY',
+    'EUR': 'EUR', '€': 'EUR', 'AUD': 'AUD', 'A$': 'AUD', 'MYR': 'MYR', 'RM': 'MYR',
+    'HKD': 'HKD', 'HK$': 'HKD', 'GBP': 'GBP', 'KRW': 'KRW', 'THB': 'THB'
+  };
+  return map[c] || c;
 }
 
 /** Kurs 1 unit `currency` -> IDR pada tanggal (sumber: Frankfurter/ECB), di-cache 6 jam. */

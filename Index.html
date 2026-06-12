@@ -398,7 +398,10 @@
           c.onclick = function () { document.getElementById('keterangan').value = k; };
           chips.appendChild(c);
         });
-      }).withFailureHandler(function () {}).getKeteranganOptions(pos);
+      }).withFailureHandler(function (e) {
+        chips.innerHTML = '<span class="ask-hint" style="color:var(--err)">⚠️ Gagal memuat rekomendasi keterangan: '
+          + (e && e.message ? e.message : e) + '</span>';
+      }).getKeteranganOptions(pos);
     }
 
     // --- Sumber dana -> tampilkan/atur Rekening ---
