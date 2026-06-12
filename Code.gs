@@ -26,6 +26,7 @@
 
 var SPREADSHEET_ID = '1IsRwEzQ7xJdd0jpzxpGmvhBvx34CVuOElPFfyRs-5fM';
 var SHEET_NAME = 'TRANSAKSI';
+var MEMORY_SHEET = 'AI_MEMORY'; // sheet tersembunyi: catatan pembelajaran (bukti + saran AI + pilihan akhir)
 var TIMEZONE = 'Asia/Jakarta';
 
 // Model Claude untuk membaca gambar. Ganti ke 'claude-haiku-4-5' atau
@@ -244,6 +245,7 @@ function analyzeImage(dataUrl) {
     'keterangan_yakin=false.\n' +
     '- keterangan_yakin: true hanya jika Anda cukup yakin keterangan-nya tepat.\n' +
     '- keterangan_opsi: hingga 4 usulan label singkat yang cocok (boleh kosong array).\n' +
+    '- merchant: nama merchant/toko/aplikasi/penerima pada bukti apa adanya (untuk pembelajaran), atau "".\n' +
     '- akun_sumber: nomor rekening/akun SUMBER DANA pada bukti, yaitu rekening PENGIRIM / yang ' +
     'DIDEBIT (biasanya berlabel "Sumber Dana", "Rekening Sumber", "Dari", "From"), tulis ANGKANYA ' +
     '(boleh sertakan nama bank). Bukan rekening tujuan/penerima. Bila tidak ada, isi "".\n' +
@@ -274,6 +276,7 @@ function analyzeImage(dataUrl) {
       keterangan: { type: 'string' },
       keterangan_yakin: { type: 'boolean' },
       keterangan_opsi: { type: 'array', items: { type: 'string' } },
+      merchant: { type: 'string', description: 'Nama merchant/toko/penerima pada bukti, atau ""' },
       akun_sumber: { type: 'string', description: 'Nomor rekening/akun sumber dana (pengirim) pada bukti, atau ""' },
       is_boc_1201: { type: 'boolean' },
       bank_rekening: { type: 'string', enum: ['Mandiri', 'BNI', 'BRI', 'BCA', 'Kas Tunai Maumbi', ''] },
@@ -281,7 +284,7 @@ function analyzeImage(dataUrl) {
       catatan: { type: 'string' }
     },
     required: ['nominal_asli', 'mata_uang', 'tanggal', 'pos_biaya', 'keterangan', 'keterangan_yakin',
-      'keterangan_opsi', 'akun_sumber', 'is_boc_1201', 'bank_rekening', 'confidence', 'catatan'],
+      'keterangan_opsi', 'merchant', 'akun_sumber', 'is_boc_1201', 'bank_rekening', 'confidence', 'catatan'],
     additionalProperties: false
   };
 
@@ -343,8 +346,8 @@ function analyzeImage(dataUrl) {
       data.konversi = { error: true, mataUang: cur, nominalAsli: amt, message: String(e2) };
     }
   }
-  // Saran SUMBER DANA & Rekening dari nomor rekening sumber (deterministik), lalu aturan BOC.
-  var acct = detectAccount_(data.akun_sumber);
+  // Saran SUMBER DANA & Rekening dari nomor rekening sumber (deterministik + dipelajari), lalu aturan BOC.
+  var acct = detectAccount_(data.akun_sumber, getLearnedAccounts_());
   data.sumberDanaSaran = '';
   data.rekeningSaran = '';
   data.sumberDanaAlasan = '';
@@ -391,15 +394,78 @@ function normalizeCurrency_(c) {
   return map[c] || c;
 }
 
-/** Cocokkan teks akun sumber dari bukti ke daftar ACCOUNTS. Mengembalikan entri atau null. */
-function detectAccount_(text) {
+/**
+ * Cocokkan teks akun sumber dari bukti ke daftar rekening. ACCOUNTS (manual) diprioritaskan,
+ * lalu daftar yang DIPELAJARI dari memori. Mengembalikan entri atau null.
+ */
+function detectAccount_(text, learned) {
   var d = String(text || '').replace(/\D/g, '');
   if (d.length < 6) return null;
-  for (var i = 0; i < ACCOUNTS.length; i++) {
-    var k = ACCOUNTS[i].no;
-    if (d.indexOf(k) >= 0 || k.indexOf(d) >= 0 || d.slice(-6) === k.slice(-6)) return ACCOUNTS[i];
+  var lists = [ACCOUNTS, learned || []];
+  for (var L = 0; L < lists.length; L++) {
+    for (var i = 0; i < lists[L].length; i++) {
+      var k = lists[L][i].no;
+      if (!k) continue;
+      if (d.indexOf(k) >= 0 || k.indexOf(d) >= 0 || d.slice(-6) === k.slice(-6)) return lists[L][i];
+    }
   }
   return null;
+}
+
+function topKey_(obj) {
+  var best = '', bc = -1;
+  for (var k in obj) { if (obj[k] > bc) { bc = obj[k]; best = k; } }
+  return best;
+}
+
+/** Rekening yang DIPELAJARI dari sheet AI_MEMORY: nomor rekening -> sumber dana (+bank) tersering. */
+function getLearnedAccounts_() {
+  var cache = CacheService.getScriptCache();
+  var hit = cache.get('learnacct');
+  if (hit) return JSON.parse(hit);
+  var out = [];
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sh = ss.getSheetByName(MEMORY_SHEET);
+    if (sh && sh.getLastRow() > 1) {
+      var data = sh.getDataRange().getValues();
+      var head = data[0];
+      var iAk = head.indexOf('akun_sumber'), iSd = head.indexOf('sumber_dana_final'), iRek = head.indexOf('rekening_final');
+      if (iAk >= 0 && iSd >= 0) {
+        var agg = {};
+        for (var r = 1; r < data.length; r++) {
+          var dig = String(data[r][iAk] || '').replace(/\D/g, '');
+          var sd = String(data[r][iSd] || '').trim();
+          if (dig.length < 6 || !sd) continue;
+          agg[dig] = agg[dig] || { sd: {}, bank: {} };
+          agg[dig].sd[sd] = (agg[dig].sd[sd] || 0) + 1;
+          var rk = iRek >= 0 ? String(data[r][iRek] || '').trim() : '';
+          if (rk) agg[dig].bank[rk] = (agg[dig].bank[rk] || 0) + 1;
+        }
+        for (var dg in agg) {
+          out.push({ no: dg, label: 'Rekening ' + dg + ' (dipelajari)', sumberDana: topKey_(agg[dg].sd), bank: topKey_(agg[dg].bank) });
+        }
+      }
+    }
+  } catch (e) {}
+  cache.put('learnacct', JSON.stringify(out), 300);
+  return out;
+}
+
+/** Catat satu transaksi (bukti + saran AI + pilihan akhir) ke sheet AI_MEMORY untuk pembelajaran. */
+function logMemory_(m) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sh = ss.getSheetByName(MEMORY_SHEET);
+  var header = ['waktu', 'tanggal', 'pos_final', 'keterangan_final', 'nominal', 'sumber_dana_final',
+    'rekening_final', 'akun_sumber', 'mata_uang', 'merchant',
+    'pos_saran', 'sumber_dana_saran', 'keterangan_saran', 'dikoreksi'];
+  if (!sh) { sh = ss.insertSheet(MEMORY_SHEET); sh.appendRow(header); try { sh.hideSheet(); } catch (e) {} }
+  else if (sh.getLastRow() === 0) { sh.appendRow(header); }
+  sh.appendRow([
+    new Date(), m.tanggal || '', m.pos || '', m.keterangan || '', m.nominal || '', m.sumberDana || '',
+    m.rekening || '', m.akunSumber || '', m.mataUang || '', m.merchant || '',
+    m.sugPos || '', m.sugSumber || '', m.sugKeterangan || '', m.dikoreksi ? 'ya' : ''
+  ]);
 }
 
 /** Kurs 1 unit `currency` -> IDR pada tanggal (sumber: Frankfurter/ECB), di-cache 6 jam. */
@@ -493,7 +559,25 @@ function appendTransaction(payload) {
 
   newRange.setValues([row]);
   SpreadsheetApp.flush();
-  try { CacheService.getScriptCache().remove('histctx'); CacheService.getScriptCache().remove('posex'); } catch (e) {} // refresh pola history
+
+  // Catat ke memori pembelajaran (bukti + saran AI + pilihan akhir). Jangan sampai menggagalkan simpan.
+  try {
+    var meta = payload.meta || {};
+    logMemory_({
+      tanggal: payload.tanggal, pos: payload.posBiaya, keterangan: payload.keterangan,
+      nominal: payload.nominal, sumberDana: payload.sumberDana, rekening: rekening,
+      akunSumber: meta.akunSumber, mataUang: meta.mataUang, merchant: meta.merchant,
+      sugPos: meta.sugPos, sugSumber: meta.sugSumber, sugKeterangan: meta.sugKeterangan,
+      dikoreksi: (meta.sugPos && meta.sugPos !== payload.posBiaya) ||
+                 (meta.sugSumber && meta.sugSumber !== payload.sumberDana) ||
+                 (meta.sugKeterangan && meta.sugKeterangan !== payload.keterangan)
+    });
+  } catch (e) {}
+
+  try {
+    var c = CacheService.getScriptCache();
+    c.remove('histctx'); c.remove('posex'); c.remove('learnacct');
+  } catch (e) {} // refresh pola history & rekening yang dipelajari
   return { ok: true, row: newRow };
 }
 

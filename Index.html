@@ -289,6 +289,11 @@
       window._sdAlasan = d.sumberDanaAlasan || '';
       window._rekSaran = d.rekeningSaran || '';     // bank utk kolom Rekening (pendapatan usaha)
       window._bankModel = d.bank_rekening || '';    // cadangan tebakan bank dari model
+      // Metadata untuk pembelajaran (dicatat saat simpan): bukti + saran AI.
+      window._meta = {
+        akunSumber: d.akun_sumber || '', mataUang: d.mataUang || 'IDR', merchant: d.merchant || '',
+        sugPos: d.pos_biaya || '', sugSumber: d.sumberDanaSaran || '', sugKeterangan: d.keterangan || ''
+      };
 
       // Periode: BIAYA/BUDGET BULAN = bulan transaksi, TAHUN = tahun transaksi
       var my = deriveMonthYear(d.tanggal);
@@ -478,7 +483,8 @@
         tahunBiaya: document.getElementById('tahunBiaya').value,
         budgetBulan: document.getElementById('budgetBulan').value,
         tahunBudget: document.getElementById('tahunBudget').value,
-        rekening: (sd === CFG.sumberDanaRekening) ? document.getElementById('rekening').value : ''
+        rekening: (sd === CFG.sumberDanaRekening) ? document.getElementById('rekening').value : '',
+        meta: window._meta || {}
       };
 
       // Validasi sesuai aturan
@@ -509,7 +515,8 @@
     function resetAll() {
       currentDataUrl = null;
       window._bankSaran = ''; window._isBoc = false; window._sdSaran = ''; window._sdAlasan = '';
-      window._rekSaran = ''; window._bankModel = ''; window._mataUang = 'IDR'; window._nominalAsli = 0;
+      window._rekSaran = ''; window._bankModel = ''; window._meta = null;
+      window._mataUang = 'IDR'; window._nominalAsli = 0;
       fileInput.value = '';
       var img = document.getElementById('preview'); img.src = ''; img.style.display = 'none';
       document.getElementById('btnAnalyze').classList.add('hidden');

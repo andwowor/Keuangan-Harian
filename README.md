@@ -89,7 +89,13 @@ Cara termudah — terikat langsung ke spreadsheet:
 
 > **Makin lama makin otomatis:** dashboard membaca sheet TRANSAKSI secara *live*
 > setiap kali dipakai, sehingga setiap transaksi baru yang Anda simpan ikut
-> memperbaiki tebakan (KETERANGAN & SUMBER DANA) berikutnya — koreksi Anda makin sedikit.
+> memperbaiki tebakan (POS BIAYA, KETERANGAN, SUMBER DANA) berikutnya.
+>
+> Selain itu, tiap simpan dicatat ke sheet tersembunyi **`AI_MEMORY`** (bukti +
+> saran AI + pilihan akhir Anda + tanda apakah dikoreksi). Dari memori ini sistem
+> **mempelajari nomor rekening baru → sumber dana** secara otomatis: rekening yang
+> belum terdaftar cukup Anda koreksi sekali–dua kali, lalu dikenali sendiri.
+> (Sheet `AI_MEMORY` dibuat & disembunyikan otomatis; boleh Anda buka untuk audit.)
 
 ---
 
