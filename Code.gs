@@ -428,14 +428,20 @@ function findHeaderRow_(sheet) {
   return 1;
 }
 
-/** Baris terbawah yang masih berisi data transaksi (berdasarkan kolom A). */
+/**
+ * Baris terisi terbawah dari BLOK KONTIGU yang dimulai tepat di bawah header
+ * (kolom A). Berhenti di baris kosong pertama, sehingga baris "nyasar" yang
+ * terpisah jauh di bawah (akibat celah) tidak ikut terhitung. Penulisan baru
+ * selalu di baris kosong pertama setelah blok ini.
+ */
 function findLastDataRow_(sheet, headerRow) {
   var lastSheetRow = sheet.getLastRow();
   if (lastSheetRow <= headerRow) return headerRow;
   var colA = sheet.getRange(headerRow + 1, 1, lastSheetRow - headerRow, 1).getValues();
   var last = headerRow;
   for (var i = 0; i < colA.length; i++) {
-    if (String(colA[i][0]).trim() !== '') last = headerRow + 1 + i;
+    if (String(colA[i][0]).trim() === '') break; // baris kosong pertama -> akhir blok kontigu
+    last = headerRow + 1 + i;
   }
   return last;
 }
