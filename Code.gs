@@ -29,9 +29,9 @@ var SHEET_NAME = 'TRANSAKSI';
 var MEMORY_SHEET = 'AI_MEMORY'; // sheet tersembunyi: catatan pembelajaran (bukti + saran AI + pilihan akhir)
 var TIMEZONE = 'Asia/Jakarta';
 
-// Model Claude untuk membaca gambar. Ganti ke 'claude-haiku-4-5' atau
-// 'claude-sonnet-4-6' bila ingin lebih hemat biaya.
-var CLAUDE_MODEL = 'claude-opus-4-8';
+// Model Claude untuk membaca gambar. Ganti ke 'claude-opus-4-8' (lebih akurat) atau
+// 'claude-haiku-4-5' (lebih hemat) bila perlu.
+var CLAUDE_MODEL = 'claude-sonnet-4-6';
 
 // Daftar kategori POS BIAYA yang valid (urut perkiraan frekuensi pemakaian).
 var POS_BIAYA = [

@@ -37,7 +37,7 @@ sudah berisi data — dashboard mengecek posisi ini secara live sebelum menyimpa
 | Komponen | Teknologi |
 |----------|-----------|
 | Hosting & backend | **Google Apps Script** (Web App) — gratis, akses tulis ke Spreadsheet secara native |
-| Pembaca gambar (OCR + kategorisasi) | **Claude Vision API** (`claude-opus-4-8`) via `UrlFetchApp` |
+| Pembaca gambar (OCR + kategorisasi) | **Claude Vision API** (`claude-sonnet-4-6`) via `UrlFetchApp` |
 | UI | HTML/CSS/JS sederhana, mobile-friendly |
 
 File:
@@ -102,8 +102,8 @@ Cara termudah — terikat langsung ke spreadsheet:
 ## Kustomisasi
 
 - **Ganti model (hemat biaya):** ubah `CLAUDE_MODEL` di `Code.gs`.
-  - `claude-opus-4-8` — paling akurat (default)
-  - `claude-sonnet-4-6` — seimbang
+  - `claude-sonnet-4-6` — seimbang (default)
+  - `claude-opus-4-8` — paling akurat
   - `claude-haiku-4-5` — paling murah & cepat
 - **Tambah/ubah kategori:** edit array `POS_BIAYA` atau `SUMBER_DANA` di `Code.gs`.
   Daftar ini sekaligus menjadi pilihan dropdown di form **dan** batasan tebakan model.
