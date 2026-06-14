@@ -533,7 +533,7 @@ function appendTransaction(payload) {
   prevRange.copyTo(newRange, { formatOnly: true });
   try { newRange.setDataValidations(prevRange.getDataValidations()); } catch (e) {}
 
-  var tanggalDate = parseIsoDate_(payload.tanggal);
+  var tanggalDate = parseIsoDate_(payload.tanggal, sheet.getParent().getSpreadsheetTimeZone());
 
   // NOMINAL (C) & TANGGAL (D) mengikuti tipe baris sebelumnya (angka/teks, date/teks).
   var prevNominal = sheet.getRange(prevRow, 3).getValue();
@@ -542,7 +542,7 @@ function appendTransaction(payload) {
 
   var prevTanggal = sheet.getRange(prevRow, 4).getValue();
   var tanggalValue = (prevTanggal instanceof Date || prevTanggal === '' || prevTanggal == null)
-    ? tanggalDate : formatTanggalId_(tanggalDate);
+    ? tanggalDate : formatTanggalIdFromIso_(payload.tanggal);
 
   var row = [
     payload.posBiaya,                 // A POS BIAYA
@@ -630,14 +630,26 @@ function parseDataUrl_(dataUrl) {
   return { mediaType: mediaType, data: m[2] };
 }
 
-function parseIsoDate_(iso) {
-  var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
-  if (!m) return new Date();
+/**
+ * Bangun objek Date untuk tanggal (YYYY-MM-DD) sebagai tengah malam pada ZONA WAKTU
+ * SPREADSHEET, supaya tanggal yang tersimpan tidak bergeser akibat beda zona waktu
+ * antara project Apps Script dan spreadsheet.
+ */
+function parseIsoDate_(iso, tz) {
+  if (!/^\d{4}-\d{2}-\d{2}/.test(iso || '')) return new Date();
+  var date = iso.slice(0, 10);
+  if (tz) {
+    try { return Utilities.parseDate(date, tz, 'yyyy-MM-dd'); } catch (e) {}
+  }
+  var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(date);
   return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
 }
 
-function formatTanggalId_(d) {
-  return d.getDate() + ' ' + BULAN_TITLE[d.getMonth()] + ' ' + d.getFullYear();
+/** Format teks tanggal Indonesia langsung dari ISO (tanpa objek Date, bebas masalah zona waktu). */
+function formatTanggalIdFromIso_(iso) {
+  var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
+  if (!m) return iso || '';
+  return Number(m[3]) + ' ' + BULAN_TITLE[Number(m[2]) - 1] + ' ' + m[1];
 }
 
 function formatRupiah_(n) {
