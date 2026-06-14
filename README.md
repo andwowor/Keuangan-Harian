@@ -103,7 +103,7 @@ Tab kedua di dashboard (**📊 Sisa Budget**) menampilkan kondisi keuangan bulan
 sheet **REAL**:
 - Pilih **bulan** (otomatis dari baris 1 sheet REAL; default bulan berjalan).
 - **Ringkasan**: Total Pemasukan, Total Pengeluaran, dan Sisa (Saldo Real).
-- **Pemasukan per kantong** (baris 69–86 REAL — semua kantong, termasuk yang 0).
+- **Sisa Kantong** — nilai per kantong (baris 69–86 REAL — semua kantong, termasuk yang 0).
 - **Biaya per kategori** (baris 3–64 REAL, dengan subtotal per grup).
 
 Data dibaca langsung dari REAL (yang sudah terisi formula dari TRANSAKSI), jadi angkanya

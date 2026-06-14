@@ -614,12 +614,12 @@
       h += '<div class="sumrow"><span>Total Pengeluaran</span><b style="color:var(--err)">' + rp(d.totalPengeluaran) + '</b></div>';
       h += '<div class="sumrow"><span>Sisa (Saldo Real)</span><b style="color:' + (d.saldoReal < 0 ? 'var(--err)' : 'var(--ok)') + '">' + rp(d.saldoReal) + '</b></div>';
       h += '</div>';
-      // Pemasukan per kantong
-      h += '<div class="card"><div class="bt-title">💰 Pemasukan per Kantong</div><table class="bt">';
+      // Sisa Kantong (nilai pemasukan per kantong dari REAL)
+      h += '<div class="card"><div class="bt-title">💰 Sisa Kantong</div><table class="bt">';
       d.pemasukan.forEach(function (o) {
         h += '<tr><td>' + esc(o.b) + '</td><td class="num">' + rp(o.v) + '</td></tr>';
       });
-      h += '<tr class="bt-total"><td>TOTAL PEMASUKAN</td><td class="num">' + rp(d.totalIncome) + '</td></tr>';
+      h += '<tr class="bt-total"><td>TOTAL</td><td class="num">' + rp(d.totalIncome) + '</td></tr>';
       h += '</table></div>';
       // Biaya per kategori
       h += '<div class="card"><div class="bt-title">🧾 Biaya per Kategori</div><table class="bt">';
