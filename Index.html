@@ -62,12 +62,32 @@
     .nominal-prefix { position: relative; }
     .nominal-prefix span { position: absolute; left: 11px; top: 11px; color: var(--muted); font-size: 15px; }
     .nominal-prefix input { padding-left: 30px; }
+    .nav { display: flex; gap: 8px; margin-bottom: 14px; }
+    .navbtn { flex: 1; padding: 10px; border: 1px solid var(--line); background: #fff; border-radius: 10px;
+      font-weight: 600; color: var(--muted); cursor: pointer; font-size: 14px; }
+    .navbtn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .budget-sum .sumrow { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; font-size: 15px; }
+    .budget-sum .sumrow + .sumrow { border-top: 1px solid var(--line); }
+    .bt-title { font-weight: 700; font-size: 14px; margin-bottom: 8px; }
+    table.bt { width: 100%; border-collapse: collapse; font-size: 14px; }
+    table.bt td { padding: 6px 4px; border-bottom: 1px solid var(--line); }
+    table.bt td.num { text-align: right; white-space: nowrap; }
+    .bt-group td { font-weight: 700; color: var(--accent-d); padding-top: 12px; border-bottom: none; }
+    .bt-item td:first-child { padding-left: 14px; }
+    .bt-total td { font-weight: 700; background: #f8fafc; }
   </style>
 </head>
 <body>
   <div class="wrap">
     <h1>💸 Dashboard Biaya Harian</h1>
     <div class="sub">Unggah bukti → dibaca otomatis → konfirmasi → simpan ke sheet TRANSAKSI.</div>
+
+    <div class="nav">
+      <button id="navInput" class="navbtn active" onclick="showTab('input')">📥 Input Biaya</button>
+      <button id="navBudget" class="navbtn" onclick="showTab('budget')">📊 Sisa Budget</button>
+    </div>
+
+    <div id="tabInput">
     <div id="target" class="target">Memeriksa baris kosong terbawah…</div>
 
     <!-- Langkah 1: Upload -->
@@ -151,6 +171,15 @@
         <button class="btn-ghost" onclick="resetAll()">Batal</button>
         <button id="btnSave" class="btn-primary" onclick="save()">Simpan ke Spreadsheet</button>
       </div>
+    </div>
+    </div><!-- /tabInput -->
+
+    <div id="tabBudget" class="hidden">
+      <div class="card">
+        <label>Bulan</label>
+        <select id="budgetMonth" onchange="loadBudget()"></select>
+      </div>
+      <div id="budgetView"></div>
     </div>
 
     <div id="msg"></div>
@@ -534,6 +563,80 @@
     function showInfo(t) { setMsg(t, 'info'); }
     function clearMsg() { document.getElementById('msg').innerHTML = ''; }
     function setMsg(t, cls) { document.getElementById('msg').innerHTML = '<div class="msg ' + cls + '">' + t + '</div>'; }
+
+    // ===================== MENU SISA BUDGET =====================
+    var budgetLoaded = false;
+    function showTab(t) {
+      document.getElementById('tabInput').classList.toggle('hidden', t !== 'input');
+      document.getElementById('tabBudget').classList.toggle('hidden', t !== 'budget');
+      document.getElementById('navInput').classList.toggle('active', t === 'input');
+      document.getElementById('navBudget').classList.toggle('active', t === 'budget');
+      clearMsg();
+      if (t === 'budget' && !budgetLoaded) { budgetLoaded = true; initBudget(); }
+    }
+
+    function initBudget() {
+      document.getElementById('budgetView').innerHTML = '<div class="ask-hint">Memuat daftar bulan…</div>';
+      google.script.run.withSuccessHandler(function (res) {
+        var sel = document.getElementById('budgetMonth'); sel.innerHTML = '';
+        (res.months || []).forEach(function (m) {
+          var o = document.createElement('option'); o.value = m; o.textContent = m; sel.appendChild(o);
+        });
+        if (res.current && res.months.indexOf(res.current) >= 0) sel.value = res.current;
+        else if (res.months.length) sel.value = res.months[res.months.length - 1];
+        loadBudget();
+      }).withFailureHandler(function (e) {
+        document.getElementById('budgetView').innerHTML = '<div class="msg err">' + (e.message || e) + '</div>';
+      }).getBudgetMonths();
+    }
+
+    function loadBudget() {
+      var m = document.getElementById('budgetMonth').value;
+      if (!m) return;
+      document.getElementById('budgetView').innerHTML = '<div class="ask-hint"><span class="spin"></span> Memuat…</div>';
+      google.script.run.withSuccessHandler(renderBudget).withFailureHandler(function (e) {
+        document.getElementById('budgetView').innerHTML = '<div class="msg err">' + (e.message || e) + '</div>';
+      }).getBudget(m);
+    }
+
+    function rp(n) {
+      n = Math.round(Number(n) || 0);
+      var s = String(Math.abs(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      return (n < 0 ? '-Rp' : 'Rp') + s;
+    }
+    function esc(s) { return String(s).replace(/[&<>]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }); }
+
+    function renderBudget(d) {
+      var h = '';
+      // Ringkasan
+      h += '<div class="card budget-sum">';
+      h += '<div class="sumrow"><span>Total Pemasukan</span><b style="color:var(--ok)">' + rp(d.totalIncome) + '</b></div>';
+      h += '<div class="sumrow"><span>Total Pengeluaran</span><b style="color:var(--err)">' + rp(d.totalPengeluaran) + '</b></div>';
+      h += '<div class="sumrow"><span>Sisa (Saldo Real)</span><b style="color:' + (d.saldoReal < 0 ? 'var(--err)' : 'var(--ok)') + '">' + rp(d.saldoReal) + '</b></div>';
+      h += '</div>';
+      // Pemasukan per kantong
+      h += '<div class="card"><div class="bt-title">💰 Pemasukan per Kantong</div><table class="bt">';
+      d.pemasukan.forEach(function (o) {
+        h += '<tr><td>' + esc(o.b) + '</td><td class="num">' + rp(o.v) + '</td></tr>';
+      });
+      h += '<tr class="bt-total"><td>TOTAL PEMASUKAN</td><td class="num">' + rp(d.totalIncome) + '</td></tr>';
+      h += '</table></div>';
+      // Biaya per kategori
+      h += '<div class="card"><div class="bt-title">🧾 Biaya per Kategori</div><table class="bt">';
+      var lastGroup = '';
+      d.biaya.forEach(function (o) {
+        var aUp = o.a.toUpperCase();
+        if (o.a && o.a !== '-' && aUp.indexOf('TOTAL') < 0 && o.a !== lastGroup) {
+          lastGroup = o.a; h += '<tr class="bt-group"><td colspan="2">' + esc(o.a) + '</td></tr>';
+        }
+        var isTot = (o.b.toUpperCase() === 'TOTAL' || aUp.indexOf('TOTAL') >= 0);
+        var label = (aUp.indexOf('TOTAL') >= 0) ? o.a : o.b;
+        h += '<tr class="' + (isTot ? 'bt-total' : 'bt-item') + '"><td>' + esc(label) + '</td><td class="num">' + rp(o.v) + '</td></tr>';
+      });
+      h += '<tr class="bt-total"><td>TOTAL PENGELUARAN</td><td class="num">' + rp(d.totalPengeluaran) + '</td></tr>';
+      h += '</table></div>';
+      document.getElementById('budgetView').innerHTML = h;
+    }
   </script>
 </body>
 </html>

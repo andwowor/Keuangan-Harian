@@ -97,6 +97,19 @@ Cara termudah — terikat langsung ke spreadsheet:
 > belum terdaftar cukup Anda koreksi sekali–dua kali, lalu dikenali sendiri.
 > (Sheet `AI_MEMORY` dibuat & disembunyikan otomatis; boleh Anda buka untuk audit.)
 
+## Menu "Sisa Budget"
+
+Tab kedua di dashboard (**📊 Sisa Budget**) menampilkan kondisi keuangan bulanan dari
+sheet **REAL**:
+- Pilih **bulan** (otomatis dari baris 1 sheet REAL; default bulan berjalan).
+- **Ringkasan**: Total Pemasukan, Total Pengeluaran, dan Sisa (Saldo Real).
+- **Pemasukan per kantong** (baris 69–86 REAL — semua kantong, termasuk yang 0).
+- **Biaya per kategori** (baris 3–64 REAL, dengan subtotal per grup).
+
+Data dibaca langsung dari REAL (yang sudah terisi formula dari TRANSAKSI), jadi angkanya
+selalu sinkron. Kolom bulan dideteksi otomatis dari label "BULAN TAHUN" di baris 1
+(mis. `JUNI 2026`), tidak di-hardcode.
+
 ---
 
 ## Kustomisasi

@@ -122,6 +122,66 @@ function getNextRowInfo() {
   return { targetRow: last + 1, lastRow: last };
 }
 
+// ====================== MENU SISA BUDGET (sheet REAL) ======================
+
+var REAL_SHEET = 'REAL';
+
+/** Daftar bulan (label "BULAN YYYY" pada baris 1 sheet REAL) + label bulan berjalan. */
+function getBudgetMonths() {
+  var sh = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(REAL_SHEET);
+  if (!sh) throw new Error('Sheet "' + REAL_SHEET + '" tidak ditemukan.');
+  var header = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+  var months = [];
+  for (var i = 0; i < header.length; i++) {
+    var h = String(header[i]).trim();
+    if (/^[A-Za-z]+\s+\d{4}$/.test(h)) months.push(h);
+  }
+  var now = new Date();
+  var cur = BULAN_UPPER[Number(Utilities.formatDate(now, TIMEZONE, 'MM')) - 1] +
+    ' ' + Utilities.formatDate(now, TIMEZONE, 'yyyy');
+  return { months: months, current: cur };
+}
+
+/** Data biaya (per kategori), pemasukan (per kantong), & saldo untuk satu bulan dari sheet REAL. */
+function getBudget(monthLabel) {
+  var sh = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(REAL_SHEET);
+  if (!sh) throw new Error('Sheet "' + REAL_SHEET + '" tidak ditemukan.');
+  var header = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+  var col = -1;
+  for (var i = 0; i < header.length; i++) {
+    if (String(header[i]).trim().toUpperCase() === String(monthLabel).trim().toUpperCase()) { col = i + 1; break; }
+  }
+  if (col < 0) throw new Error('Bulan "' + monthLabel + '" tidak ada di sheet REAL.');
+
+  var labels = sh.getRange(3, 1, 88, 2).getValues();  // kolom A,B untuk baris 3..90
+  var vals = sh.getRange(3, col, 88, 1).getValues();  // kolom bulan untuk baris 3..90
+  function row(r) {
+    var x = r - 3;
+    return { a: String(labels[x][0]).trim(), b: String(labels[x][1]).trim(), v: toNum_(vals[x][0]) };
+  }
+  var biaya = [], pemasukan = [], r, o;
+  for (r = 3; r <= 64; r++) { o = row(r); if (o.b === '') continue; biaya.push(o); }   // kategori + subtotal
+  for (r = 69; r <= 86; r++) { pemasukan.push(row(r)); }                               // kantong (semua, termasuk 0)
+
+  return {
+    month: String(header[col - 1]).trim(),
+    biaya: biaya,
+    pemasukan: pemasukan,
+    totalPengeluaran: row(66).v,
+    totalIncome: row(87).v,
+    saldo: row(88).v,
+    saldoBulanSebelumnya: row(89).v,
+    saldoReal: row(90).v
+  };
+}
+
+function toNum_(x) {
+  if (typeof x === 'number') return x;
+  if (x === '' || x == null) return 0;
+  var n = parseFloat(String(x).replace(/[^0-9.\-]/g, ''));
+  return isNaN(n) ? 0 : n;
+}
+
 /** Rekomendasi KETERANGAN (dari history sheet) untuk POS BIAYA tertentu. */
 function getKeteranganOptions(posBiaya) {
   if (!posBiaya) return [];
