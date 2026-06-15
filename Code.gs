@@ -98,6 +98,19 @@ function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
+/** Cek PIN untuk gate UI. True bila cocok ATAU bila APP_PIN belum diset (tanpa gate). */
+function checkPin(pin) {
+  var p = PropertiesService.getScriptProperties().getProperty('APP_PIN');
+  if (!p) return true;
+  return String(pin) === String(p);
+}
+
+/** Lempar error bila PIN tidak valid (dipakai pada fungsi mahal/menulis). */
+function verifyPin_(pin) {
+  var p = PropertiesService.getScriptProperties().getProperty('APP_PIN');
+  if (p && String(pin) !== String(p)) throw new Error('PIN salah / akses ditolak.');
+}
+
 /** Data untuk mengisi dropdown & nilai default di form. */
 function getConfig() {
   var now = new Date();
@@ -274,7 +287,8 @@ function getPosExamples() {
  * nominal, tanggal, pos_biaya, keterangan (+rekomendasi), deteksi BOC, dan bank rekening.
  * Field yang HARUS dipilih pemilik (sumber dana, bulan/tahun) TIDAK ditebak di sini.
  */
-function analyzeImage(dataUrl) {
+function analyzeImage(dataUrl, pin) {
+  verifyPin_(pin);
   var apiKey = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
   if (!apiKey) {
     throw new Error('ANTHROPIC_API_KEY belum diset. Buka Project Settings > Script Properties.');
@@ -560,6 +574,7 @@ function getFxRate_(currency, isoDate) {
  *           biayaBulan, tahunBiaya, sumberDana, budgetBulan, tahunBudget, rekening}
  */
 function appendTransaction(payload) {
+  verifyPin_(payload && payload.pin);
   // Validasi field wajib.
   if (!payload || !payload.posBiaya) throw new Error('POS BIAYA wajib dipilih.');
   if (POS_BIAYA.indexOf(payload.posBiaya) === -1) throw new Error('POS BIAYA tidak valid.');

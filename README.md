@@ -59,19 +59,27 @@ Cara termudah — terikat langsung ke spreadsheet:
 
 > Atau pakai **clasp** (`clasp push`) bila Anda terbiasa dengan CLI.
 
-### 2. Set API key Claude
+### 2. Set Script Properties (API key + PIN)
 1. Di editor Apps Script: **Project Settings (⚙) → Script Properties → Add script property**.
-2. Property: `ANTHROPIC_API_KEY` — Value: API key Anthropic Anda (`sk-ant-...`).
+2. Tambahkan:
+   - `ANTHROPIC_API_KEY` = API key Anthropic Anda (`sk-ant-...`).
+   - `APP_PIN` = PIN pilihan Anda (mis. `1234`) — **kunci akses dashboard**.
 3. Simpan.
 
 > API key didapat dari https://console.anthropic.com → Settings → API Keys.
+> `APP_PIN` mengunci dashboard (wajib bila akses web app "Anyone"). Bila `APP_PIN`
+> dikosongkan, dashboard terbuka tanpa kunci.
 
 ### 3. Deploy sebagai Web App
 1. Klik **Deploy → New deployment**.
 2. Type: **Web app**.
-3. *Execute as*: **Me** · *Who has access*: **Only myself** (atau sesuai kebutuhan).
+3. *Execute as*: **Me** · *Who has access*: **Anyone** (agar bisa dibuka dari aplikasi HP/PWA tanpa kendala login). Keamanan dijaga oleh `APP_PIN`.
 4. **Deploy** → izinkan akses (OAuth) saat diminta.
-5. Salin **Web app URL** — itulah dashboard Anda. Buka di HP/komputer, bisa di-*bookmark* atau ditambahkan ke layar utama HP.
+5. Salin **Web app URL** (berakhiran `/exec`) — itulah dashboard Anda.
+
+### 4. (Opsional) Pasang sebagai aplikasi HP (iPhone/Android)
+Lihat **`docs/README.md`** untuk menjadikannya **PWA installable** (ikon di layar utama,
+full-screen) lewat GitHub Pages. Atau cukup buka URL di HP lalu **Add to Home Screen**.
 
 ---
 

@@ -75,9 +75,22 @@
     .bt-group td { font-weight: 700; color: var(--accent-d); padding-top: 12px; border-bottom: none; }
     .bt-item td:first-child { padding-left: 14px; }
     .bt-total td { font-weight: 700; background: #f8fafc; }
+    .lock { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
+    .lockbox { max-width: 340px; width: 100%; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 24px; text-align: center; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+    .lockbox input { width: 100%; box-sizing: border-box; padding: 11px; font-size: 16px; text-align: center; border: 1px solid var(--line); border-radius: 9px; }
   </style>
 </head>
 <body>
+  <div id="lock" class="lock">
+    <div class="lockbox">
+      <div style="font-size:34px">🔒</div>
+      <h2 style="margin:8px 0 2px;font-size:18px">Keuangan Harian</h2>
+      <div style="color:var(--muted);font-size:13px;margin-bottom:12px">Masukkan PIN untuk masuk</div>
+      <input id="pin" type="password" inputmode="numeric" placeholder="PIN" onkeydown="if(event.key==='Enter')unlock()">
+      <button class="btn-primary" style="margin-top:12px" onclick="unlock()">Masuk</button>
+      <div id="lockmsg" class="note" style="color:var(--err)"></div>
+    </div>
+  </div>
   <div class="wrap">
     <h1>💸 Dashboard Biaya Harian</h1>
     <div class="sub">Unggah bukti → dibaca otomatis → konfirmasi → simpan ke sheet TRANSAKSI.</div>
@@ -188,23 +201,41 @@
   <script>
     var CFG = null;
     var currentDataUrl = null;
+    window._pin = '';
 
-    // --- Inisialisasi ---
-    google.script.run.withSuccessHandler(function (cfg) {
-      CFG = cfg;
-      fillSelect('posBiaya', cfg.posBiaya, true, '— pilih pos biaya —');
-      fillSelect('sumberDana', cfg.sumberDana, true, '— pilih sumber dana —');
-      fillSelect('biayaBulan', cfg.bulan, true, '— pilih bulan —');
-      fillSelect('budgetBulan', cfg.bulan, true, '— pilih bulan —');
-      buildRekening();
-      // Pelajari pola SUMBER DANA per POS dari history (live).
-      CFG.sumberDanaByPos = {};
-      google.script.run.withSuccessHandler(function (ctx) {
-        CFG.sumberDanaByPos = (ctx && ctx.sumberDanaByPos) || {};
-      }).getHistoryContext();
-    }).withFailureHandler(showErr).getConfig();
+    // --- Inisialisasi (dijalankan setelah PIN terbuka) ---
+    function initApp() {
+      google.script.run.withSuccessHandler(function (cfg) {
+        CFG = cfg;
+        fillSelect('posBiaya', cfg.posBiaya, true, '— pilih pos biaya —');
+        fillSelect('sumberDana', cfg.sumberDana, true, '— pilih sumber dana —');
+        fillSelect('biayaBulan', cfg.bulan, true, '— pilih bulan —');
+        fillSelect('budgetBulan', cfg.bulan, true, '— pilih bulan —');
+        buildRekening();
+        // Pelajari pola SUMBER DANA per POS dari history (live).
+        CFG.sumberDanaByPos = {};
+        google.script.run.withSuccessHandler(function (ctx) {
+          CFG.sumberDanaByPos = (ctx && ctx.sumberDanaByPos) || {};
+        }).getHistoryContext();
+      }).withFailureHandler(showErr).getConfig();
+      refreshTarget();
+    }
 
-    refreshTarget();
+    function unlock() {
+      var pin = document.getElementById('pin').value;
+      document.getElementById('lockmsg').textContent = '';
+      google.script.run.withSuccessHandler(function (ok) {
+        if (ok) { window._pin = pin; document.getElementById('lock').style.display = 'none'; initApp(); }
+        else { document.getElementById('lockmsg').textContent = 'PIN salah.'; }
+      }).withFailureHandler(function (e) {
+        document.getElementById('lockmsg').textContent = (e.message || e);
+      }).checkPin(pin);
+    }
+
+    // Auto-buka bila APP_PIN belum diset (tanpa gate).
+    google.script.run.withSuccessHandler(function (ok) {
+      if (ok) { document.getElementById('lock').style.display = 'none'; initApp(); }
+    }).checkPin('');
 
     function refreshTarget() {
       google.script.run.withSuccessHandler(function (info) {
@@ -295,7 +326,7 @@
           btn.disabled = false; btn.textContent = 'Baca Otomatis';
           showErr(err.message || err);
         })
-        .analyzeImage(currentDataUrl);
+        .analyzeImage(currentDataUrl, window._pin);
     }
 
     function fillForm(d) {
@@ -513,6 +544,7 @@
         budgetBulan: document.getElementById('budgetBulan').value,
         tahunBudget: document.getElementById('tahunBudget').value,
         rekening: (sd === CFG.sumberDanaRekening) ? document.getElementById('rekening').value : '',
+        pin: window._pin,
         meta: window._meta || {}
       };
 
