@@ -15,7 +15,7 @@
     html, body { margin: 0; height: 100%; background: #f4f6f8;
       font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
     #app { position: fixed; inset: 0; border: 0; width: 100%; height: 100%; }
-    .setup { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 20px; background: #f4f6f8; }
+    .setup { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 20px; background: #f4f6f8; z-index: 20; }
     .box { max-width: 440px; width: 100%; background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 22px; }
     h1 { font-size: 18px; margin: 0 0 4px; }
     p { color: #6b7785; font-size: 13px; line-height: 1.5; }
@@ -53,9 +53,14 @@
     }
     (function () {
       var u = getUrl();
-      if (!u) { document.getElementById('setup').style.display = 'flex'; }
-      else {
-        document.getElementById('app').src = u;
+      var app = document.getElementById('app');
+      if (!u) {
+        // Belum ada URL: sembunyikan iframe agar tidak menutupi kotak setup.
+        app.style.display = 'none';
+        document.getElementById('setup').style.display = 'flex';
+      } else {
+        app.style.display = 'block';
+        app.src = u;
         document.getElementById('gear').style.display = 'block';
       }
       if ('serviceWorker' in navigator) {
