@@ -96,8 +96,9 @@
     <div class="sub">Unggah bukti → dibaca otomatis → konfirmasi → simpan ke sheet TRANSAKSI.</div>
 
     <div class="nav">
-      <button id="navInput" class="navbtn active" onclick="showTab('input')">📥 Input Biaya</button>
-      <button id="navBudget" class="navbtn" onclick="showTab('budget')">📊 Sisa Budget</button>
+      <button id="navInput" class="navbtn active" onclick="showTab('input')">📥 Input</button>
+      <button id="navBudget" class="navbtn" onclick="showTab('budget')">📊 Budget</button>
+      <button id="navPengaturan" class="navbtn" onclick="showTab('pengaturan')">⚙ Setelan</button>
     </div>
 
     <div id="tabInput">
@@ -193,6 +194,28 @@
         <select id="budgetMonth" onchange="loadBudget()"></select>
       </div>
       <div id="budgetView"></div>
+    </div>
+
+    <div id="tabPengaturan" class="hidden">
+      <div class="card">
+        <div class="bt-title">⚙ Spreadsheet CASHFLOW bulan ini</div>
+        <div id="cfCurrent" class="ask-hint" style="margin-bottom:6px">Memuat…</div>
+        <label>Link spreadsheet CASHFLOW &amp; BIAYA (bulan berjalan)</label>
+        <input id="cfUrl" type="url" autocomplete="off" placeholder="https://docs.google.com/spreadsheets/d/…/edit">
+        <button id="btnCfSave" class="btn-primary" style="margin-top:10px" onclick="saveCashflow()">Simpan Link</button>
+        <div class="ask-hint" style="margin-top:10px">Ganti link ini tiap awal bulan. Setiap input biaya ber-Sumber Dana <b>Pendapatan Usaha</b> otomatis dicatat ke sheet <b>INPUT PENGGUNAAN BIAYA</b> spreadsheet ini (selalu ada pratinjau dulu).</div>
+      </div>
+    </div>
+
+    <div id="previewModal" class="lock" style="display:none;z-index:60">
+      <div class="lockbox" style="max-width:430px;text-align:left">
+        <div style="font-weight:700;font-size:15px;margin-bottom:8px">Pratinjau sebelum simpan</div>
+        <div id="previewBody" style="font-size:13px"></div>
+        <div class="row-btns">
+          <button class="btn-ghost" onclick="closePreview()">Batal</button>
+          <button id="btnConfirm" class="btn-primary" onclick="confirmPreview()">Konfirmasi &amp; Simpan</button>
+        </div>
+      </div>
     </div>
 
     <div id="msg"></div>
@@ -558,20 +581,61 @@
       if (!payload.budgetBulan) return showErr('Budget Bulan wajib dipilih.');
       if (!payload.tahunBudget) return showErr('Tahun Budget wajib dipilih.');
 
+      // Sumber dana Pendapatan Usaha -> pratinjau dulu (akan ditulis juga ke CASHFLOW).
+      if (payload.sumberDana === 'PENDAPATAN USAHA') {
+        showInfo('Menyiapkan pratinjau…');
+        google.script.run.withSuccessHandler(function (pv) {
+          clearMsg(); showCashflowPreview(payload, pv);
+        }).withFailureHandler(function (e) {
+          showErr('Pratinjau CASHFLOW gagal: ' + (e.message || e) + ' (atur link di tab Setelan).');
+        }).previewCashflow(payload, window._pin);
+        return;
+      }
+      doSave(payload);
+    }
+
+    function doSave(payload) {
       var btn = document.getElementById('btnSave');
       btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Menyimpan...';
       google.script.run
         .withSuccessHandler(function (res) {
           btn.disabled = false; btn.textContent = 'Simpan ke Spreadsheet';
-          showOk('✅ Tersimpan ke baris ' + res.row + ' pada sheet TRANSAKSI.');
-          resetAll(); refreshTarget();
+          var m = '✅ Tersimpan ke baris ' + res.row + ' (TRANSAKSI).';
+          if (res.cashflow) {
+            if (res.cashflow.error) m += ' ⚠️ CASHFLOW gagal: ' + res.cashflow.error;
+            else m += ' Juga ke CASHFLOW baris ' + res.cashflow.row + '.';
+          }
+          showOk(m); closePreview(); resetAll(); refreshTarget();
         })
         .withFailureHandler(function (err) {
           btn.disabled = false; btn.textContent = 'Simpan ke Spreadsheet';
-          showErr(err.message || err);
+          closePreview(); showErr(err.message || err);
         })
         .appendTransaction(payload);
     }
+
+    // --- Pratinjau CASHFLOW ---
+    var _pendingPayload = null;
+    function showCashflowPreview(payload, pv) {
+      _pendingPayload = payload;
+      var t = document.getElementById('tanggal').value;
+      var h = '<div style="margin-bottom:6px;color:var(--muted)">Akan ditulis ke <b>2</b> spreadsheet:</div>';
+      h += '<div class="card" style="padding:10px;margin:0 0 8px"><b>1) ANALISA KEUANGAN — TRANSAKSI</b><br>' +
+        'POS: ' + esc(payload.posBiaya) + '<br>Keterangan: ' + esc(payload.keterangan || '-') +
+        '<br>Nominal: ' + rp(payload.nominal) + '<br>Tanggal: ' + esc(formatTglHint(t)) +
+        '<br>Sumber Dana: ' + esc(payload.sumberDana) +
+        '<br>Rekening: ' + esc(payload.rekening || '(kas tunai usaha)') + '</div>';
+      h += '<div class="card" style="padding:10px;margin:0"><b>2) ' + esc(pv.title) + ' — ' + esc(pv.sheet) +
+        '</b> (baris ' + pv.targetRow + ')<br>' +
+        'Subjek Biaya: ' + esc(pv.row.subjek) + '<br>Keterangan: ' + esc(pv.row.keterangan) +
+        '<br>Nominal: ' + rp(pv.row.nominal) + '<br>Tanggal: ' + esc(formatTglHint(pv.row.tanggal)) +
+        '<br>Outlet: ' + esc(pv.row.outlet) + '<br>Status Lapor: ' + esc(pv.row.status) +
+        '<br>Sumber Dana: ' + esc(pv.row.sumberDana) + '</div>';
+      document.getElementById('previewBody').innerHTML = h;
+      document.getElementById('previewModal').style.display = 'flex';
+    }
+    function closePreview() { document.getElementById('previewModal').style.display = 'none'; _pendingPayload = null; }
+    function confirmPreview() { if (_pendingPayload) doSave(_pendingPayload); }
 
     function resetAll() {
       currentDataUrl = null;
@@ -597,14 +661,43 @@
     function setMsg(t, cls) { document.getElementById('msg').innerHTML = '<div class="msg ' + cls + '">' + t + '</div>'; }
 
     // ===================== MENU SISA BUDGET =====================
-    var budgetLoaded = false;
+    var budgetLoaded = false, settingsLoaded = false;
+    function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
     function showTab(t) {
-      document.getElementById('tabInput').classList.toggle('hidden', t !== 'input');
-      document.getElementById('tabBudget').classList.toggle('hidden', t !== 'budget');
-      document.getElementById('navInput').classList.toggle('active', t === 'input');
-      document.getElementById('navBudget').classList.toggle('active', t === 'budget');
+      ['input', 'budget', 'pengaturan'].forEach(function (x) {
+        document.getElementById('tab' + cap(x)).classList.toggle('hidden', x !== t);
+        document.getElementById('nav' + cap(x)).classList.toggle('active', x === t);
+      });
       clearMsg();
       if (t === 'budget' && !budgetLoaded) { budgetLoaded = true; initBudget(); }
+      if (t === 'pengaturan' && !settingsLoaded) { settingsLoaded = true; loadSettings(); }
+    }
+
+    function loadSettings() {
+      google.script.run.withSuccessHandler(function (s) {
+        var el = document.getElementById('cfCurrent');
+        if (s.cashflowUrl) {
+          el.innerHTML = 'Aktif: <b>' + esc(s.cashflowTitle || '(tanpa nama)') + '</b>';
+          document.getElementById('cfUrl').value = s.cashflowUrl;
+        } else { el.textContent = 'Belum diatur — tempel link di bawah.'; }
+      }).withFailureHandler(function (e) {
+        document.getElementById('cfCurrent').textContent = (e.message || e);
+      }).getSettings();
+    }
+
+    function saveCashflow() {
+      var u = document.getElementById('cfUrl').value.trim();
+      if (!u) { showErr('Link belum diisi.'); return; }
+      var btn = document.getElementById('btnCfSave');
+      btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Menyimpan...';
+      google.script.run.withSuccessHandler(function (res) {
+        btn.disabled = false; btn.textContent = 'Simpan Link';
+        document.getElementById('cfCurrent').innerHTML = 'Aktif: <b>' + esc(res.title) + '</b>';
+        showOk('✅ Link CASHFLOW tersimpan: ' + res.title);
+      }).withFailureHandler(function (e) {
+        btn.disabled = false; btn.textContent = 'Simpan Link';
+        showErr(e.message || e);
+      }).setCashflowUrl(u, window._pin);
     }
 
     function initBudget() {

@@ -76,6 +76,12 @@ var ACCOUNTS = [
   { no: '005401232138503', label: 'BRI 005401232138503', sumberDana: 'THR/CUTI (SALDO BERGERAK)', bank: '' }
 ];
 
+// Spreadsheet CASHFLOW (diatur via menu Pengaturan; diganti tiap awal bulan).
+var CASHFLOW_SHEET = 'INPUT PENGGUNAAN BIAYA';
+var CASHFLOW_SUMBER_OPTIONS = ['KAS TUNAI MAUMBI', 'KAS TUNAI PERKAMIL', 'BCA', 'BRI', 'BNI',
+  'MANDIRI', 'BCA MEGA', 'BRI MEGA', 'MANDIRI MEGA', 'KAS SEWA GEDUNG',
+  'KAS BIAYA DITAHAN TUNAI', 'KAS BIAYA DITAHAN BANK'];
+
 // Nama bulan (HURUF BESAR seperti format di sheet) dan Title Case (untuk teks tanggal).
 var BULAN_UPPER = ['JANUARI', 'FEBRUARI', 'MARET', 'APRIL', 'MEI', 'JUNI',
   'JULI', 'AGUSTUS', 'SEPTEMBER', 'OKTOBER', 'NOVEMBER', 'DESEMBER'];
@@ -194,6 +200,115 @@ function toNum_(x) {
   var n = parseFloat(String(x).replace(/[^0-9.\-]/g, ''));
   return isNaN(n) ? 0 : n;
 }
+
+// ====================== PENGATURAN & AUTO-ISI CASHFLOW ======================
+
+/** Setelan saat ini (link spreadsheet CASHFLOW bulan berjalan). */
+function getSettings() {
+  var url = PropertiesService.getScriptProperties().getProperty('CASHFLOW_URL') || '';
+  var title = '';
+  if (url) {
+    try { title = SpreadsheetApp.openById(extractSpreadsheetId_(url)).getName(); }
+    catch (e) { title = '(tidak bisa diakses: ' + (e.message || e) + ')'; }
+  }
+  return { cashflowUrl: url, cashflowTitle: title };
+}
+
+/** Simpan link spreadsheet CASHFLOW (divalidasi & dicek aksesnya). */
+function setCashflowUrl(url, pin) {
+  verifyPin_(pin);
+  var id = extractSpreadsheetId_(url);
+  var ss = SpreadsheetApp.openById(id); // melempar bila tak ada akses
+  var name = ss.getName();
+  if (!ss.getSheetByName(CASHFLOW_SHEET)) {
+    throw new Error('Sheet "' + CASHFLOW_SHEET + '" tidak ditemukan di spreadsheet itu.');
+  }
+  PropertiesService.getScriptProperties().setProperty('CASHFLOW_URL', String(url).trim());
+  return { ok: true, title: name };
+}
+
+function extractSpreadsheetId_(url) {
+  var s = String(url || '').trim();
+  var m = /\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/.exec(s);
+  if (m) return m[1];
+  if (/^[a-zA-Z0-9_-]{20,}$/.test(s)) return s;
+  throw new Error('Link spreadsheet tidak valid.');
+}
+
+function getCashflowSheet_() {
+  var url = PropertiesService.getScriptProperties().getProperty('CASHFLOW_URL');
+  if (!url) throw new Error('Spreadsheet CASHFLOW belum diatur. Buka menu Pengaturan dan isi linknya.');
+  var ss = SpreadsheetApp.openById(extractSpreadsheetId_(url));
+  var sheet = ss.getSheetByName(CASHFLOW_SHEET);
+  if (!sheet) throw new Error('Sheet "' + CASHFLOW_SHEET + '" tidak ada di spreadsheet CASHFLOW.');
+  return { ss: ss, sheet: sheet };
+}
+
+/** Baris terisi terbawah pada kolom A (SUBJEK BIAYA) sheet INPUT PENGGUNAAN BIAYA. */
+function cashflowLastRow_(sheet) {
+  var last = sheet.getLastRow();
+  if (last < 1) return 1;
+  var colA = sheet.getRange(1, 1, last, 1).getValues();
+  var maxFilled = 1;
+  for (var i = 0; i < colA.length; i++) {
+    if (String(colA[i][0]).trim() !== '') maxFilled = i + 1;
+  }
+  return maxFilled;
+}
+
+/** Petakan Rekening (TRANSAKSI) -> opsi SUMBER DANA pada dropdown CASHFLOW. */
+function mapBankCashflow_(rek) {
+  var r = String(rek || '').trim().toUpperCase();
+  if (!r || r === 'MAUMBI') return 'KAS TUNAI MAUMBI';
+  if (CASHFLOW_SUMBER_OPTIONS.indexOf(r) >= 0) return r;
+  return 'KAS TUNAI MAUMBI';
+}
+
+/** Nilai-nilai baris CASHFLOW yang akan ditulis (untuk pratinjau & penulisan). */
+function buildCashflowRow_(payload) {
+  return {
+    subjek: 'Setoran Owner',
+    keterangan: 'Setoran Owner',
+    nominal: Number(payload.nominal),
+    tanggal: payload.tanggal,
+    outlet: 'MAUMBI',
+    status: 'BELUM INPUT',
+    sumberDana: mapBankCashflow_(payload.rekening)
+  };
+}
+
+/** Pratinjau entri CASHFLOW (tanpa menulis). */
+function previewCashflow(payload, pin) {
+  verifyPin_(pin);
+  var cf = getCashflowSheet_();
+  return {
+    ok: true,
+    title: cf.ss.getName(),
+    sheet: CASHFLOW_SHEET,
+    targetRow: cashflowLastRow_(cf.sheet) + 1,
+    row: buildCashflowRow_(payload)
+  };
+}
+
+/** Tulis satu baris ke sheet INPUT PENGGUNAAN BIAYA pada spreadsheet CASHFLOW. */
+function writeCashflow_(payload) {
+  var cf = getCashflowSheet_();
+  var sheet = cf.sheet;
+  var maxFilled = cashflowLastRow_(sheet);
+  var prevRow = maxFilled > 1 ? maxFilled : 1;
+  var newRow = maxFilled + 1;
+
+  var prevRange = sheet.getRange(prevRow, 1, 1, 8);   // A..H
+  var newRange = sheet.getRange(newRow, 1, 1, 8);
+  prevRange.copyTo(newRange, { formatOnly: true });
+
+  var r = buildCashflowRow_(payload);
+  var tgl = parseIsoDate_(payload.tanggal, cf.ss.getSpreadsheetTimeZone());
+  newRange.setValues([[r.subjek, r.keterangan, r.nominal, tgl, r.outlet, r.status, r.sumberDana, '']]);
+  SpreadsheetApp.flush();
+  return { row: newRow, sumberDana: r.sumberDana, title: cf.ss.getName() };
+}
+
 
 /** Rekomendasi KETERANGAN (dari history sheet) untuk POS BIAYA tertentu. */
 function getKeteranganOptions(posBiaya) {
@@ -653,7 +768,14 @@ function appendTransaction(payload) {
     var c = CacheService.getScriptCache();
     c.remove('histctx'); c.remove('posex'); c.remove('learnacct');
   } catch (e) {} // refresh pola history & rekening yang dipelajari
-  return { ok: true, row: newRow };
+
+  // Auto-isi ke spreadsheet CASHFLOW bila sumber dana = PENDAPATAN USAHA.
+  var cashflow = null;
+  if (payload.sumberDana === SUMBER_DANA_REKENING) {
+    try { cashflow = writeCashflow_(payload); }
+    catch (e) { cashflow = { error: String(e && e.message || e) }; }
+  }
+  return { ok: true, row: newRow, cashflow: cashflow };
 }
 
 // ====================== HELPER ======================

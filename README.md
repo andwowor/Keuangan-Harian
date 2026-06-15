@@ -118,6 +118,29 @@ Data dibaca langsung dari REAL (yang sudah terisi formula dari TRANSAKSI), jadi 
 selalu sinkron. Kolom bulan dideteksi otomatis dari label "BULAN TAHUN" di baris 1
 (mis. `JUNI 2026`), tidak di-hardcode.
 
+## Menu "Setelan" & auto-isi CASHFLOW
+
+Tab ketiga (**⚙ Setelan**) untuk menautkan **spreadsheet CASHFLOW & BIAYA bulan berjalan**
+(berganti tiap bulan — cukup tempel link barunya tiap awal bulan; disimpan di Script
+Property `CASHFLOW_URL`).
+
+Bila biaya disimpan dengan **SUMBER DANA = Pendapatan Usaha**, entri otomatis juga dicatat
+ke sheet **INPUT PENGGUNAAN BIAYA** di spreadsheet CASHFLOW tersebut, pada baris kosong
+terbawah, dengan aturan:
+
+| Kolom | Isi |
+|-------|-----|
+| SUBJEK BIAYA | `Setoran Owner` |
+| KETERANGAN | `Setoran Owner` |
+| NOMINAL | nominal transaksi |
+| TANGGAL | tanggal transaksi |
+| OUTLET | `MAUMBI` |
+| STATUS LAPOR APLIKASI SMARTLINK | `BELUM INPUT` |
+| SUMBER DANA | mengikuti **Rekening** TRANSAKSI (Mandiri/BNI/BRI/BCA → uppercase; kosong → `KAS TUNAI MAUMBI`) |
+
+**Selalu muncul pratinjau** (isi ke TRANSAKSI **dan** ke CASHFLOW) sebelum disubmit. Untuk
+sumber dana selain Pendapatan Usaha, perilaku tetap seperti biasa (tanpa CASHFLOW).
+
 ---
 
 ## Kustomisasi
