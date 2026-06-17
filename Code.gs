@@ -732,7 +732,10 @@ function appendTransaction(payload) {
       && payload.mataUang && String(payload.mataUang).toUpperCase() !== 'IDR'
       && Number(payload.nominalAsli) > 0 && Number(payload.kurs) > 0) {
     // Tulis sebagai FORMULA: nominal asli (mata uang pada file) x kurs tanggal biaya.
-    nominalValue = '=' + Number(payload.nominalAsli) + '*' + Number(payload.kurs);
+    // Desimal memakai koma (,) sesuai lokal spreadsheet Indonesia.
+    var asliStr = String(Number(payload.nominalAsli)).replace('.', ',');
+    var kursStr = String(Number(payload.kurs)).replace('.', ',');
+    nominalValue = '=' + asliStr + '*' + kursStr;
   } else {
     nominalValue = (typeof prevNominal === 'number' || prevNominal === '' || prevNominal == null)
       ? Number(payload.nominal) : formatRupiah_(payload.nominal);
