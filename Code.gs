@@ -201,6 +201,64 @@ function toNum_(x) {
   return isNaN(n) ? 0 : n;
 }
 
+// ====================== DAFTAR BIAYA (sheet TRANSAKSI) ======================
+
+/** Opsi filter: bulan (tetap) + daftar tahun yang ada di kolom TAHUN BIAYA + default berjalan. */
+function getTransaksiFilters() {
+  var sheet = getSheet_();
+  var hdr = findHeaderRow_(sheet);
+  var last = findLastDataRow_(sheet, hdr);
+  var years = {};
+  if (last > hdr) {
+    var vals = sheet.getRange(hdr + 1, 6, last - hdr, 1).getValues(); // F TAHUN BIAYA
+    for (var i = 0; i < vals.length; i++) {
+      var y = String(vals[i][0]).trim().replace(/\.0$/, '');
+      if (y) years[y] = 1;
+    }
+  }
+  var arr = Object.keys(years).map(Number).filter(function (n) { return !isNaN(n); });
+  arr.sort(function (a, b) { return b - a; });
+  var now = new Date();
+  return {
+    bulan: BULAN_UPPER,
+    tahun: arr,
+    current: {
+      bulan: BULAN_UPPER[Number(Utilities.formatDate(now, TIMEZONE, 'MM')) - 1],
+      tahun: Number(Utilities.formatDate(now, TIMEZONE, 'yyyy'))
+    }
+  };
+}
+
+/** Daftar biaya yang BIAYA BULAN (E) & TAHUN BIAYA (F)-nya cocok, + total. */
+function getTransaksiList(bulan, tahun) {
+  var sheet = getSheet_();
+  var hdr = findHeaderRow_(sheet);
+  var last = findLastDataRow_(sheet, hdr);
+  var out = [], total = 0;
+  if (last > hdr) {
+    var rng = sheet.getRange(hdr + 1, 1, last - hdr, 7).getValues(); // A..G
+    var tz = sheet.getParent().getSpreadsheetTimeZone();
+    var bU = String(bulan).trim().toUpperCase();
+    var tY = String(tahun).trim().replace(/\.0$/, '');
+    for (var i = 0; i < rng.length; i++) {
+      var r = rng[i];
+      if (String(r[4]).trim().toUpperCase() !== bU) continue;          // E BIAYA BULAN
+      if (String(r[5]).trim().replace(/\.0$/, '') !== tY) continue;    // F TAHUN BIAYA
+      var nom = Number(r[2]) || 0;                                     // C NOMINAL
+      total += nom;
+      out.push({
+        pos: String(r[0]).trim(),
+        ket: String(r[1]).trim(),
+        nominal: nom,
+        tgl: r[3] instanceof Date ? Utilities.formatDate(r[3], tz, 'yyyy-MM-dd') : String(r[3]).trim(),
+        sumber: String(r[6]).trim()
+      });
+    }
+  }
+  out.sort(function (a, b) { return a.tgl < b.tgl ? -1 : (a.tgl > b.tgl ? 1 : 0); });
+  return { bulan: bulan, tahun: tahun, count: out.length, total: total, items: out };
+}
+
 // ====================== PENGATURAN & AUTO-ISI CASHFLOW ======================
 
 /** Setelan saat ini (link spreadsheet CASHFLOW bulan berjalan). */

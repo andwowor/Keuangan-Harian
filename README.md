@@ -118,6 +118,14 @@ Data dibaca langsung dari REAL (yang sudah terisi formula dari TRANSAKSI), jadi 
 selalu sinkron. Kolom bulan dideteksi otomatis dari label "BULAN TAHUN" di baris 1
 (mis. `JUNI 2026`), tidak di-hardcode.
 
+## Menu "Daftar Biaya"
+
+Tab (**📋 Daftar**) untuk melihat daftar biaya dari sheet **TRANSAKSI** (ANALISA KEUANGAN),
+difilter per **Bulan** (kolom BIAYA BULAN) & **Tahun** (kolom TAHUN BIAYA). Menampilkan
+tiap transaksi (POS, keterangan, tanggal, sumber dana, nominal) urut tanggal, plus jumlah
+transaksi & total nominal periode tersebut. Tahun pada dropdown diambil dari nilai yang ada
+di kolom TAHUN BIAYA; default ke bulan/tahun berjalan.
+
 ## Menu "Setelan" & auto-isi CASHFLOW
 
 Tab ketiga (**⚙ Setelan**) untuk menautkan **spreadsheet CASHFLOW & BIAYA bulan berjalan**
