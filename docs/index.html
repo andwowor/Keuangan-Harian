@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#11606e">
+  <meta name="theme-color" content="#0a0e1c">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icon-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -12,35 +12,40 @@
   <meta name="apple-mobile-web-app-title" content="Keuangan">
   <title>Keuangan Harian</title>
   <style>
-    html, body { margin: 0; height: 100%; background: #f4f0e2;
-      font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+    html, body { margin: 0; height: 100%; color: #e7ecf6;
+      font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      background:
+        radial-gradient(900px 500px at 15% -10%, rgba(56,189,248,.18), transparent 60%),
+        radial-gradient(800px 500px at 110% 8%, rgba(139,92,246,.20), transparent 55%),
+        #0a0e1c; }
     #app { position: fixed; inset: 0; border: 0; width: 100%; height: 100%; }
-    .setup { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 20px;
-      background: radial-gradient(120% 70% at 50% -10%, #18788a 0%, #11606e 38%, #0d4a57 100%); z-index: 20; }
-    .box { max-width: 440px; width: 100%; background: #fffdf6; border: 1px solid #e3ded0; border-radius: 18px;
-      padding: 26px 22px; box-shadow: 0 18px 50px rgba(13,74,87,.35); text-align: center; }
-    .mark { width: 64px; height: 64px; color: #11606e; margin-bottom: 6px; }
-    h1 { font-size: 17px; margin: 0 0 2px; color: #123c46; letter-spacing: .12em; font-weight: 800; }
-    .sub { color: #11606e; font-size: 11px; letter-spacing: .28em; font-weight: 600; margin-bottom: 12px; }
-    p { color: #5f7780; font-size: 13px; line-height: 1.5; text-align: left; }
-    code { background: #eef3f2; padding: 1px 5px; border-radius: 5px; font-size: 12px; color: #11606e; }
-    input { width: 100%; box-sizing: border-box; padding: 12px; font-size: 14px; border: 1px solid #d9d3c3; border-radius: 10px; margin-top: 10px; background: #fff; }
-    button { width: 100%; padding: 13px; margin-top: 12px; border: 0; border-radius: 12px; background: #11606e; color: #fff; font-weight: 700; font-size: 15px; cursor: pointer; }
+    .setup { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 20; }
+    .box { max-width: 440px; width: 100%; background: rgba(255,255,255,.05); border: 1px solid rgba(146,170,255,.18);
+      border-radius: 18px; padding: 26px 22px; text-align: center;
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+    .orb { width: 60px; height: 60px; margin: 0 auto 12px; border-radius: 50%;
+      background: radial-gradient(circle at 50% 38%, #67e8f9, #6366f1 72%);
+      box-shadow: 0 0 34px rgba(56,189,248,.55), inset 0 0 18px rgba(255,255,255,.25); }
+    h1 { font-size: 19px; margin: 0 0 10px; font-weight: 800;
+      background: linear-gradient(90deg,#67e8f9,#a78bfa); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    p { color: #93a0c0; font-size: 13px; line-height: 1.5; text-align: left; }
+    code { background: rgba(56,189,248,.12); padding: 1px 5px; border-radius: 5px; font-size: 12px; color: #7dd3fc; }
+    input { width: 100%; box-sizing: border-box; padding: 12px; font-size: 14px; border: 1px solid rgba(146,170,255,.2);
+      border-radius: 10px; margin-top: 10px; background: rgba(255,255,255,.05); color: #e7ecf6; }
+    input:focus { outline: none; border-color: #38bdf8; box-shadow: 0 0 0 3px rgba(56,189,248,.18); }
+    button { width: 100%; padding: 13px; margin-top: 12px; border: 0; border-radius: 12px;
+      background: linear-gradient(135deg,#38bdf8,#6366f1); color: #06121f; font-weight: 800; font-size: 15px; cursor: pointer;
+      box-shadow: 0 10px 26px rgba(56,189,248,.3); }
     .gear { position: fixed; right: 12px; bottom: 12px; width: 42px; height: 42px; border-radius: 50%;
-      background: rgba(13,74,87,.55); color: #fff; border: 0; font-size: 18px; display: none; z-index: 5; padding: 0; }
-    .err { color: #c0492f; }
+      background: rgba(146,170,255,.18); color: #e7ecf6; border: 1px solid rgba(146,170,255,.2); font-size: 18px; display: none; z-index: 5; padding: 0; }
+    .err { color: #fda4af; }
   </style>
 </head>
 <body>
   <div id="setup" class="setup" style="display:none">
     <div class="box">
-      <svg class="mark" viewBox="0 0 100 100" aria-hidden="true">
-        <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" stroke-width="11"/>
-        <circle cx="50" cy="50" r="22" fill="none" stroke="currentColor" stroke-width="9"/>
-        <circle cx="50" cy="50" r="6.5" fill="currentColor"/>
-      </svg>
-      <h1>CO CLEAN</h1>
-      <div class="sub">LAUNDRY</div>
+      <div class="orb"></div>
+      <h1>Keuangan Harian</h1>
       <p>Tempel <b>Web app URL</b> Apps Script Anda (yang berakhiran <code>/exec</code>). Hanya disimpan di perangkat ini.</p>
       <input id="url" type="url" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec">
       <button onclick="saveUrl()">Simpan & Buka</button>
