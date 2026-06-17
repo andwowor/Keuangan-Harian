@@ -255,7 +255,7 @@ function getTransaksiList(bulan, tahun) {
       });
     }
   }
-  out.sort(function (a, b) { return a.tgl < b.tgl ? -1 : (a.tgl > b.tgl ? 1 : 0); });
+  out.sort(function (a, b) { return a.tgl < b.tgl ? 1 : (a.tgl > b.tgl ? -1 : 0); }); // terbaru -> terlama
   return { bulan: bulan, tahun: tahun, count: out.length, total: total, items: out };
 }
 
