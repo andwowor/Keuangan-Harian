@@ -727,8 +727,16 @@ function appendTransaction(payload) {
 
   // NOMINAL (C) & TANGGAL (D) mengikuti tipe baris sebelumnya (angka/teks, date/teks).
   var prevNominal = sheet.getRange(prevRow, 3).getValue();
-  var nominalValue = (typeof prevNominal === 'number' || prevNominal === '' || prevNominal == null)
-    ? Number(payload.nominal) : formatRupiah_(payload.nominal);
+  var nominalValue;
+  if (payload.posBiaya === 'BIAYA KULIAH CHINA'
+      && payload.mataUang && String(payload.mataUang).toUpperCase() !== 'IDR'
+      && Number(payload.nominalAsli) > 0 && Number(payload.kurs) > 0) {
+    // Tulis sebagai FORMULA: nominal asli (mata uang pada file) x kurs tanggal biaya.
+    nominalValue = '=' + Number(payload.nominalAsli) + '*' + Number(payload.kurs);
+  } else {
+    nominalValue = (typeof prevNominal === 'number' || prevNominal === '' || prevNominal == null)
+      ? Number(payload.nominal) : formatRupiah_(payload.nominal);
+  }
 
   var prevTanggal = sheet.getRange(prevRow, 4).getValue();
   var tanggalValue = (prevTanggal instanceof Date || prevTanggal === '' || prevTanggal == null)

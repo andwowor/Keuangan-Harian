@@ -393,6 +393,7 @@
       // Mata uang asing -> sudah dikonversi ke IDR (kurs tanggal transaksi)
       window._mataUang = d.mataUang || 'IDR';
       window._nominalAsli = d.nominalAsli || 0;
+      window._kurs = (d.konversi && !d.konversi.error) ? (d.konversi.rate || 0) : 0;
       showKursNote(d.konversi);
 
       // === Auto-fill dari history & pola (boleh dikoreksi) ===
@@ -552,6 +553,7 @@
       if (window._mataUang && window._mataUang !== 'IDR' && window._nominalAsli > 0 && v) {
         google.script.run.withSuccessHandler(function (res) {
           document.getElementById('nominal').value = groupThousands(String(res.idr));
+          window._kurs = res.rate || 0;
           showKursNote({ mataUang: window._mataUang, nominalAsli: window._nominalAsli, rate: res.rate, tanggalKurs: res.date });
         }).withFailureHandler(function () {
           showKursNote({ error: true, mataUang: window._mataUang, nominalAsli: window._nominalAsli });
@@ -596,6 +598,9 @@
         budgetBulan: document.getElementById('budgetBulan').value,
         tahunBudget: document.getElementById('tahunBudget').value,
         rekening: (sd === CFG.sumberDanaRekening) ? document.getElementById('rekening').value : '',
+        mataUang: window._mataUang,
+        nominalAsli: window._nominalAsli,
+        kurs: window._kurs,
         pin: window._pin,
         meta: window._meta || {}
       };
@@ -670,7 +675,7 @@
       currentDataUrl = null;
       window._bankSaran = ''; window._isBoc = false; window._sdSaran = ''; window._sdAlasan = '';
       window._rekSaran = ''; window._bankModel = ''; window._meta = null;
-      window._mataUang = 'IDR'; window._nominalAsli = 0;
+      window._mataUang = 'IDR'; window._nominalAsli = 0; window._kurs = 0;
       fileInput.value = '';
       var img = document.getElementById('preview'); img.src = ''; img.style.display = 'none';
       document.getElementById('btnAnalyze').classList.add('hidden');

@@ -19,7 +19,7 @@ otomatis terhitung dari tabel transaksi — dashboard hanya menambah baris baru.
 |-------|----------|
 | **POS BIAYA** | Hanya pilih dari dropdown (tidak bisa diketik). |
 | **KETERANGAN** | Ditebak dari isi bukti, dipandu **history pengisian per POS** dari sheet (muncul sebagai autocomplete + chip rekomendasi). Bila model tidak yakin, rekomendasi ditonjolkan untuk Anda pilih. |
-| **NOMINAL** | Dibaca dari bukti. Bila mata uang asing (mis. **RMB/CNY**, USD, SGD), otomatis dikonversi ke Rupiah memakai **kurs pada tanggal transaksi** (sumber: Frankfurter/ECB). Info kurs ditampilkan; nominal tetap bisa dikoreksi. |
+| **NOMINAL** | Dibaca dari bukti. Bila mata uang asing (mis. **RMB/CNY**, USD, SGD), otomatis dikonversi ke Rupiah memakai **kurs pada tanggal transaksi** (sumber: Frankfurter/ECB). Khusus POS **BIAYA KULIAH CHINA** + mata uang asing, sel NOMINAL ditulis sebagai **formula** `=nominal_asli*kurs` (transparan), bukan hasil akhirnya. |
 | **TANGGAL** | Selalu diambil dari tanggal pada bukti transaksi. |
 | **BIAYA BULAN, TAHUN BIAYA, BUDGET BULAN, TAHUN BUDGET** | **Terisi otomatis** dari tanggal transaksi (pola history ~82%); tinggal dikonfirmasi/koreksi. |
 | **SUMBER DANA** | **Terisi otomatis dari nomor rekening sumber pada bukti** (pemetaan rekening → Pendapatan Usaha / Kas Lain Usaha / THR-CUTI). Bila tak terbaca: BOC(1201)→Uang Saku, atau pola SUMBER DANA tersering per POS dari history. Bisa dikoreksi. |
