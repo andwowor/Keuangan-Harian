@@ -5,9 +5,9 @@
   <meta charset="utf-8">
   <style>
     :root {
-      --bg: #f4f6f8; --card: #ffffff; --ink: #1f2933; --muted: #6b7785;
-      --line: #e2e8f0; --accent: #2563eb; --accent-d: #1d4ed8;
-      --ok: #16a34a; --warn: #d97706; --err: #dc2626; --ask: #7c3aed;
+      --bg: #f4f0e2; --card: #fffdf6; --ink: #123c46; --muted: #5f7780;
+      --line: #e3ded0; --accent: #11606e; --accent-d: #0d4a57;
+      --ok: #1f8a70; --warn: #c07f2a; --err: #c0492f; --ask: #2a7d8c;
     }
     * { box-sizing: border-box; }
     body { margin: 0; font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
@@ -15,13 +15,13 @@
     .wrap { max-width: 560px; margin: 0 auto; }
     h1 { font-size: 20px; margin: 4px 0 2px; }
     .sub { color: var(--muted); font-size: 13px; margin-bottom: 12px; }
-    .target { font-size: 12px; color: var(--accent-d); background: #eff6ff;
-      border: 1px solid #bfdbfe; border-radius: 8px; padding: 7px 10px; margin-bottom: 14px; }
+    .target { font-size: 12px; color: var(--accent-d); background: #e9f1f0;
+      border: 1px solid #cfe0dd; border-radius: 8px; padding: 7px 10px; margin-bottom: 14px; }
     .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px;
       padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
     .drop { border: 2px dashed var(--line); border-radius: 12px; padding: 22px 14px;
       text-align: center; color: var(--muted); cursor: pointer; transition: .15s; }
-    .drop:hover, .drop.over { border-color: var(--accent); color: var(--accent); background: #f0f6ff; }
+    .drop:hover, .drop.over { border-color: var(--accent); color: var(--accent); background: #eef4f3; }
     .drop strong { color: var(--ink); }
     #preview { display: none; width: 100%; border-radius: 10px; margin-top: 12px; border: 1px solid var(--line); }
     label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin: 12px 0 4px; }
@@ -37,7 +37,7 @@
     button:disabled { opacity: .55; cursor: not-allowed; }
     .row-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
     .hidden { display: none; }
-    .ask-box { border: 1px solid #ddd6fe; background: #faf5ff; border-radius: 12px;
+    .ask-box { border: 1px solid #cfe0dd; background: #eef5f4; border-radius: 12px;
       padding: 12px 12px 14px; margin-top: 14px; }
     .ask-title { font-size: 12px; font-weight: 700; color: var(--ask); text-transform: uppercase; letter-spacing: .03em; }
     .ask-hint { font-size: 12px; color: var(--muted); margin-top: 2px; }
@@ -48,7 +48,7 @@
     .msg { padding: 10px 12px; border-radius: 9px; font-size: 13px; margin-top: 12px; }
     .msg.ok { background: #ecfdf3; color: var(--ok); border: 1px solid #bbf7d0; }
     .msg.err { background: #fef2f2; color: var(--err); border: 1px solid #fecaca; }
-    .msg.info { background: #eff6ff; color: var(--accent-d); border: 1px solid #bfdbfe; }
+    .msg.info { background: #e9f1f0; color: var(--accent-d); border: 1px solid #cfe0dd; }
     .spin { display: inline-block; width: 15px; height: 15px; border: 2px solid #fff;
       border-top-color: transparent; border-radius: 50%; animation: sp .7s linear infinite;
       vertical-align: -2px; margin-right: 7px; }
@@ -78,13 +78,37 @@
     .lock { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
     .lockbox { max-width: 340px; width: 100%; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 24px; text-align: center; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
     .lockbox input { width: 100%; box-sizing: border-box; padding: 11px; font-size: 16px; text-align: center; border: 1px solid var(--line); border-radius: 9px; }
+    /* --- Tema air / brand --- */
+    .hdr { position: relative; margin: -16px -16px 16px; padding: 24px 16px 42px; text-align: center; color: #f4f0e2; overflow: hidden;
+      background: radial-gradient(130% 100% at 50% -25%, #1a8294 0%, #11606e 45%, #0d4a57 100%); }
+    .hdr::before, .hdr::after { content: ""; position: absolute; border: 2px solid rgba(244,240,226,.10); border-radius: 50%; }
+    .hdr::before { width: 230px; height: 230px; top: -95px; right: -70px; }
+    .hdr::after { width: 150px; height: 150px; bottom: 6px; left: -55px; }
+    .hdr-logo { width: 56px; height: 56px; color: #f4f0e2; display: inline-block; position: relative; }
+    .hdr-brand { font-weight: 800; letter-spacing: .17em; font-size: 18px; margin-top: 8px; position: relative; }
+    .hdr-brand b { font-weight: 600; opacity: .85; }
+    .hdr-tag { font-size: 11px; opacity: .85; letter-spacing: .26em; margin-top: 3px; position: relative; text-transform: uppercase; }
+    .hdr-wave { position: absolute; left: 0; right: 0; bottom: -1px; width: 100%; height: 36px; display: block; }
+    .mark { width: 100%; height: 100%; display: block; }
+    .lockwrap { position: relative; }
+    .card { box-shadow: 0 2px 10px rgba(13,74,87,.06); }
+    .btn-primary { box-shadow: 0 6px 16px rgba(13,74,87,.18); }
+    .bt-total td { background: #f1ede0; }
+    .lock { background: radial-gradient(120% 70% at 50% 0%, #e9f1ef 0%, var(--bg) 60%); }
   </style>
 </head>
 <body>
   <div id="lock" class="lock">
     <div class="lockbox">
-      <div style="font-size:34px">🔒</div>
-      <h2 style="margin:8px 0 2px;font-size:18px">Keuangan Harian</h2>
+      <span class="hdr-logo" style="width:62px;height:62px;color:var(--accent)">
+        <svg class="mark" viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" stroke-width="11"/>
+          <circle cx="50" cy="50" r="22" fill="none" stroke="currentColor" stroke-width="9"/>
+          <circle cx="50" cy="50" r="6.5" fill="currentColor"/>
+        </svg>
+      </span>
+      <h2 style="margin:8px 0 0;font-size:17px;letter-spacing:.14em;color:var(--ink)">CO CLEAN</h2>
+      <div style="color:var(--accent);font-size:11px;letter-spacing:.28em;font-weight:700;margin-bottom:12px">LAUNDRY</div>
       <div style="color:var(--muted);font-size:13px;margin-bottom:12px">Masukkan PIN untuk masuk</div>
       <input id="pin" type="password" inputmode="numeric" placeholder="PIN" onkeydown="if(event.key==='Enter')unlock()">
       <button class="btn-primary" style="margin-top:12px" onclick="unlock()">Masuk</button>
@@ -92,8 +116,20 @@
     </div>
   </div>
   <div class="wrap">
-    <h1>💸 Dashboard Biaya Harian</h1>
-    <div class="sub">Unggah bukti → dibaca otomatis → konfirmasi → simpan ke sheet TRANSAKSI.</div>
+    <header class="hdr">
+      <span class="hdr-logo">
+        <svg class="mark" viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" stroke-width="11"/>
+          <circle cx="50" cy="50" r="22" fill="none" stroke="currentColor" stroke-width="9"/>
+          <circle cx="50" cy="50" r="6.5" fill="currentColor"/>
+        </svg>
+      </span>
+      <div class="hdr-brand">CO CLEAN <b>LAUNDRY</b></div>
+      <div class="hdr-tag">Dashboard Biaya Harian</div>
+      <svg class="hdr-wave" viewBox="0 0 1440 80" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0,46 C220,86 430,6 720,34 C1010,62 1230,12 1440,44 L1440,80 L0,80 Z" fill="#f4f0e2"></path>
+      </svg>
+    </header>
 
     <div class="nav">
       <button id="navInput" class="navbtn active" onclick="showTab('input')">📥 Input</button>

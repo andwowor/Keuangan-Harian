@@ -151,6 +151,10 @@ sumber dana selain Pendapatan Usaha, perilaku tetap seperti biasa (tanpa CASHFLO
   - `claude-haiku-4-5` — paling murah & cepat
 - **Tambah/ubah kategori:** edit array `POS_BIAYA` atau `SUMBER_DANA` di `Code.gs`.
   Daftar ini sekaligus menjadi pilihan dropdown di form **dan** batasan tebakan model.
+- **Tema & logo (CO CLEAN Laundry):** warna brand teal `#11606e` + cream `#f4f0e2`
+  didefinisikan di `:root` pada `Index.html` (ubah di satu tempat untuk seluruh tampilan).
+  Logo berupa SVG cincin konsentris bertema air; ikon PWA ada di `docs/icon-192.png` &
+  `docs/icon-512.png` (boleh diganti dengan PNG logo asli, ukuran sama).
 
 ---
 
