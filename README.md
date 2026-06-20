@@ -121,10 +121,16 @@ selalu sinkron. Kolom bulan dideteksi otomatis dari label "BULAN TAHUN" di baris
 ## Menu "Daftar Biaya"
 
 Tab (**📋 Daftar**) untuk melihat daftar biaya dari sheet **TRANSAKSI** (ANALISA KEUANGAN),
-difilter per **Bulan** (kolom BIAYA BULAN) & **Tahun** (kolom TAHUN BIAYA). Menampilkan
-tiap transaksi (POS, keterangan, tanggal, sumber dana, nominal) urut tanggal, plus jumlah
-transaksi & total nominal periode tersebut. Tahun pada dropdown diambil dari nilai yang ada
-di kolom TAHUN BIAYA; default ke bulan/tahun berjalan.
+dengan filter gabungan (semua opsional, di-AND-kan):
+- **Bulan** (kolom BIAYA BULAN) & **Tahun** (kolom TAHUN BIAYA) — default bulan/tahun berjalan, bisa diset "Semua".
+- **Tanggal** (kolom TANGGAL) — tanggal spesifik.
+- **POS Biaya** (kolom POS BIAYA).
+- **Keterangan** (kolom KETERANGAN) — pencarian "mengandung".
+- **Sumber Dana** (kolom SUMBER DANA).
+
+Menampilkan tiap transaksi (POS, keterangan, tanggal, sumber dana, nominal) **urut terbaru → terlama**,
+plus jumlah transaksi & total nominal sesuai filter. Tombol **Reset filter tambahan** mengosongkan
+filter tanggal/POS/keterangan/sumber.
 
 ## Menu "Setelan" & auto-isi CASHFLOW
 

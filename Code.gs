@@ -229,34 +229,44 @@ function getTransaksiFilters() {
   };
 }
 
-/** Daftar biaya yang BIAYA BULAN (E) & TAHUN BIAYA (F)-nya cocok, + total. */
-function getTransaksiList(bulan, tahun) {
+/** Daftar biaya dengan filter gabungan (semua opsional). filter = {bulan,tahun,tanggal,pos,keterangan,sumber}. */
+function getTransaksiList(filter) {
+  filter = filter || {};
   var sheet = getSheet_();
   var hdr = findHeaderRow_(sheet);
   var last = findLastDataRow_(sheet, hdr);
   var out = [], total = 0;
+  var bU = String(filter.bulan || '').trim().toUpperCase();          // E BIAYA BULAN
+  var tY = String(filter.tahun || '').trim().replace(/\.0$/, '');    // F TAHUN BIAYA
+  var fTgl = String(filter.tanggal || '').trim();                    // D TANGGAL (yyyy-MM-dd)
+  var fPos = String(filter.pos || '').trim();                        // A POS BIAYA
+  var fKet = String(filter.keterangan || '').trim().toLowerCase();   // B KETERANGAN (mengandung)
+  var fSum = String(filter.sumber || '').trim();                     // G SUMBER DANA
   if (last > hdr) {
     var rng = sheet.getRange(hdr + 1, 1, last - hdr, 7).getValues(); // A..G
     var tz = sheet.getParent().getSpreadsheetTimeZone();
-    var bU = String(bulan).trim().toUpperCase();
-    var tY = String(tahun).trim().replace(/\.0$/, '');
     for (var i = 0; i < rng.length; i++) {
       var r = rng[i];
-      if (String(r[4]).trim().toUpperCase() !== bU) continue;          // E BIAYA BULAN
-      if (String(r[5]).trim().replace(/\.0$/, '') !== tY) continue;    // F TAHUN BIAYA
-      var nom = Number(r[2]) || 0;                                     // C NOMINAL
+      if (bU && String(r[4]).trim().toUpperCase() !== bU) continue;
+      if (tY && String(r[5]).trim().replace(/\.0$/, '') !== tY) continue;
+      var tglIso = r[3] instanceof Date ? Utilities.formatDate(r[3], tz, 'yyyy-MM-dd') : String(r[3]).trim();
+      if (fTgl && tglIso !== fTgl) continue;
+      if (fPos && String(r[0]).trim() !== fPos) continue;
+      if (fKet && String(r[1]).toLowerCase().indexOf(fKet) < 0) continue;
+      if (fSum && String(r[6]).trim() !== fSum) continue;
+      var nom = Number(r[2]) || 0;                                   // C NOMINAL
       total += nom;
       out.push({
         pos: String(r[0]).trim(),
         ket: String(r[1]).trim(),
         nominal: nom,
-        tgl: r[3] instanceof Date ? Utilities.formatDate(r[3], tz, 'yyyy-MM-dd') : String(r[3]).trim(),
+        tgl: tglIso,
         sumber: String(r[6]).trim()
       });
     }
   }
   out.sort(function (a, b) { return a.tgl < b.tgl ? 1 : (a.tgl > b.tgl ? -1 : 0); }); // terbaru -> terlama
-  return { bulan: bulan, tahun: tahun, count: out.length, total: total, items: out };
+  return { count: out.length, total: total, items: out };
 }
 
 // ====================== PENGATURAN & AUTO-ISI CASHFLOW ======================

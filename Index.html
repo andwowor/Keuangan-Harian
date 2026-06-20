@@ -232,6 +232,15 @@
           <div><label>Bulan (BIAYA BULAN)</label><select id="dfBulan" onchange="loadDaftar()"></select></div>
           <div><label>Tahun (TAHUN BIAYA)</label><select id="dfTahun" onchange="loadDaftar()"></select></div>
         </div>
+        <label>Tanggal (TANGGAL)</label>
+        <input id="dfTanggal" type="date" onchange="loadDaftar()">
+        <label>POS Biaya</label>
+        <select id="dfPos" onchange="loadDaftar()"></select>
+        <label>Keterangan (mengandung)</label>
+        <input id="dfKeterangan" type="text" autocomplete="off" placeholder="cari keterangan…" oninput="loadDaftarDebounced()">
+        <label>Sumber Dana</label>
+        <select id="dfSumber" onchange="loadDaftar()"></select>
+        <button class="btn-ghost" style="margin-top:12px" onclick="resetDaftar()">Reset filter tambahan</button>
       </div>
       <div id="daftarView"></div>
     </div>
@@ -720,36 +729,74 @@
     }
 
     // ===================== DAFTAR BIAYA =====================
+    function fillSelectAll(id, items, allLabel) {
+      var sel = document.getElementById(id); sel.innerHTML = '';
+      var o0 = document.createElement('option'); o0.value = ''; o0.textContent = allLabel; sel.appendChild(o0);
+      (items || []).forEach(function (it) { var o = document.createElement('option'); o.value = it; o.textContent = it; sel.appendChild(o); });
+    }
+
     function initDaftar() {
       document.getElementById('daftarView').innerHTML = '<div class="ask-hint">Memuat…</div>';
       google.script.run.withSuccessHandler(function (f) {
-        fillSelect('dfBulan', f.bulan, false);
-        var years = (f.tahun && f.tahun.length) ? f.tahun : [f.current.tahun];
-        fillSelect('dfTahun', years, false);
-        setSelect('dfBulan', f.current.bulan);
-        document.getElementById('dfTahun').value = (years.indexOf(f.current.tahun) >= 0) ? String(f.current.tahun) : String(years[0]);
+        var years = (f.tahun && f.tahun.length) ? f.tahun.slice() : [];
+        if (years.indexOf(f.current.tahun) < 0) years.unshift(f.current.tahun);
+        fillSelectAll('dfBulan', f.bulan, 'Semua bulan');
+        fillSelectAll('dfTahun', years.map(String), 'Semua tahun');
+        fillSelectAll('dfPos', (CFG && CFG.posBiaya) || [], 'Semua pos');
+        fillSelectAll('dfSumber', (CFG && CFG.sumberDana) || [], 'Semua sumber');
+        document.getElementById('dfBulan').value = f.current.bulan;
+        document.getElementById('dfTahun').value = String(f.current.tahun);
         loadDaftar();
       }).withFailureHandler(function (e) {
         document.getElementById('daftarView').innerHTML = '<div class="msg err">' + (e.message || e) + '</div>';
       }).getTransaksiFilters();
     }
 
+    var _dfTimer = null;
+    function loadDaftarDebounced() { clearTimeout(_dfTimer); _dfTimer = setTimeout(loadDaftar, 350); }
+
     function loadDaftar() {
-      var b = document.getElementById('dfBulan').value, y = document.getElementById('dfTahun').value;
-      if (!b || !y) return;
+      var filter = {
+        bulan: document.getElementById('dfBulan').value,
+        tahun: document.getElementById('dfTahun').value,
+        tanggal: document.getElementById('dfTanggal').value,
+        pos: document.getElementById('dfPos').value,
+        keterangan: document.getElementById('dfKeterangan').value.trim(),
+        sumber: document.getElementById('dfSumber').value
+      };
       document.getElementById('daftarView').innerHTML = '<div class="ask-hint"><span class="spin"></span> Memuat…</div>';
       google.script.run.withSuccessHandler(renderDaftar).withFailureHandler(function (e) {
         document.getElementById('daftarView').innerHTML = '<div class="msg err">' + (e.message || e) + '</div>';
-      }).getTransaksiList(b, y);
+      }).getTransaksiList(filter);
+    }
+
+    function resetDaftar() {
+      document.getElementById('dfTanggal').value = '';
+      document.getElementById('dfPos').value = '';
+      document.getElementById('dfKeterangan').value = '';
+      document.getElementById('dfSumber').value = '';
+      loadDaftar();
     }
 
     function formatTglShort(iso) { return /^\d{4}-\d{2}-\d{2}/.test(iso) ? formatTglHint(iso) : iso; }
 
+    function daftarLabel() {
+      var v = function (id) { return document.getElementById(id).value; };
+      var p = [];
+      if (v('dfBulan')) p.push(v('dfBulan'));
+      if (v('dfTahun')) p.push(v('dfTahun'));
+      if (v('dfTanggal')) p.push('tgl ' + formatTglShort(v('dfTanggal')));
+      if (v('dfPos')) p.push(v('dfPos'));
+      if (v('dfKeterangan').trim()) p.push('"' + v('dfKeterangan').trim() + '"');
+      if (v('dfSumber')) p.push(v('dfSumber'));
+      return p.length ? p.join(' · ') : 'Semua';
+    }
+
     function renderDaftar(d) {
-      var h = '<div class="card budget-sum"><div class="sumrow"><span>' + esc(d.bulan) + ' ' + esc(String(d.tahun)) +
+      var h = '<div class="card budget-sum"><div class="sumrow"><span>' + esc(daftarLabel()) +
         ' · ' + d.count + ' transaksi</span><b style="color:var(--accent-d)">' + rp(d.total) + '</b></div></div>';
       if (!d.items.length) {
-        h += '<div class="card"><div class="ask-hint">Tidak ada biaya pada periode ini.</div></div>';
+        h += '<div class="card"><div class="ask-hint">Tidak ada biaya pada filter ini.</div></div>';
         document.getElementById('daftarView').innerHTML = h; return;
       }
       h += '<div class="card"><table class="bt">';
