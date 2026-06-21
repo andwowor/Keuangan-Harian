@@ -157,6 +157,20 @@ sumber dana selain Pendapatan Usaha, perilaku tetap seperti biasa (tanpa CASHFLO
 
 ---
 
+## Widget home screen (via app pihak ketiga)
+
+Apps Script menyediakan endpoint ringkas (dilindungi `token` = `APP_PIN`):
+
+- **Halaman widget** (paling mudah): `…/exec?view=widget&token=PIN` — kartu gelap berisi
+  **Sisa Budget bulan ini**, Pemasukan, Pengeluaran, dan **Biaya hari ini** (auto-refresh
+  tiap 30 menit). Pasang dengan aplikasi *"webpage widget"* (mis. **Web Widget / Webpage Widget**
+  di Play Store): tambah widget → isi URL di atas → taruh di layar utama.
+- **JSON** (untuk widget lanjutan seperti **KWGT**): `…/exec?api=summary&token=PIN` →
+  `{ bulan, sisa, pengeluaran, income, hariIni, hariIniCount, updated }`.
+
+> Ganti `PIN` dengan `APP_PIN` Anda. Token ada di URL yang tersimpan di app widget — wajar untuk
+> perangkat pribadi; jaga kerahasiaannya. (Widget asli/native tetap perlu aplikasi Android tersendiri.)
+
 ## Kustomisasi
 
 - **Ganti model (hemat biaya):** ubah `CLAUDE_MODEL` di `Code.gs`.
