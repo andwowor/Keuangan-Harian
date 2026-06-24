@@ -151,7 +151,7 @@ terbawah, dengan aturan:
 
 | Kolom | Isi |
 |-------|-----|
-| SUBJEK BIAYA | `Setoran Owner` |
+| SUBJEK BIAYA | *(tidak ditulis — terisi otomatis dari KETERANGAN di sheet itu)* |
 | KETERANGAN | `Setoran Owner` |
 | NOMINAL | nominal transaksi |
 | TANGGAL | tanggal transaksi |

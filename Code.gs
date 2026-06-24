@@ -374,14 +374,16 @@ function getCashflowSheet_() {
   return { ss: ss, sheet: sheet };
 }
 
-/** Baris terisi terbawah pada kolom A (SUBJEK BIAYA) sheet INPUT PENGGUNAAN BIAYA. */
+/** Baris terisi terbawah pada kolom B (KETERANGAN) sheet INPUT PENGGUNAAN BIAYA.
+ *  Memakai kolom B (yang selalu kita tulis), bukan A, karena SUBJEK BIAYA (A) terisi
+ *  otomatis dari KETERANGAN dan bisa belum terisi saat append. */
 function cashflowLastRow_(sheet) {
   var last = sheet.getLastRow();
   if (last < 1) return 1;
-  var colA = sheet.getRange(1, 1, last, 1).getValues();
+  var colB = sheet.getRange(1, 2, last, 1).getValues(); // B KETERANGAN
   var maxFilled = 1;
-  for (var i = 0; i < colA.length; i++) {
-    if (String(colA[i][0]).trim() !== '') maxFilled = i + 1;
+  for (var i = 0; i < colB.length; i++) {
+    if (String(colB[i][0]).trim() !== '') maxFilled = i + 1;
   }
   return maxFilled;
 }
@@ -428,13 +430,15 @@ function writeCashflow_(payload) {
   var prevRow = maxFilled > 1 ? maxFilled : 1;
   var newRow = maxFilled + 1;
 
-  var prevRange = sheet.getRange(prevRow, 1, 1, 8);   // A..H
-  var newRange = sheet.getRange(newRow, 1, 1, 8);
+  // Kolom A (SUBJEK BIAYA) sengaja TIDAK ditulis — terisi otomatis dari KETERANGAN.
+  // Hanya tulis B..G (KETERANGAN, NOMINAL, TANGGAL, OUTLET, STATUS, SUMBER DANA).
+  var prevRange = sheet.getRange(prevRow, 2, 1, 6);
+  var newRange = sheet.getRange(newRow, 2, 1, 6);
   prevRange.copyTo(newRange, { formatOnly: true });
 
   var r = buildCashflowRow_(payload);
   var tgl = parseIsoDate_(payload.tanggal, cf.ss.getSpreadsheetTimeZone());
-  newRange.setValues([[r.subjek, r.keterangan, r.nominal, tgl, r.outlet, r.status, r.sumberDana, '']]);
+  newRange.setValues([[r.keterangan, r.nominal, tgl, r.outlet, r.status, r.sumberDana]]);
   SpreadsheetApp.flush();
   return { row: newRow, sumberDana: r.sumberDana, title: cf.ss.getName() };
 }

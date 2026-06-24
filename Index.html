@@ -727,7 +727,7 @@
       if (cf) {
         h += '<div class="card" style="padding:10px;margin:0"><b>' + esc(cf.title) + ' — ' + esc(cf.sheet) +
           '</b> (baris ' + cf.targetRow + ')<br>' +
-          'Subjek Biaya: ' + esc(cf.row.subjek) + '<br>Keterangan: ' + esc(cf.row.keterangan) +
+          'Subjek Biaya: <i>(otomatis dari Keterangan)</i><br>Keterangan: ' + esc(cf.row.keterangan) +
           '<br>Nominal: ' + rp(cf.row.nominal) + '<br>Tanggal: ' + esc(formatTglHint(cf.row.tanggal)) +
           '<br>Outlet: ' + esc(cf.row.outlet) + '<br>Status Lapor: ' + esc(cf.row.status) +
           '<br>Sumber Dana: ' + esc(cf.row.sumberDana) + '</div>';
