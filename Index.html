@@ -216,6 +216,48 @@
         <button id="btnSave" class="btn-primary" onclick="save()">Simpan ke Spreadsheet</button>
       </div>
     </div>
+
+    <!-- Input manual (tanpa foto) -->
+    <div class="card">
+      <div onclick="toggleManual()" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer">
+        <strong style="font-size:15px">✍️ Input Manual</strong>
+        <span id="mCaret" class="ask-hint">▼</span>
+      </div>
+      <div id="manualBody" class="hidden" style="margin-top:6px">
+        <label>POS BIAYA</label>
+        <select id="mPos" onchange="mOnPosChange()"></select>
+
+        <label>KETERANGAN</label>
+        <input id="mKeterangan" type="text" list="mKetList" autocomplete="off" placeholder="(ketik atau pilih rekomendasi)">
+        <datalist id="mKetList"></datalist>
+        <div id="mKetChips" class="chips"></div>
+
+        <label>NOMINAL</label>
+        <div class="nominal-prefix"><span>Rp</span><input id="mNominal" type="text" inputmode="numeric" placeholder="0" oninput="mOnNominalInput()"></div>
+
+        <label>TANGGAL</label>
+        <input id="mTanggal" type="date">
+
+        <div class="grid2">
+          <div><label>BIAYA BULAN</label><select id="mBiayaBulan"></select></div>
+          <div><label>TAHUN BIAYA</label><select id="mTahunBiaya"></select></div>
+        </div>
+
+        <label>SUMBER DANA</label>
+        <select id="mSumberDana" onchange="mOnSumberDanaChange()"></select>
+        <div id="mRekWrap" class="hidden">
+          <label>Rekening <span style="color:var(--muted);font-weight:400">(khusus Pendapatan Usaha)</span></label>
+          <select id="mRekening"></select>
+        </div>
+
+        <div class="grid2">
+          <div><label>BUDGET BULAN</label><select id="mBudgetBulan"></select></div>
+          <div><label>TAHUN BUDGET</label><select id="mTahunBudget"></select></div>
+        </div>
+
+        <button class="btn-primary" style="margin-top:14px" onclick="mSave()">Pratinjau &amp; Simpan</button>
+      </div>
+    </div>
     </div><!-- /tabInput -->
 
     <div id="tabBudget" class="hidden">
@@ -289,6 +331,7 @@
         google.script.run.withSuccessHandler(function (ctx) {
           CFG.sumberDanaByPos = (ctx && ctx.sumberDanaByPos) || {};
         }).getHistoryContext();
+        mInitSelects();
       }).withFailureHandler(showErr).getConfig();
       refreshTarget();
     }
@@ -639,7 +682,7 @@
       if (payload.sumberDana === 'PENDAPATAN USAHA') {
         showInfo('Menyiapkan pratinjau…');
         google.script.run.withSuccessHandler(function (pv) {
-          clearMsg(); showCashflowPreview(payload, pv);
+          clearMsg(); showPreview(payload, pv);
         }).withFailureHandler(function (e) {
           showErr('Pratinjau CASHFLOW gagal: ' + (e.message || e) + ' (atur link di tab Setelan).');
         }).previewCashflow(payload, window._pin);
@@ -659,7 +702,7 @@
             if (res.cashflow.error) m += ' ⚠️ CASHFLOW gagal: ' + res.cashflow.error;
             else m += ' Juga ke CASHFLOW baris ' + res.cashflow.row + '.';
           }
-          showOk(m); closePreview(); resetAll(); refreshTarget();
+          showOk(m); closePreview(); resetAll(); mReset(); refreshTarget();
         })
         .withFailureHandler(function (err) {
           btn.disabled = false; btn.textContent = 'Simpan ke Spreadsheet';
@@ -668,28 +711,134 @@
         .appendTransaction(payload);
     }
 
-    // --- Pratinjau CASHFLOW ---
+    // --- Pratinjau (TRANSAKSI + opsional CASHFLOW) ---
     var _pendingPayload = null;
-    function showCashflowPreview(payload, pv) {
+    function showPreview(payload, cf) {
       _pendingPayload = payload;
-      var t = document.getElementById('tanggal').value;
-      var h = '<div style="margin-bottom:6px;color:var(--muted)">Akan ditulis ke <b>2</b> spreadsheet:</div>';
-      h += '<div class="card" style="padding:10px;margin:0 0 8px"><b>1) ANALISA KEUANGAN — TRANSAKSI</b><br>' +
+      var h = '<div style="margin-bottom:6px;color:var(--muted)">' +
+        (cf ? 'Akan ditulis ke <b>2</b> spreadsheet:' : 'Pratinjau entri:') + '</div>';
+      h += '<div class="card" style="padding:10px;margin:0 0 8px"><b>TRANSAKSI (ANALISA KEUANGAN)</b><br>' +
         'POS: ' + esc(payload.posBiaya) + '<br>Keterangan: ' + esc(payload.keterangan || '-') +
-        '<br>Nominal: ' + rp(payload.nominal) + '<br>Tanggal: ' + esc(formatTglHint(t)) +
+        '<br>Nominal: ' + rp(payload.nominal) + '<br>Tanggal: ' + esc(formatTglHint(payload.tanggal)) +
+        '<br>Biaya: ' + esc(payload.biayaBulan) + ' ' + esc(String(payload.tahunBiaya)) +
         '<br>Sumber Dana: ' + esc(payload.sumberDana) +
-        '<br>Rekening: ' + esc(payload.rekening || '(kas tunai usaha)') + '</div>';
-      h += '<div class="card" style="padding:10px;margin:0"><b>2) ' + esc(pv.title) + ' — ' + esc(pv.sheet) +
-        '</b> (baris ' + pv.targetRow + ')<br>' +
-        'Subjek Biaya: ' + esc(pv.row.subjek) + '<br>Keterangan: ' + esc(pv.row.keterangan) +
-        '<br>Nominal: ' + rp(pv.row.nominal) + '<br>Tanggal: ' + esc(formatTglHint(pv.row.tanggal)) +
-        '<br>Outlet: ' + esc(pv.row.outlet) + '<br>Status Lapor: ' + esc(pv.row.status) +
-        '<br>Sumber Dana: ' + esc(pv.row.sumberDana) + '</div>';
+        '<br>Budget: ' + esc(payload.budgetBulan) + ' ' + esc(String(payload.tahunBudget)) +
+        '<br>Rekening: ' + esc(payload.rekening || '(kosong)') + '</div>';
+      if (cf) {
+        h += '<div class="card" style="padding:10px;margin:0"><b>' + esc(cf.title) + ' — ' + esc(cf.sheet) +
+          '</b> (baris ' + cf.targetRow + ')<br>' +
+          'Subjek Biaya: ' + esc(cf.row.subjek) + '<br>Keterangan: ' + esc(cf.row.keterangan) +
+          '<br>Nominal: ' + rp(cf.row.nominal) + '<br>Tanggal: ' + esc(formatTglHint(cf.row.tanggal)) +
+          '<br>Outlet: ' + esc(cf.row.outlet) + '<br>Status Lapor: ' + esc(cf.row.status) +
+          '<br>Sumber Dana: ' + esc(cf.row.sumberDana) + '</div>';
+      }
       document.getElementById('previewBody').innerHTML = h;
       document.getElementById('previewModal').style.display = 'flex';
     }
     function closePreview() { document.getElementById('previewModal').style.display = 'none'; _pendingPayload = null; }
     function confirmPreview() { if (_pendingPayload) doSave(_pendingPayload); }
+
+    // ===================== INPUT MANUAL =====================
+    function toggleManual() {
+      var hiddenNow = document.getElementById('manualBody').classList.toggle('hidden');
+      document.getElementById('mCaret').textContent = hiddenNow ? '▼' : '▲';
+    }
+    function buildRekeningOptions(id) {
+      var sel = document.getElementById(id); sel.innerHTML = '';
+      var kas = document.createElement('option'); kas.value = ''; kas.textContent = '— Kas tunai usaha (kosongkan) —'; sel.appendChild(kas);
+      CFG.bankRekening.forEach(function (b) { var o = document.createElement('option'); o.value = b; o.textContent = b; sel.appendChild(o); });
+    }
+    function mInitSelects() {
+      fillSelect('mPos', CFG.posBiaya, true, '— pilih pos biaya —');
+      fillSelect('mSumberDana', CFG.sumberDana, true, '— pilih sumber dana —');
+      fillSelect('mBiayaBulan', CFG.bulan, true, '— pilih bulan —');
+      fillSelect('mBudgetBulan', CFG.bulan, true, '— pilih bulan —');
+      buildYears('mTahunBiaya', CFG.tahunIni);
+      buildYears('mTahunBudget', CFG.tahunIni);
+      buildRekeningOptions('mRekening');
+      var mi = new Date().getMonth();
+      setSelect('mBiayaBulan', CFG.bulan[mi]);
+      setSelect('mBudgetBulan', CFG.bulan[mi]);
+      document.getElementById('mTanggal').value = CFG.today;
+    }
+    function mOnPosChange() {
+      var pos = document.getElementById('mPos').value;
+      var chips = document.getElementById('mKetChips'); chips.innerHTML = '';
+      var dl = document.getElementById('mKetList'); dl.innerHTML = '';
+      if (!pos) return;
+      google.script.run.withSuccessHandler(function (hist) {
+        (hist || []).forEach(function (k) { var o = document.createElement('option'); o.value = k; dl.appendChild(o); });
+        if ((hist || []).length) {
+          var lbl = document.createElement('div'); lbl.className = 'ask-hint'; lbl.style.width = '100%';
+          lbl.textContent = 'Rekomendasi (dari history POS ini) — ketuk:'; chips.appendChild(lbl);
+        }
+        (hist || []).slice(0, 10).forEach(function (k) {
+          var c = document.createElement('span'); c.className = 'chip'; c.textContent = k;
+          c.onclick = function () { document.getElementById('mKeterangan').value = k; };
+          chips.appendChild(c);
+        });
+      }).withFailureHandler(function () {}).getKeteranganOptions(pos);
+    }
+    function mOnSumberDanaChange() {
+      var sd = document.getElementById('mSumberDana').value;
+      document.getElementById('mRekWrap').classList.toggle('hidden', sd !== CFG.sumberDanaRekening);
+      if (sd !== CFG.sumberDanaRekening) document.getElementById('mRekening').value = '';
+    }
+    function mOnNominalInput() { var el = document.getElementById('mNominal'); el.value = groupThousands(el.value); }
+    function mUnformatNominal() { return Number(document.getElementById('mNominal').value.replace(/[^\d]/g, '')); }
+
+    function mSave() {
+      var sd = document.getElementById('mSumberDana').value;
+      var payload = {
+        posBiaya: document.getElementById('mPos').value,
+        keterangan: document.getElementById('mKeterangan').value.trim(),
+        nominal: mUnformatNominal(),
+        tanggal: document.getElementById('mTanggal').value,
+        sumberDana: sd,
+        biayaBulan: document.getElementById('mBiayaBulan').value,
+        tahunBiaya: document.getElementById('mTahunBiaya').value,
+        budgetBulan: document.getElementById('mBudgetBulan').value,
+        tahunBudget: document.getElementById('mTahunBudget').value,
+        rekening: (sd === CFG.sumberDanaRekening) ? document.getElementById('mRekening').value : '',
+        mataUang: 'IDR', nominalAsli: 0, kurs: 0,
+        pin: window._pin,
+        meta: { merchant: document.getElementById('mKeterangan').value.trim() }
+      };
+      if (!payload.posBiaya) return showErr('POS BIAYA wajib dipilih.');
+      if (!(payload.nominal > 0)) return showErr('Nominal harus lebih dari 0.');
+      if (!payload.tanggal) return showErr('Tanggal wajib diisi.');
+      if (!payload.sumberDana) return showErr('Sumber Dana wajib dipilih.');
+      if (!payload.biayaBulan) return showErr('Biaya Bulan wajib dipilih.');
+      if (!payload.tahunBiaya) return showErr('Tahun Biaya wajib dipilih.');
+      if (!payload.budgetBulan) return showErr('Budget Bulan wajib dipilih.');
+      if (!payload.tahunBudget) return showErr('Tahun Budget wajib dipilih.');
+      // Selalu pratinjau dulu.
+      if (payload.sumberDana === 'PENDAPATAN USAHA') {
+        showInfo('Menyiapkan pratinjau…');
+        google.script.run.withSuccessHandler(function (pv) { clearMsg(); showPreview(payload, pv); })
+          .withFailureHandler(function (e) { showErr('Pratinjau CASHFLOW gagal: ' + (e.message || e) + ' (atur link di tab Setelan).'); })
+          .previewCashflow(payload, window._pin);
+      } else {
+        showPreview(payload, null);
+      }
+    }
+
+    function mReset() {
+      if (!document.getElementById('mPos')) return;
+      document.getElementById('mPos').value = '';
+      document.getElementById('mKeterangan').value = '';
+      document.getElementById('mNominal').value = '';
+      document.getElementById('mSumberDana').value = '';
+      document.getElementById('mKetChips').innerHTML = '';
+      document.getElementById('mRekWrap').classList.add('hidden');
+      document.getElementById('mRekening').value = '';
+      if (CFG) {
+        document.getElementById('mTanggal').value = CFG.today;
+        var mi = new Date().getMonth();
+        setSelect('mBiayaBulan', CFG.bulan[mi]); setSelect('mBudgetBulan', CFG.bulan[mi]);
+        buildYears('mTahunBiaya', CFG.tahunIni); buildYears('mTahunBudget', CFG.tahunIni);
+      }
+    }
 
     function resetAll() {
       currentDataUrl = null;

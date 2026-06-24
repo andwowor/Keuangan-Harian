@@ -95,6 +95,13 @@ full-screen) lewat GitHub Pages. Atau cukup buka URL di HP lalu **Add to Home Sc
    cukup **koreksi yang meleset**.
 6. Klik **Simpan ke Spreadsheet**. Baris masuk di posisi kosong terbawah.
 
+**Input Manual (tanpa foto):** di tab Input ada bagian **✍️ Input Manual** untuk mengetik
+biaya langsung (POS, keterangan, nominal, tanggal, biaya bulan/tahun, sumber dana, budget
+bulan/tahun, Rekening bila Pendapatan Usaha). KETERANGAN menampilkan **rekomendasi dari
+history** sesuai POS yang dipilih; Rekening dari daftar bank history. **Selalu ada pratinjau**
+sebelum disimpan. Disimpan ke sheet TRANSAKSI lewat alur yang sama (termasuk auto-isi CASHFLOW
+bila sumber dana Pendapatan Usaha).
+
 > **Makin lama makin otomatis:** dashboard membaca sheet TRANSAKSI secara *live*
 > setiap kali dipakai, sehingga setiap transaksi baru yang Anda simpan ikut
 > memperbaiki tebakan (POS BIAYA, KETERANGAN, SUMBER DANA) berikutnya.
