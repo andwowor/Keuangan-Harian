@@ -195,54 +195,37 @@ function getConfig() {
   };
 }
 
-/** Ambil daftar opsi dari data validation (dropdown) sebuah kolom di sheet. */
-function getListFromValidation_(sheet, headerRow, col) {
-  var DVC = SpreadsheetApp.DataValidationCriteria;
-  for (var r = headerRow + 1; r <= headerRow + 3; r++) {
-    try {
-      var dv = sheet.getRange(r, col).getDataValidation();
-      if (!dv) continue;
-      var type = dv.getCriteriaType();
-      var vals = dv.getCriteriaValues();
-      var list = null;
-      if (type === DVC.VALUE_IN_LIST) {
-        list = (vals[0] || []).map(function (s) { return String(s).trim(); });
-      } else if (type === DVC.VALUE_IN_RANGE && vals[0]) {
-        list = vals[0].getValues().map(function (row) { return String(row[0]).trim(); });
-      }
-      if (list) {
-        var seen = {}, out = [];
-        list.forEach(function (x) { if (x && !seen[x]) { seen[x] = 1; out.push(x); } });
-        if (out.length) return out;
-      }
-    } catch (e) {}
-  }
-  return null;
-}
+// Sumber daftar POS BIAYA: sheet REAL kolom B pada baris item biaya (tanpa TOTAL/sub-header).
+var POS_SOURCE_SHEET = 'REAL';
+var POS_SOURCE_COL = 2; // kolom B
+var POS_SOURCE_ROWS = [[3, 13], [17, 20], [23, 24], [28, 42], [46, 46], [49, 50], [54, 64]];
 
-/** Daftar POS BIAYA — dari dropdown kolom A sheet TRANSAKSI (fallback ke daftar bawaan). */
+/** Daftar POS BIAYA — dari sheet REAL kolom B (baris item), fallback ke daftar bawaan. */
 function getPosList_() {
   var cache = CacheService.getScriptCache();
   var hit = cache.get('poslist');
   if (hit) return JSON.parse(hit);
-  var out = null;
-  try { var sheet = getSheet_(); out = getListFromValidation_(sheet, findHeaderRow_(sheet), 1); } catch (e) {}
-  if (!out || !out.length) out = POS_BIAYA;
+  var out = [];
+  try {
+    var sh = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(POS_SOURCE_SHEET);
+    if (sh) {
+      var seen = {};
+      POS_SOURCE_ROWS.forEach(function (rg) {
+        var vals = sh.getRange(rg[0], POS_SOURCE_COL, rg[1] - rg[0] + 1, 1).getValues();
+        vals.forEach(function (row) {
+          var v = String(row[0]).trim();
+          if (v && v.toUpperCase() !== 'TOTAL' && !seen[v]) { seen[v] = 1; out.push(v); }
+        });
+      });
+    }
+  } catch (e) {}
+  if (!out.length) out = POS_BIAYA;
   cache.put('poslist', JSON.stringify(out), 300);
   return out;
 }
 
-/** Daftar SUMBER DANA — dari dropdown kolom G sheet TRANSAKSI (fallback ke daftar bawaan). */
-function getSumberList_() {
-  var cache = CacheService.getScriptCache();
-  var hit = cache.get('sumberlist');
-  if (hit) return JSON.parse(hit);
-  var out = null;
-  try { var sheet = getSheet_(); out = getListFromValidation_(sheet, findHeaderRow_(sheet), 7); } catch (e) {}
-  if (!out || !out.length) out = SUMBER_DANA;
-  cache.put('sumberlist', JSON.stringify(out), 300);
-  return out;
-}
+/** Daftar SUMBER DANA (dari daftar bawaan yang lengkap). */
+function getSumberList_() { return SUMBER_DANA; }
 
 /** Posisi baris kosong terbawah (target penulisan) pada sheet TRANSAKSI. */
 function getNextRowInfo() {
