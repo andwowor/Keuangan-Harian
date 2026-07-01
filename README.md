@@ -17,7 +17,7 @@ otomatis terhitung dari tabel transaksi — dashboard hanya menambah baris baru.
 
 | Kolom | Perilaku |
 |-------|----------|
-| **POS BIAYA** | Hanya pilih dari dropdown (tidak bisa diketik). |
+| **POS BIAYA** | Combobox: **ketik untuk mencari** lalu pilih dari daftar. Nilai **wajib dari daftar** (divalidasi), sehingga cocok dengan dropdown kolom POS BIAYA di sheet TRANSAKSI. |
 | **KETERANGAN** | Ditebak dari isi bukti, dipandu **history pengisian per POS** dari sheet (muncul sebagai autocomplete + chip rekomendasi). Bila model tidak yakin, rekomendasi ditonjolkan untuk Anda pilih. |
 | **NOMINAL** | Dibaca dari bukti. Bila mata uang asing (mis. **RMB/CNY**, USD, SGD), otomatis dikonversi ke Rupiah memakai **kurs pada tanggal transaksi** (sumber: Frankfurter/ECB). Khusus POS **BIAYA KULIAH CHINA** + mata uang asing, sel NOMINAL ditulis sebagai **formula** `=nominal_asli*kurs` (transparan), bukan hasil akhirnya. |
 | **TANGGAL** | Selalu diambil dari tanggal pada bukti transaksi. |

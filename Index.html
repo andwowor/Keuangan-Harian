@@ -104,6 +104,15 @@
     .btn-primary { box-shadow: 0 10px 26px rgba(56,189,248,.28); }
     .bt-total td { background: rgba(255,255,255,.06); }
     .lock { background: radial-gradient(760px 420px at 50% -5%, rgba(56,189,248,.18), transparent 60%), #0a0e1c; }
+    .combo { position: relative; }
+    .combo-list { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 30; max-height: 230px;
+      overflow: auto; background: #0e1630; border: 1px solid var(--line); border-radius: 10px;
+      box-shadow: 0 14px 34px rgba(0,0,0,.55); display: none; }
+    .combo-list.open { display: block; }
+    .combo-item { padding: 10px 11px; font-size: 14px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,.05); }
+    .combo-item:last-child { border-bottom: 0; }
+    .combo-item:hover { background: rgba(56,189,248,.16); }
+    .combo-empty { padding: 10px 11px; color: var(--muted); font-size: 13px; }
   </style>
 </head>
 <body>
@@ -157,8 +166,12 @@
       <div id="catatan" class="note hidden"></div>
 
       <!-- Dibaca dari bukti (boleh dikoreksi) -->
-      <label>POS BIAYA <span style="color:var(--muted);font-weight:400">(pilih dari daftar)</span></label>
-      <select id="posBiaya" onchange="onPosChange()"></select>
+      <label>POS BIAYA <span style="color:var(--muted);font-weight:400">(ketik untuk cari, pilih dari daftar)</span></label>
+      <div class="combo">
+        <input id="posBiaya" type="text" autocomplete="off" placeholder="— pilih / cari pos biaya —"
+          oninput="comboFilter('posBiaya')" onfocus="comboOpen('posBiaya')" onblur="comboBlur('posBiaya')">
+        <div id="posBiaya_list" class="combo-list"></div>
+      </div>
 
       <label>KETERANGAN</label>
       <input id="keterangan" type="text" list="ketList" autocomplete="off" placeholder="(ketik atau pilih rekomendasi)">
@@ -224,8 +237,12 @@
         <span id="mCaret" class="ask-hint">▼</span>
       </div>
       <div id="manualBody" class="hidden" style="margin-top:6px">
-        <label>POS BIAYA</label>
-        <select id="mPos" onchange="mOnPosChange()"></select>
+        <label>POS BIAYA <span style="color:var(--muted);font-weight:400">(ketik untuk cari)</span></label>
+        <div class="combo">
+          <input id="mPos" type="text" autocomplete="off" placeholder="— pilih / cari pos biaya —"
+            oninput="comboFilter('mPos')" onfocus="comboOpen('mPos')" onblur="comboBlur('mPos')">
+          <div id="mPos_list" class="combo-list"></div>
+        </div>
 
         <label>KETERANGAN</label>
         <input id="mKeterangan" type="text" list="mKetList" autocomplete="off" placeholder="(ketik atau pilih rekomendasi)">
@@ -321,7 +338,7 @@
     function initApp() {
       google.script.run.withSuccessHandler(function (cfg) {
         CFG = cfg;
-        fillSelect('posBiaya', cfg.posBiaya, true, '— pilih pos biaya —');
+        comboInit('posBiaya', cfg.posBiaya, onPosChange);
         fillSelect('sumberDana', cfg.sumberDana, true, '— pilih sumber dana —');
         fillSelect('biayaBulan', cfg.bulan, true, '— pilih bulan —');
         fillSelect('budgetBulan', cfg.bulan, true, '— pilih bulan —');
@@ -448,7 +465,7 @@
       document.getElementById('formCard').classList.remove('hidden');
 
       // Dibaca dari bukti
-      setSelect('posBiaya', d.pos_biaya);
+      comboSetValue('posBiaya', d.pos_biaya);
       document.getElementById('keterangan').value = d.keterangan || '';
       document.getElementById('nominal').value = groupThousands(String(d.nominal || ''));
       document.getElementById('tanggal').value = d.tanggal || '';
@@ -631,6 +648,46 @@
       }
     }
 
+    // --- Combobox (ketik untuk cari + wajib pilih dari daftar) ---
+    var _combo = {};
+    function comboInit(id, options, onChange) {
+      _combo[id] = { options: options || [], onChange: onChange || function () {} };
+      document.getElementById(id).value = '';
+    }
+    function comboValid(id, val) { return _combo[id] && _combo[id].options.indexOf(val) >= 0; }
+    function comboSetValue(id, val) {
+      document.getElementById(id).value = comboValid(id, val) ? val : '';
+    }
+    function comboRender(id, q) {
+      var box = document.getElementById(id + '_list'); if (!box || !_combo[id]) return;
+      box.innerHTML = '';
+      var opts = _combo[id].options;
+      var qq = String(q || '').trim().toLowerCase();
+      var filtered = qq ? opts.filter(function (o) { return o.toLowerCase().indexOf(qq) >= 0; }) : opts;
+      if (!filtered.length) {
+        var e = document.createElement('div'); e.className = 'combo-empty'; e.textContent = 'tidak ada yang cocok'; box.appendChild(e); return;
+      }
+      filtered.forEach(function (o) {
+        var d = document.createElement('div'); d.className = 'combo-item'; d.textContent = o;
+        d.addEventListener('mousedown', function (ev) { ev.preventDefault(); comboSelect(id, o); });
+        box.appendChild(d);
+      });
+    }
+    function comboOpen(id) { comboRender(id, ''); document.getElementById(id + '_list').classList.add('open'); }
+    function comboFilter(id) { comboRender(id, document.getElementById(id).value); document.getElementById(id + '_list').classList.add('open'); }
+    function comboSelect(id, val) {
+      document.getElementById(id).value = val;
+      document.getElementById(id + '_list').classList.remove('open');
+      _combo[id].onChange(val);
+    }
+    function comboBlur(id) {
+      setTimeout(function () {
+        document.getElementById(id + '_list').classList.remove('open');
+        var el = document.getElementById(id);
+        if (!comboValid(id, el.value)) { el.value = ''; _combo[id].onChange(''); }
+      }, 180);
+    }
+
     // --- Nominal format ---
     function onNominalInput() {
       var el = document.getElementById('nominal'); el.value = groupThousands(el.value);
@@ -670,6 +727,7 @@
 
       // Validasi sesuai aturan
       if (!payload.posBiaya) return showErr('POS BIAYA wajib dipilih.');
+      if (!comboValid('posBiaya', payload.posBiaya)) return showErr('POS BIAYA harus dipilih dari daftar.');
       if (!(payload.nominal > 0)) return showErr('Nominal harus lebih dari 0.');
       if (!payload.tanggal) return showErr('Tanggal wajib diisi (dari bukti).');
       if (!payload.sumberDana) return showErr('Sumber Dana wajib dipilih.');
@@ -749,7 +807,7 @@
       CFG.bankRekening.forEach(function (b) { var o = document.createElement('option'); o.value = b; o.textContent = b; sel.appendChild(o); });
     }
     function mInitSelects() {
-      fillSelect('mPos', CFG.posBiaya, true, '— pilih pos biaya —');
+      comboInit('mPos', CFG.posBiaya, mOnPosChange);
       fillSelect('mSumberDana', CFG.sumberDana, true, '— pilih sumber dana —');
       fillSelect('mBiayaBulan', CFG.bulan, true, '— pilih bulan —');
       fillSelect('mBudgetBulan', CFG.bulan, true, '— pilih bulan —');
@@ -805,6 +863,7 @@
         meta: { merchant: document.getElementById('mKeterangan').value.trim() }
       };
       if (!payload.posBiaya) return showErr('POS BIAYA wajib dipilih.');
+      if (!comboValid('mPos', payload.posBiaya)) return showErr('POS BIAYA harus dipilih dari daftar.');
       if (!(payload.nominal > 0)) return showErr('Nominal harus lebih dari 0.');
       if (!payload.tanggal) return showErr('Tanggal wajib diisi.');
       if (!payload.sumberDana) return showErr('Sumber Dana wajib dipilih.');
