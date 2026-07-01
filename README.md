@@ -184,8 +184,10 @@ Apps Script menyediakan endpoint ringkas (dilindungi `token` = `APP_PIN`):
   - `claude-sonnet-4-6` — seimbang (default)
   - `claude-opus-4-8` — paling akurat
   - `claude-haiku-4-5` — paling murah & cepat
-- **Tambah/ubah kategori:** edit array `POS_BIAYA` atau `SUMBER_DANA` di `Code.gs`.
-  Daftar ini sekaligus menjadi pilihan dropdown di form **dan** batasan tebakan model.
+- **Tambah/ubah kategori:** daftar **POS BIAYA & SUMBER DANA di dashboard otomatis mengikuti
+  dropdown (data validation) kolom A & G sheet TRANSAKSI** — cukup ubah di spreadsheet,
+  dashboard menyesuaikan (cache ±5 menit). Array `POS_BIAYA`/`SUMBER_DANA` di `Code.gs` hanya
+  cadangan bila validasi tak terbaca.
 - **Tema (futuristik, dark):** warna didefinisikan di `:root` pada `Index.html` — latar
   gelap `#0a0e1c` dengan aksen neon cyan `#38bdf8` → violet `#8b5cf6`, kartu kaca (glass).
   Ubah di satu tempat untuk seluruh tampilan. Ikon PWA (HUD ring) ada di `docs/icon-192.png`

@@ -184,8 +184,8 @@ function getConfig() {
   var now = new Date();
   var year = Number(Utilities.formatDate(now, TIMEZONE, 'yyyy'));
   return {
-    posBiaya: POS_BIAYA,
-    sumberDana: SUMBER_DANA,
+    posBiaya: getPosList_(),
+    sumberDana: getSumberList_(),
     sumberDanaRekening: SUMBER_DANA_REKENING,
     bankRekening: BANK_REKENING,
     bulan: BULAN_UPPER,
@@ -193,6 +193,55 @@ function getConfig() {
     today: Utilities.formatDate(now, TIMEZONE, 'yyyy-MM-dd'),
     tahunIni: year
   };
+}
+
+/** Ambil daftar opsi dari data validation (dropdown) sebuah kolom di sheet. */
+function getListFromValidation_(sheet, headerRow, col) {
+  var DVC = SpreadsheetApp.DataValidationCriteria;
+  for (var r = headerRow + 1; r <= headerRow + 3; r++) {
+    try {
+      var dv = sheet.getRange(r, col).getDataValidation();
+      if (!dv) continue;
+      var type = dv.getCriteriaType();
+      var vals = dv.getCriteriaValues();
+      var list = null;
+      if (type === DVC.VALUE_IN_LIST) {
+        list = (vals[0] || []).map(function (s) { return String(s).trim(); });
+      } else if (type === DVC.VALUE_IN_RANGE && vals[0]) {
+        list = vals[0].getValues().map(function (row) { return String(row[0]).trim(); });
+      }
+      if (list) {
+        var seen = {}, out = [];
+        list.forEach(function (x) { if (x && !seen[x]) { seen[x] = 1; out.push(x); } });
+        if (out.length) return out;
+      }
+    } catch (e) {}
+  }
+  return null;
+}
+
+/** Daftar POS BIAYA — dari dropdown kolom A sheet TRANSAKSI (fallback ke daftar bawaan). */
+function getPosList_() {
+  var cache = CacheService.getScriptCache();
+  var hit = cache.get('poslist');
+  if (hit) return JSON.parse(hit);
+  var out = null;
+  try { var sheet = getSheet_(); out = getListFromValidation_(sheet, findHeaderRow_(sheet), 1); } catch (e) {}
+  if (!out || !out.length) out = POS_BIAYA;
+  cache.put('poslist', JSON.stringify(out), 300);
+  return out;
+}
+
+/** Daftar SUMBER DANA — dari dropdown kolom G sheet TRANSAKSI (fallback ke daftar bawaan). */
+function getSumberList_() {
+  var cache = CacheService.getScriptCache();
+  var hit = cache.get('sumberlist');
+  if (hit) return JSON.parse(hit);
+  var out = null;
+  try { var sheet = getSheet_(); out = getListFromValidation_(sheet, findHeaderRow_(sheet), 7); } catch (e) {}
+  if (!out || !out.length) out = SUMBER_DANA;
+  cache.put('sumberlist', JSON.stringify(out), 300);
+  return out;
 }
 
 /** Posisi baris kosong terbawah (target penulisan) pada sheet TRANSAKSI. */
@@ -580,10 +629,11 @@ function analyzeImage(dataUrl, pin) {
     '- catatan: catatan singkat bila ada yang ambigu, selain itu "".';
 
   // Tambahkan panduan kategorisasi POS dari history (belajar dari data yang sudah diisi).
+  var posList = getPosList_();
   var posExamples = getPosExamples();
   var panduan = '';
-  for (var pi = 0; pi < POS_BIAYA.length; pi++) {
-    var pp = POS_BIAYA[pi], ex = posExamples[pp];
+  for (var pi = 0; pi < posList.length; pi++) {
+    var pp = posList[pi], ex = posExamples[pp];
     panduan += '- ' + pp + (ex && ex.length ? ': ' + ex.join(', ') : '') + '\n';
   }
   systemPrompt += '\n\nPANDUAN KATEGORISASI POS BIAYA (dari history pengisian pemilik — ' +
@@ -595,7 +645,7 @@ function analyzeImage(dataUrl, pin) {
       nominal_asli: { type: 'number', description: 'Jumlah dalam mata uang asli pada bukti' },
       mata_uang: { type: 'string', description: 'Kode ISO 4217, mis. IDR/CNY/USD/SGD' },
       tanggal: { type: 'string', description: 'Tanggal transaksi YYYY-MM-DD, atau "" bila tak terbaca' },
-      pos_biaya: { type: 'string', enum: POS_BIAYA },
+      pos_biaya: { type: 'string', enum: posList },
       keterangan: { type: 'string' },
       keterangan_yakin: { type: 'boolean' },
       keterangan_opsi: { type: 'array', items: { type: 'string' } },
@@ -826,11 +876,9 @@ function appendTransaction(payload) {
   verifyPin_(payload && payload.pin);
   // Validasi field wajib.
   if (!payload || !payload.posBiaya) throw new Error('POS BIAYA wajib dipilih.');
-  if (POS_BIAYA.indexOf(payload.posBiaya) === -1) throw new Error('POS BIAYA tidak valid.');
   if (!(payload.nominal > 0)) throw new Error('NOMINAL harus angka lebih dari 0.');
   if (!payload.tanggal) throw new Error('TANGGAL wajib diisi (dari bukti).');
   if (!payload.sumberDana) throw new Error('SUMBER DANA wajib dipilih.');
-  if (SUMBER_DANA.indexOf(payload.sumberDana) === -1) throw new Error('SUMBER DANA tidak valid.');
   if (!payload.biayaBulan) throw new Error('BIAYA BULAN wajib dipilih.');
   if (!payload.tahunBiaya) throw new Error('TAHUN BIAYA wajib dipilih.');
   if (!payload.budgetBulan) throw new Error('BUDGET BULAN wajib dipilih.');
