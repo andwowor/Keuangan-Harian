@@ -22,7 +22,7 @@ otomatis terhitung dari tabel transaksi — dashboard hanya menambah baris baru.
 | **NOMINAL** | Dibaca dari bukti. Bila mata uang asing (mis. **RMB/CNY**, USD, SGD), otomatis dikonversi ke Rupiah memakai **kurs pada tanggal transaksi** (sumber: Frankfurter/ECB). Khusus POS **BIAYA KULIAH CHINA** + mata uang asing, sel NOMINAL ditulis sebagai **formula** `=nominal_asli*kurs` (transparan), bukan hasil akhirnya. |
 | **TANGGAL** | Selalu diambil dari tanggal pada bukti transaksi. |
 | **BIAYA BULAN, TAHUN BIAYA, BUDGET BULAN, TAHUN BUDGET** | **Terisi otomatis** dari tanggal transaksi (pola history ~82%); tinggal dikonfirmasi/koreksi. |
-| **SUMBER DANA** | **Terisi otomatis dari nomor rekening sumber pada bukti** (pemetaan rekening → Pendapatan Usaha / Kas Lain Usaha / THR-CUTI). Bila tak terbaca: BOC(1201)→Uang Saku, atau pola SUMBER DANA tersering per POS dari history. Bisa dikoreksi. |
+| **SUMBER DANA** | **Terisi otomatis dari nomor rekening sumber pada bukti** (pemetaan rekening → Pendapatan Usaha / Kas Lain Usaha / THR-CUTI). Pencocokan juga lewat **nama pemilik/aplikasi** (mis. blu *Andre Stefano Wowor* → THR/Cuti) dan **bank + akhiran nomor** saat nomor disamarkan (mis. BNI `*******708` → THR/Cuti). Bila tak terbaca: BOC(1201)→Uang Saku, atau pola SUMBER DANA tersering per POS dari history. Bisa dikoreksi. |
 | **Rekening** | Hanya aktif bila SUMBER DANA = **PENDAPATAN USAHA**. Isi nama bank dari bukti transfer (`Mandiri / BNI / BRI / BCA / Kas Tunai Maumbi`). Dikosongkan = dana dari **kas tunai usaha**. Untuk sumber dana lain, Rekening selalu kosong. |
 | **Aturan khusus** | Jika bukti menampilkan **"BOC Debit Card (1201)"**, SUMBER DANA otomatis terisi **UANG SAKU**. |
 

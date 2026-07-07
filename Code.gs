@@ -64,15 +64,19 @@ var BANK_REKENING = ['Mandiri', 'BNI', 'BRI', 'BCA', 'Kas Tunai Maumbi'];
 
 // Pemetaan nomor rekening/akun SUMBER DANA (rekening pengirim pada bukti) -> SUMBER DANA.
 // 'bank' hanya diisi untuk PENDAPATAN USAHA (akan dimasukkan ke kolom Rekening).
+// Opsional: 'names' = kata kunci nama pemilik/aplikasi sumber dana (huruf kecil) untuk mencocokkan
+// saat nomor tidak terbaca; 'bankName' + 'suffix' = cocokkan bank + akhiran nomor (saat nomor disamarkan).
 var ACCOUNTS = [
   { no: '154301003768507', label: 'BRI 154301003768507', sumberDana: 'PENDAPATAN USAHA', bank: 'BRI' },
   { no: '1860031055', label: 'BNI 1860031055', sumberDana: 'PENDAPATAN USAHA', bank: 'BNI' },
   { no: '0263632785', label: 'BCA 0263632785', sumberDana: 'PENDAPATAN USAHA', bank: 'BCA' },
   { no: '1500034495620', label: 'Mandiri 1500034495620', sumberDana: 'PENDAPATAN USAHA', bank: 'Mandiri' },
   { no: '0263935851', label: 'BCA 0263935851', sumberDana: 'KAS LAIN USAHA', bank: '' },
-  { no: '002929331804', label: 'BLU BCA Digital 002929331804', sumberDana: 'THR/CUTI (SALDO BERGERAK)', bank: '' },
+  { no: '002929331804', label: 'blu Andre Stefano Wowor', names: ['andre stefano wowor', 'blu'],
+    sumberDana: 'THR/CUTI (SALDO BERGERAK)', bank: '' },
   { no: '085242081620', label: 'Allo 085242081620', sumberDana: 'THR/CUTI (SALDO BERGERAK)', bank: '' },
-  { no: '1966320708', label: 'BNI Multicurrency 1966320708', sumberDana: 'THR/CUTI (SALDO BERGERAK)', bank: '' },
+  { no: '1966320708', label: 'BNI Multicurrency 1966320708', names: ['bni multicurrency', 'multicurrency'],
+    bankName: 'bni', suffix: '708', sumberDana: 'THR/CUTI (SALDO BERGERAK)', bank: '' },
   { no: '005401232138503', label: 'BRI 005401232138503', sumberDana: 'THR/CUTI (SALDO BERGERAK)', bank: '' }
 ];
 
@@ -603,7 +607,10 @@ function analyzeImage(dataUrl, pin) {
     '- merchant: nama merchant/toko/aplikasi/penerima pada bukti apa adanya (untuk pembelajaran), atau "".\n' +
     '- akun_sumber: nomor rekening/akun SUMBER DANA pada bukti, yaitu rekening PENGIRIM / yang ' +
     'DIDEBIT (biasanya berlabel "Sumber Dana", "Rekening Sumber", "Dari", "From"), tulis ANGKANYA ' +
-    '(boleh sertakan nama bank). Bukan rekening tujuan/penerima. Bila tidak ada, isi "".\n' +
+    '(boleh sertakan nama bank). Bukan rekening tujuan/penerima. Bila tidak ada, isi "". ' +
+    'Bila nomor disamarkan (mis. "*******708"), tetap tulis angka yang terlihat.\n' +
+    '- akun_sumber_nama: nama pemilik & bank/aplikasi SUMBER DANA (pengirim) apa adanya pada bukti — ' +
+    'mis. "Andre Stefano Wowor", "blu by BCA Digital", "BNI Multicurrency", "Allo". Bukan penerima. Bila tidak ada, isi "".\n' +
     '- is_boc_1201: true bila pada bukti tertulis "BOC Debit Card (1201)".\n' +
     '- bank_rekening: cadangan bila akun_sumber tidak terbaca — bila bukti transfer dari bank, ' +
     'petakan bank pengirim ke Mandiri/BNI/BRI/BCA; jika tidak jelas isi "". ' +
@@ -634,13 +641,14 @@ function analyzeImage(dataUrl, pin) {
       keterangan_opsi: { type: 'array', items: { type: 'string' } },
       merchant: { type: 'string', description: 'Nama merchant/toko/penerima pada bukti, atau ""' },
       akun_sumber: { type: 'string', description: 'Nomor rekening/akun sumber dana (pengirim) pada bukti, atau ""' },
+      akun_sumber_nama: { type: 'string', description: 'Nama pemilik & bank/aplikasi sumber dana (pengirim) pada bukti, atau ""' },
       is_boc_1201: { type: 'boolean' },
       bank_rekening: { type: 'string', enum: ['Mandiri', 'BNI', 'BRI', 'BCA', 'Kas Tunai Maumbi', ''] },
       confidence: { type: 'string', enum: ['tinggi', 'sedang', 'rendah'] },
       catatan: { type: 'string' }
     },
     required: ['nominal_asli', 'mata_uang', 'tanggal', 'pos_biaya', 'keterangan', 'keterangan_yakin',
-      'keterangan_opsi', 'merchant', 'akun_sumber', 'is_boc_1201', 'bank_rekening', 'confidence', 'catatan'],
+      'keterangan_opsi', 'merchant', 'akun_sumber', 'akun_sumber_nama', 'is_boc_1201', 'bank_rekening', 'confidence', 'catatan'],
     additionalProperties: false
   };
 
@@ -703,7 +711,7 @@ function analyzeImage(dataUrl, pin) {
     }
   }
   // Saran SUMBER DANA & Rekening dari nomor rekening sumber (deterministik + dipelajari), lalu aturan BOC.
-  var acct = detectAccount_(data.akun_sumber, getLearnedAccounts_());
+  var acct = detectAccount_(data.akun_sumber, data.akun_sumber_nama, getLearnedAccounts_());
   data.sumberDanaSaran = '';
   data.rekeningSaran = '';
   data.sumberDanaAlasan = '';
@@ -751,20 +759,44 @@ function normalizeCurrency_(c) {
 }
 
 /**
- * Cocokkan teks akun sumber dari bukti ke daftar rekening. ACCOUNTS (manual) diprioritaskan,
- * lalu daftar yang DIPELAJARI dari memori. Mengembalikan entri atau null.
+ * Cocokkan teks akun sumber dari bukti ke daftar rekening. Urutan prioritas:
+ *   1) NOMOR rekening (paling kuat) — ACCOUNTS manual dulu, lalu yang DIPELAJARI dari memori;
+ *   2) NAMA pemilik/aplikasi sumber dana (mis. "Andre Stefano Wowor" / "blu");
+ *   3) BANK + akhiran nomor (mis. BNI berakhiran 708) — berguna saat nomor disamarkan (*******708).
+ * 'text' = teks/nomor akun sumber; 'nameText' = nama pemilik & bank sumber. Mengembalikan entri atau null.
  */
-function detectAccount_(text, learned) {
+function detectAccount_(text, nameText, learned) {
   var d = String(text || '').replace(/\D/g, '');
-  if (d.length < 6) return null;
+  var nm = (String(text || '') + ' ' + String(nameText || '')).toLowerCase();
   var lists = [ACCOUNTS, learned || []];
-  for (var L = 0; L < lists.length; L++) {
-    for (var i = 0; i < lists[L].length; i++) {
-      var k = lists[L][i].no;
-      if (!k) continue;
-      if (d.indexOf(k) >= 0 || k.indexOf(d) >= 0 || d.slice(-6) === k.slice(-6)) return lists[L][i];
+
+  // 1) Berdasarkan NOMOR rekening (butuh minimal 6 digit terbaca).
+  if (d.length >= 6) {
+    for (var L = 0; L < lists.length; L++) {
+      for (var i = 0; i < lists[L].length; i++) {
+        var k = lists[L][i].no;
+        if (!k) continue;
+        if (d.indexOf(k) >= 0 || k.indexOf(d) >= 0 || d.slice(-6) === k.slice(-6)) return lists[L][i];
+      }
     }
   }
+
+  // 2) Berdasarkan NAMA pemilik/aplikasi sumber dana.
+  for (var a = 0; a < ACCOUNTS.length; a++) {
+    var names = ACCOUNTS[a].names;
+    if (!names) continue;
+    for (var n = 0; n < names.length; n++) {
+      if (names[n] && nm.indexOf(names[n]) >= 0) return ACCOUNTS[a];
+    }
+  }
+
+  // 3) Berdasarkan BANK + akhiran nomor (saat nomor disamarkan).
+  for (var b = 0; b < ACCOUNTS.length; b++) {
+    var suf = ACCOUNTS[b].suffix, bn = ACCOUNTS[b].bankName;
+    if (!suf || !bn) continue;
+    if (d.length >= suf.length && d.slice(-suf.length) === suf && nm.indexOf(bn) >= 0) return ACCOUNTS[b];
+  }
+
   return null;
 }
 
