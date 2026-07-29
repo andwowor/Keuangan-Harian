@@ -64,20 +64,30 @@ var BANK_REKENING = ['Mandiri', 'BNI', 'BRI', 'BCA', 'Kas Tunai Maumbi'];
 
 // Pemetaan nomor rekening/akun SUMBER DANA (rekening pengirim pada bukti) -> SUMBER DANA.
 // 'bank' hanya diisi untuk PENDAPATAN USAHA (akan dimasukkan ke kolom Rekening).
-// Opsional: 'names' = kata kunci nama pemilik/aplikasi sumber dana (huruf kecil) untuk mencocokkan
-// saat nomor tidak terbaca; 'bankName' + 'suffix' = cocokkan bank + akhiran nomor (saat nomor disamarkan).
+// Opsional:
+//   'names'    = kata kunci nama pemilik/aplikasi (huruf kecil), dipakai bila nomor tak terbaca;
+//   'bankName' = nama bank pada bukti (huruf kecil), dipakai untuk mencocokkan NOMOR YANG
+//                DISAMARKAN, mis. "Mandiri - •••••••••5620", "BCA - 026-3**-**85",
+//                "BNI - *******055", "BRI - 1543 **** **** 507".
 var ACCOUNTS = [
-  { no: '154301003768507', label: 'BRI 154301003768507', sumberDana: 'PENDAPATAN USAHA', bank: 'BRI' },
-  { no: '1860031055', label: 'BNI 1860031055', sumberDana: 'PENDAPATAN USAHA', bank: 'BNI' },
-  { no: '0263632785', label: 'BCA 0263632785', sumberDana: 'PENDAPATAN USAHA', bank: 'BCA' },
-  { no: '1500034495620', label: 'Mandiri 1500034495620', sumberDana: 'PENDAPATAN USAHA', bank: 'Mandiri' },
-  { no: '0263935851', label: 'BCA 0263935851', sumberDana: 'KAS LAIN USAHA', bank: '' },
+  { no: '154301003768507', label: 'BRI 154301003768507', bankName: 'bri',
+    sumberDana: 'PENDAPATAN USAHA', bank: 'BRI' },
+  { no: '1860031055', label: 'BNI 1860031055', bankName: 'bni',
+    sumberDana: 'PENDAPATAN USAHA', bank: 'BNI' },
+  { no: '0263632785', label: 'BCA 0263632785', bankName: 'bca',
+    sumberDana: 'PENDAPATAN USAHA', bank: 'BCA' },
+  { no: '1500034495620', label: 'Mandiri 1500034495620', bankName: 'mandiri',
+    sumberDana: 'PENDAPATAN USAHA', bank: 'Mandiri' },
+  { no: '0263935851', label: 'BCA 0263935851', bankName: 'bca',
+    sumberDana: 'KAS LAIN USAHA', bank: '' },
   { no: '002929331804', label: 'blu Andre Stefano Wowor', names: ['andre stefano wowor', 'blu'],
+    bankName: 'blu', sumberDana: 'THR/CUTI (SALDO BERGERAK)', bank: '' },
+  { no: '085242081620', label: 'Allo 085242081620', bankName: 'allo',
     sumberDana: 'THR/CUTI (SALDO BERGERAK)', bank: '' },
-  { no: '085242081620', label: 'Allo 085242081620', sumberDana: 'THR/CUTI (SALDO BERGERAK)', bank: '' },
   { no: '1966320708', label: 'BNI Multicurrency 1966320708', names: ['bni multicurrency', 'multicurrency'],
-    bankName: 'bni', suffix: '708', sumberDana: 'THR/CUTI (SALDO BERGERAK)', bank: '' },
-  { no: '005401232138503', label: 'BRI 005401232138503', sumberDana: 'THR/CUTI (SALDO BERGERAK)', bank: '' }
+    bankName: 'bni', sumberDana: 'THR/CUTI (SALDO BERGERAK)', bank: '' },
+  { no: '005401232138503', label: 'BRI 005401232138503', bankName: 'bri',
+    sumberDana: 'THR/CUTI (SALDO BERGERAK)', bank: '' }
 ];
 
 // Spreadsheet CASHFLOW (diatur via menu Pengaturan; diganti tiap awal bulan).
@@ -762,7 +772,10 @@ function analyzeImg_(img) {
     '- akun_sumber: nomor rekening/akun SUMBER DANA pada bukti, yaitu rekening PENGIRIM / yang ' +
     'DIDEBIT (biasanya berlabel "Sumber Dana", "Rekening Sumber", "Dari", "From"), tulis ANGKANYA ' +
     '(boleh sertakan nama bank). Bukan rekening tujuan/penerima. Bila tidak ada, isi "". ' +
-    'Bila nomor disamarkan (mis. "*******708"), tetap tulis angka yang terlihat.\n' +
+    'Bila nomor DISAMARKAN, SALIN APA ADANYA berikut nama banknya dan tanda samarannya — ' +
+    'contoh: "Bank Mandiri - •••••••••5620", "Bank BCA - 026 - 3** - **85", ' +
+    '"Bank BNI - *******055", "Bank BRI - 1543 **** **** 507". Jangan menghapus tanda ' +
+    'samaran dan jangan menebak angka yang tertutup.\n' +
     '- akun_sumber_nama: nama pemilik & bank/aplikasi SUMBER DANA (pengirim) apa adanya pada bukti — ' +
     'mis. "Andre Stefano Wowor", "blu by BCA Digital", "BNI Multicurrency", "Allo". Bukan penerima. Bila tidak ada, isi "".\n' +
     '- is_boc_1201: true bila pada bukti tertulis "BOC Debit Card (1201)".\n' +
@@ -914,18 +927,27 @@ function normalizeCurrency_(c) {
 
 /**
  * Cocokkan teks akun sumber dari bukti ke daftar rekening. Urutan prioritas:
- *   1) NOMOR rekening (paling kuat) — ACCOUNTS manual dulu, lalu yang DIPELAJARI dari memori;
+ *   1) NOMOR rekening utuh — ACCOUNTS manual dulu, lalu yang DIPELAJARI dari memori;
  *   2) NAMA pemilik/aplikasi sumber dana (mis. "Andre Stefano Wowor" / "blu");
- *   3) BANK + akhiran nomor (mis. BNI berakhiran 708) — berguna saat nomor disamarkan (*******708).
- * 'text' = teks/nomor akun sumber; 'nameText' = nama pemilik & bank sumber. Mengembalikan entri atau null.
+ *   3) NOMOR DISAMARKAN: nama BANK + gugus angka yang masih terlihat, mis.
+ *      "Mandiri - •••••••••5620", "BCA - 026-3**-**85", "BNI - *******055",
+ *      "BRI - 1543 **** **** 507".
+ * 'text' = teks/nomor akun sumber; 'nameText' = nama pemilik & bank sumber.
+ * Mengembalikan entri rekening atau null.
  */
 function detectAccount_(text, nameText, learned) {
-  var d = String(text || '').replace(/\D/g, '');
-  var nm = (String(text || '') + ' ' + String(nameText || '')).toLowerCase();
+  var raw = String(text || '');
+  var nm = (raw + ' ' + String(nameText || '')).toLowerCase();
+  // Angka bisa berada di field nomor atau (bila kosong) di field nama.
+  var digitSrc = /\d/.test(raw) ? raw : String(nameText || '');
+  var d = digitSrc.replace(/\D/g, '');
+  var masked = isMaskedNumber_(digitSrc);
   var lists = [ACCOUNTS, learned || []];
 
-  // 1) Berdasarkan NOMOR rekening (butuh minimal 6 digit terbaca).
-  if (d.length >= 6) {
+  // 1) Berdasarkan NOMOR rekening utuh (butuh minimal 6 digit terbaca).
+  //    Dilewati bila nomor disamarkan, karena menyambung digit antar-mask
+  //    (mis. "026-3**-**85" -> "026385") bisa membentuk nomor palsu.
+  if (!masked && d.length >= 6) {
     for (var L = 0; L < lists.length; L++) {
       for (var i = 0; i < lists[L].length; i++) {
         var k = lists[L][i].no;
@@ -944,14 +966,34 @@ function detectAccount_(text, nameText, learned) {
     }
   }
 
-  // 3) Berdasarkan BANK + akhiran nomor (saat nomor disamarkan).
-  for (var b = 0; b < ACCOUNTS.length; b++) {
-    var suf = ACCOUNTS[b].suffix, bn = ACCOUNTS[b].bankName;
-    if (!suf || !bn) continue;
-    if (d.length >= suf.length && d.slice(-suf.length) === suf && nm.indexOf(bn) >= 0) return ACCOUNTS[b];
+  // 3) Nomor disamarkan: cocokkan nama BANK + gugus angka yang terlihat.
+  //    Gugus TERAKHIR dipakai sebagai akhiran nomor; gugus PERTAMA (bila >= 3 digit
+  //    dan berbeda) harus cocok sebagai awalan. Hanya diterima bila hasilnya tunggal,
+  //    supaya rekening lain pada bank yang sama tidak salah terpilih.
+  var groups = digitSrc.match(/\d+/g) || [];
+  if (groups.length) {
+    var tail = groups[groups.length - 1];
+    var head = groups[0];
+    if (tail.length >= 2) {
+      var cocok = [];
+      for (var b = 0; b < ACCOUNTS.length; b++) {
+        var acc = ACCOUNTS[b];
+        if (!acc.bankName || nm.indexOf(acc.bankName) < 0) continue;
+        if (acc.no.length < tail.length || acc.no.slice(-tail.length) !== tail) continue;
+        if (head !== tail && head.length >= 3 && acc.no.slice(0, head.length) !== head) continue;
+        cocok.push(acc);
+      }
+      if (cocok.length === 1) return cocok[0];
+    }
   }
 
   return null;
+}
+
+/** Deteksi nomor rekening yang disamarkan, mis. "••••5620", "*******055", "1543 **** 507". */
+function isMaskedNumber_(t) {
+  t = String(t || '');
+  return /[*•·●○•·]/.test(t) || /x{2,}/i.test(t);
 }
 
 function topKey_(obj) {
