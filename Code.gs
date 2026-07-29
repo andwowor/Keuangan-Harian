@@ -565,6 +565,143 @@ function getPosExamples() {
   return map;
 }
 
+// ============ PENYIMPANAN SEMENTARA BUKTI (FOLDER GOOGLE DRIVE) ============
+
+// Folder Drive penampung screenshot/bukti transfer yang belum sempat diproses.
+var INBOX_FOLDER_ID = '1jBDHlpmo-3NfzJweYSB87reE8FSfniKs';
+var INBOX_MAX_LIST = 60;   // maksimal bukti yang ditampilkan sekali muat
+var INBOX_THUMB_MAX = 24;  // thumbnail hanya untuk N bukti terbaru (hemat waktu muat)
+var INBOX_MAX_BYTES = 3500000; // di atas ini, pakai versi resolusi lebih kecil dari Drive
+
+function getInboxFolder_() {
+  try { return DriveApp.getFolderById(INBOX_FOLDER_ID); }
+  catch (e) {
+    throw new Error('Folder penyimpanan tidak bisa dibuka. Pastikan folder masih ada dan ' +
+      'dapat diakses akun pemilik dashboard.');
+  }
+}
+
+/** Simpan satu gambar ke folder penyimpanan sementara. */
+function uploadInbox(dataUrl, name, pin) {
+  verifyPin_(pin);
+  var img = parseDataUrl_(dataUrl);
+  var ext = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp' }[img.mediaType] || 'png';
+  var base = String(name || '').replace(/\.[a-zA-Z0-9]+$/, '').replace(/[\\\/:*?"<>|]/g, '-').trim();
+  if (!base) base = 'bukti';
+  var stamp = Utilities.formatDate(new Date(), TIMEZONE, 'yyyyMMdd-HHmmss');
+  var blob = Utilities.newBlob(Utilities.base64Decode(img.data), img.mediaType, base + '_' + stamp + '.' + ext);
+  var file = getInboxFolder_().createFile(blob);
+  return { id: file.getId(), name: file.getName() };
+}
+
+/** Daftar bukti pada folder penyimpanan (terbaru dulu) + thumbnail untuk yang terbaru. */
+function listInbox(pin) {
+  verifyPin_(pin);
+  var it = getInboxFolder_().getFiles();
+  var out = [];
+  while (it.hasNext() && out.length < INBOX_MAX_LIST) {
+    var f = it.next();
+    var mt = f.getMimeType() || '';
+    if (mt.indexOf('image/') !== 0) continue;   // hanya gambar
+    var created = f.getDateCreated();
+    out.push({
+      id: f.getId(), name: f.getName(), mime: mt, size: f.getSize(),
+      date: Utilities.formatDate(created, TIMEZONE, 'd MMM yyyy HH:mm'),
+      ts: created.getTime(), thumb: ''
+    });
+  }
+  out.sort(function (a, b) { return b.ts - a.ts; });
+  // Thumbnail hanya untuk sebagian teratas supaya pemuatan tetap cepat.
+  for (var i = 0; i < out.length && i < INBOX_THUMB_MAX; i++) {
+    out[i].thumb = inboxThumb_(out[i].id, out[i].size);
+  }
+  return { folderUrl: 'https://drive.google.com/drive/folders/' + INBOX_FOLDER_ID, items: out };
+}
+
+function inboxThumb_(fileId, size) {
+  try {
+    var file = DriveApp.getFileById(fileId);
+    var t = null;
+    try { t = file.getThumbnail(); } catch (e) {}
+    // File yang baru diunggah kadang belum punya thumbnail; pakai gambarnya langsung bila kecil.
+    if (!t && size && size < 400000) t = file.getBlob();
+    if (!t) return '';
+    return 'data:' + t.getContentType() + ';base64,' + Utilities.base64Encode(t.getBytes());
+  } catch (e) { return ''; }
+}
+
+/**
+ * Blob gambar untuk dibaca/ditampilkan. Bila file terlalu besar (mis. foto kamera
+ * langsung dari Drive), ambil versi beresolusi lebih kecil agar muat di batas API.
+ */
+function inboxImageBlob_(file) {
+  var blob = file.getBlob();
+  if (blob.getBytes().length <= INBOX_MAX_BYTES) return blob;
+  try {
+    var r = UrlFetchApp.fetch('https://drive.google.com/thumbnail?id=' + file.getId() + '&sz=w1600', {
+      headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }, muteHttpExceptions: true
+    });
+    if (r.getResponseCode() === 200) {
+      var tb = r.getBlob();
+      if (tb.getBytes().length > 0) return tb;
+    }
+  } catch (e) {}
+  return blob;
+}
+
+/**
+ * Ambil berkas HANYA bila berada di folder penyimpanan. Mencegah berkas Drive lain
+ * ikut terbaca lewat ID dari sisi klien.
+ */
+function getInboxFile_(fileId) {
+  var f = DriveApp.getFileById(fileId);
+  var parents = f.getParents();
+  while (parents.hasNext()) {
+    if (parents.next().getId() === INBOX_FOLDER_ID) return f;
+  }
+  throw new Error('Berkas tidak berada di folder penyimpanan.');
+}
+
+/** Gambar penuh satu bukti (untuk pratinjau di form tinjau). */
+function getInboxImage(fileId, pin) {
+  verifyPin_(pin);
+  var f = getInboxFile_(fileId);
+  var b = inboxImageBlob_(f);
+  return { id: fileId, name: f.getName(),
+    dataUrl: 'data:' + b.getContentType() + ';base64,' + Utilities.base64Encode(b.getBytes()) };
+}
+
+/** Baca bukti langsung dari folder penyimpanan (tanpa diunduh dulu ke HP). */
+function analyzeInboxFile(fileId, pin) {
+  verifyPin_(pin);
+  var f = getInboxFile_(fileId);
+  var b = inboxImageBlob_(f);
+  var mt = b.getContentType();
+  if (mt === 'image/jpg') mt = 'image/jpeg';
+  if (['image/png', 'image/jpeg', 'image/gif', 'image/webp'].indexOf(mt) === -1) {
+    throw new Error('Tipe gambar tidak didukung: ' + mt);
+  }
+  return analyzeImg_({ mediaType: mt, data: Utilities.base64Encode(b.getBytes()) });
+}
+
+/** Hapus (ke Sampah Drive) satu atau beberapa bukti dari folder penyimpanan. */
+function deleteInbox(fileIds, pin) {
+  verifyPin_(pin);
+  var ids = [].concat(fileIds || []);
+  var ok = 0, err = [];
+  for (var i = 0; i < ids.length; i++) {
+    try { getInboxFile_(ids[i]).setTrashed(true); ok++; }
+    catch (e) { err.push(String(e && e.message || e)); }
+  }
+  return { ok: ok, gagal: err.length, pesan: err.join('; ') };
+}
+
+/** Hapus bukti tanpa menggagalkan proses pemanggil (dipakai setelah transaksi tersimpan). */
+function trashInboxQuiet_(fileId) {
+  try { getInboxFile_(fileId).setTrashed(true); return true; }
+  catch (e) { return false; }
+}
+
 // ====================== EKSTRAKSI GAMBAR (CLAUDE VISION) ======================
 
 /**
@@ -574,12 +711,15 @@ function getPosExamples() {
  */
 function analyzeImage(dataUrl, pin) {
   verifyPin_(pin);
+  return analyzeImg_(parseDataUrl_(dataUrl));
+}
+
+/** Inti pembacaan gambar oleh Claude. img = { mediaType, data(base64) }. PIN sudah diverifikasi. */
+function analyzeImg_(img) {
   var apiKey = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
   if (!apiKey) {
     throw new Error('ANTHROPIC_API_KEY belum diset. Buka Project Settings > Script Properties.');
   }
-
-  var img = parseDataUrl_(dataUrl);
 
   var systemPrompt =
     'Anda asisten pencatat keuangan. Anda menerima screenshot atau bukti transfer ' +
@@ -983,7 +1123,12 @@ function appendTransaction(payload) {
     try { cashflow = writeCashflow_(payload); }
     catch (e) { cashflow = { error: String(e && e.message || e) }; }
   }
-  return { ok: true, row: newRow, cashflow: cashflow };
+
+  // Bukti berasal dari folder penyimpanan sementara -> hapus otomatis setelah tersimpan.
+  var inboxDeleted = null;
+  if (payload.inboxFileId) inboxDeleted = trashInboxQuiet_(payload.inboxFileId);
+
+  return { ok: true, row: newRow, cashflow: cashflow, inboxDeleted: inboxDeleted };
 }
 
 // ====================== HELPER ======================

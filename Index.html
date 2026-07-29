@@ -69,9 +69,12 @@
     .nominal-prefix { position: relative; }
     .nominal-prefix span { position: absolute; left: 11px; top: 11px; color: var(--muted); font-size: 15px; }
     .nominal-prefix input { padding-left: 30px; }
-    .nav { display: flex; gap: 6px; margin-bottom: 14px; }
-    .navbtn { flex: 1; padding: 9px 4px; border: 1px solid var(--line); background: rgba(255,255,255,.05); border-radius: 10px;
-      font-weight: 600; color: var(--muted); cursor: pointer; font-size: 12.5px; white-space: nowrap; }
+    /* 5 menu: baris 1 = 3 tombol, baris 2 = 2 tombol (tetap penuh selebar layar). */
+    .nav { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-bottom: 14px; }
+    .navbtn { padding: 9px 4px; border: 1px solid var(--line); background: rgba(255,255,255,.05); border-radius: 10px;
+      font-weight: 600; color: var(--muted); cursor: pointer; font-size: 12.5px; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis; grid-column: span 2; }
+    .navbtn:nth-child(4), .navbtn:nth-child(5) { grid-column: span 3; }
     .navbtn.active { background: linear-gradient(135deg, rgba(56,189,248,.9), rgba(99,102,241,.9)); color: #06121f; border-color: transparent; }
     .budget-sum .sumrow { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; font-size: 15px; }
     .budget-sum .sumrow + .sumrow { border-top: 1px solid var(--line); }
@@ -169,6 +172,7 @@
 
     <div class="nav">
       <button id="navInput" class="navbtn active" onclick="showTab('input')">📥 Input</button>
+      <button id="navSimpanan" class="navbtn" onclick="showTab('simpanan')">📦 Simpanan</button>
       <button id="navBudget" class="navbtn" onclick="showTab('budget')">📊 Budget</button>
       <button id="navDaftar" class="navbtn" onclick="showTab('daftar')">📋 Daftar</button>
       <button id="navPengaturan" class="navbtn" onclick="showTab('pengaturan')">⚙ Setelan</button>
@@ -317,6 +321,33 @@
     </div>
     </div><!-- /tabInput -->
 
+    <div id="tabSimpanan" class="hidden">
+      <div class="card">
+        <div class="bt-title">📦 Simpan bukti untuk diproses nanti</div>
+        <div class="ask-hint">Bukti ditampung di folder Google Drive. Kapan saja bisa dipilih untuk dibaca &amp;
+          diinput. Setelah berhasil tersimpan ke TRANSAKSI, bukti otomatis dihapus dari folder.</div>
+        <div class="row-btns">
+          <button class="btn-ghost" onclick="ibPick()">🖼 Pilih Gambar</button>
+          <button class="btn-primary" onclick="ibCamera()">📷 Ambil Foto</button>
+        </div>
+        <input id="ibFile" type="file" accept="image/*" multiple class="hidden">
+        <input id="ibCam" type="file" accept="image/*" capture="environment" class="hidden">
+        <div id="ibUpMsg"></div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <div class="bt-title" style="margin:0">🗂 Bukti tersimpan (<span id="ibCount">–</span>)</div>
+          <button class="btn-ghost" style="width:auto;padding:6px 10px;font-size:12px" onclick="loadInbox()">↻ Muat ulang</button>
+        </div>
+        <div id="ibList" style="margin-top:10px"></div>
+        <div id="ibActions" class="row-btns hidden">
+          <button class="btn-ghost" onclick="ibDeleteSelected()">🗑 Hapus terpilih</button>
+          <button id="ibBtnProcess" class="btn-primary" onclick="ibProcessSelected()">▶ Proses terpilih</button>
+        </div>
+      </div>
+    </div>
+
     <div id="tabBudget" class="hidden">
       <div class="card">
         <label>Bulan</label>
@@ -362,6 +393,17 @@
         <div class="row-btns">
           <button class="btn-ghost" onclick="closePreview()">Batal</button>
           <button id="btnConfirm" class="btn-primary" onclick="confirmPreview()">Konfirmasi &amp; Simpan</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="ibModal" class="lock" style="display:none;z-index:65">
+      <div class="lockbox" style="max-width:430px;text-align:left">
+        <div id="ibModalTitle" style="font-weight:700;font-size:15px;margin-bottom:8px"></div>
+        <div id="ibModalBody" style="font-size:13px"></div>
+        <div class="row-btns">
+          <button id="ibModalCancel" class="btn-ghost" onclick="ibCloseModal()">Batal</button>
+          <button id="ibModalOk" class="btn-primary" onclick="ibModalConfirm()">OK</button>
         </div>
       </div>
     </div>
@@ -463,7 +505,9 @@
     }
 
     // --- Upload (antrean bukti: bisa lebih dari satu) ---
-    // Tiap item: { id, name, dataUrl, status: loading|pending|reading|ready|saved|error, data, error }
+    // Tiap item: { id, name, dataUrl, thumb, fileId, status, data, error }
+    //   status: loading|pending|reading|ready|saved|error
+    //   fileId : diisi bila bukti berasal dari folder penyimpanan (tab Simpanan)
     var queue = [];
     var activeId = null;   // item yang sedang ditinjau di form
     var _qid = 0;
@@ -489,7 +533,8 @@
       var imgs = arr.filter(function (f) { return f.type && f.type.match('image.*'); });
       if (!imgs.length) { showErr('Pilih file gambar (PNG/JPG).'); return; }
       imgs.forEach(function (f) {
-        var item = { id: ++_qid, name: f.name || ('bukti-' + _qid), dataUrl: null, status: 'loading', data: null, error: '' };
+        var item = { id: ++_qid, name: f.name || ('bukti-' + _qid), dataUrl: null, thumb: '', fileId: '',
+          status: 'loading', data: null, error: '' };
         queue.push(item);
         var reader = new FileReader();
         reader.onload = function (e) { item.dataUrl = e.target.result; if (item.status === 'loading') item.status = 'pending'; renderQueue(); };
@@ -518,9 +563,10 @@
       queue.forEach(function (it) {
         var active = (it.id === activeId) ? ' q-active' : '';
         var clickable = (it.status === 'ready' || it.status === 'saved' || it.status === 'error');
+        var pic = it.dataUrl || it.thumb;
         h += '<div class="qitem' + active + '"' + (clickable ? (' onclick="loadQueueItem(' + it.id + ')"') : '') + '>';
-        h += it.dataUrl ? ('<img class="qthumb" src="' + it.dataUrl + '" alt="">') : '<div class="qthumb">📄</div>';
-        h += '<div class="qmeta"><div class="qname">' + esc(it.name) + '</div>' + qbadge(it) + '</div>';
+        h += pic ? ('<img class="qthumb" src="' + pic + '" alt="">') : '<div class="qthumb">📄</div>';
+        h += '<div class="qmeta"><div class="qname">' + (it.fileId ? '📦 ' : '') + esc(it.name) + '</div>' + qbadge(it) + '</div>';
         h += '<button class="qdel" title="Hapus" onclick="event.stopPropagation();removeQueueItem(' + it.id + ')">✕</button>';
         h += '</div>';
       });
@@ -577,7 +623,7 @@
       var it = queue.filter(function (q) { return q.status === 'pending'; })[0];
       if (!it) { analyzing = false; updateAnalyzeBtn(); onAnalyzeDone(); return; }
       it.status = 'reading'; renderQueue();
-      google.script.run
+      var runner = google.script.run
         .withSuccessHandler(function (data) {
           it.data = data; it.status = 'ready'; renderQueue();
           if (activeId == null) loadQueueItem(it.id); // tinjau yang pertama sambil sisanya diproses
@@ -586,8 +632,10 @@
         .withFailureHandler(function (err) {
           it.status = 'error'; it.error = (err && err.message) ? err.message : String(err); renderQueue();
           analyzeNext();
-        })
-        .analyzeImage(it.dataUrl, window._pin);
+        });
+      // Bukti dari folder penyimpanan dibaca langsung di server (tidak perlu diunduh ke HP).
+      if (it.fileId) runner.analyzeInboxFile(it.fileId, window._pin);
+      else runner.analyzeImage(it.dataUrl, window._pin);
     }
 
     function onAnalyzeDone() {
@@ -602,9 +650,21 @@
     function loadQueueItem(id) {
       var it = queueItem(id);
       if (!it || !it.data) return;
-      activeId = id; currentDataUrl = it.dataUrl;
+      activeId = id;
+      currentDataUrl = it.dataUrl || it.thumb || '';
       fillForm(it.data);
+      // Bukti dari folder penyimpanan: ambil gambar penuh (thumbnail tampil lebih dulu).
+      if (!it.dataUrl && it.fileId) fetchQueueImage(it);
       renderQueue();
+    }
+
+    // Unduh gambar penuh dari folder penyimpanan untuk pratinjau yang jelas.
+    function fetchQueueImage(it) {
+      google.script.run.withSuccessHandler(function (res) {
+        it.dataUrl = res.dataUrl;
+        if (activeId === it.id) { currentDataUrl = res.dataUrl; setReviewImg(res.dataUrl); }
+        renderQueue();
+      }).withFailureHandler(function () {}).getInboxImage(it.fileId, window._pin);
     }
 
     function closeForm() {
@@ -632,13 +692,7 @@
       document.getElementById('formCard').classList.remove('hidden');
 
       // Pratinjau gambar bukti yang sedang ditinjau (dari item antrean aktif).
-      var wrap = document.getElementById('reviewImgWrap');
-      if (currentDataUrl) {
-        document.getElementById('reviewImg').src = currentDataUrl;
-        wrap.classList.remove('hidden');
-      } else {
-        document.getElementById('reviewImg').src = ''; wrap.classList.add('hidden');
-      }
+      setReviewImg(currentDataUrl);
 
       // Dibaca dari bukti
       comboSetValue('posBiaya', d.pos_biaya);
@@ -897,6 +951,8 @@
         mataUang: window._mataUang,
         nominalAsli: window._nominalAsli,
         kurs: window._kurs,
+        // Bila bukti dari folder penyimpanan: dihapus otomatis setelah tersimpan.
+        inboxFileId: (function () { var a = (activeId != null) ? queueItem(activeId) : null; return (a && a.fileId) || ''; })(),
         pin: window._pin,
         meta: window._meta || {}
       };
@@ -940,9 +996,14 @@
             if (res.cashflow.error) m += ' ⚠️ CASHFLOW gagal: ' + res.cashflow.error;
             else m += ' Juga ke CASHFLOW baris ' + res.cashflow.row + '.';
           }
+          if (res.inboxDeleted) m += ' Bukti dihapus dari folder penyimpanan.';
           closePreview(); showOk(m); refreshTarget();
           if (fromQueue) {
-            var it = queueItem(queueId); if (it) it.status = 'saved';
+            var it = queueItem(queueId);
+            if (it) {
+              it.status = 'saved';
+              if (it.fileId) ibForget(it.fileId);   // hilangkan dari daftar tab Simpanan
+            }
             advanceQueue();
           } else {
             mReset();
@@ -1102,8 +1163,14 @@
       document.getElementById('rekWrap').classList.add('hidden');
       document.getElementById('bocNote').classList.add('hidden');
       document.getElementById('kursNote').classList.add('hidden');
-      document.getElementById('reviewImgWrap').classList.add('hidden');
-      document.getElementById('reviewImg').src = '';
+      setReviewImg('');
+    }
+
+    // Tampilkan/ sembunyikan gambar bukti pada kartu tinjau.
+    function setReviewImg(src) {
+      var wrap = document.getElementById('reviewImgWrap');
+      document.getElementById('reviewImg').src = src || '';
+      wrap.classList.toggle('hidden', !src);
     }
 
     // --- Lightbox bukti (lihat gambar penuh, ketuk untuk zoom) ---
@@ -1127,15 +1194,220 @@
     function clearMsg() { document.getElementById('msg').innerHTML = ''; }
     function setMsg(t, cls) { document.getElementById('msg').innerHTML = '<div class="msg ' + cls + '">' + t + '</div>'; }
 
+    // ============ PENYIMPANAN SEMENTARA BUKTI (FOLDER DRIVE) ============
+    var inbox = { items: [], sel: {}, folderUrl: '', loaded: false };
+
+    function ibMsg(html, cls) {
+      document.getElementById('ibUpMsg').innerHTML = html ? ('<div class="msg ' + cls + '">' + html + '</div>') : '';
+    }
+    function ibFind(id) { for (var i = 0; i < inbox.items.length; i++) { if (inbox.items[i].id === id) return inbox.items[i]; } return null; }
+    function ibSelectedIds() { return inbox.items.filter(function (i) { return inbox.sel[i.id]; }).map(function (i) { return i.id; }); }
+    function ibSize(b) {
+      b = Number(b) || 0;
+      return b >= 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
+    }
+
+    // --- Modal serbaguna (konfirmasi / tawaran hapus galeri) ---
+    var _ibCb = null;
+    function ibShowModal(title, html, okLabel, cancelLabel, cb) {
+      document.getElementById('ibModalTitle').textContent = title;
+      document.getElementById('ibModalBody').innerHTML = html;
+      document.getElementById('ibModalOk').textContent = okLabel;
+      document.getElementById('ibModalCancel').textContent = cancelLabel;
+      _ibCb = cb || null;
+      document.getElementById('ibModal').style.display = 'flex';
+    }
+    function ibCloseModal() { document.getElementById('ibModal').style.display = 'none'; _ibCb = null; }
+    function ibModalConfirm() { var cb = _ibCb; ibCloseModal(); if (cb) cb(); }
+
+    // --- Unggah ke folder penyimpanan ---
+    function ibPick() { document.getElementById('ibFile').click(); }
+    function ibCamera() { document.getElementById('ibCam').click(); }
+
+    document.getElementById('ibFile').addEventListener('change', function (e) {
+      if (e.target.files.length) ibUpload(e.target.files);
+      this.value = '';
+    });
+    document.getElementById('ibCam').addEventListener('change', function (e) {
+      if (e.target.files.length) ibUpload(e.target.files);
+      this.value = '';
+    });
+
+    // Perkecil gambar sebelum diunggah (hemat kuota Drive & mempercepat pembacaan).
+    function ibShrink(file, cb) {
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        var src = e.target.result;
+        var img = new Image();
+        img.onload = function () {
+          var max = 1600, w = img.width, h = img.height;
+          var scale = Math.min(1, max / Math.max(w, h));
+          if (scale === 1 && src.length < 1200000) { cb(src); return; }
+          try {
+            var c = document.createElement('canvas');
+            c.width = Math.max(1, Math.round(w * scale)); c.height = Math.max(1, Math.round(h * scale));
+            c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+            cb(c.toDataURL('image/jpeg', 0.88));
+          } catch (err) { cb(src); }
+        };
+        img.onerror = function () { cb(src); };
+        img.src = src;
+      };
+      reader.onerror = function () { cb(null); };
+      reader.readAsDataURL(file);
+    }
+
+    function ibUpload(files) {
+      var list = Array.prototype.slice.call(files || []).filter(function (f) { return f.type && f.type.match('image.*'); });
+      if (!list.length) { ibMsg('Pilih file gambar (PNG/JPG).', 'err'); return; }
+      var done = [], gagal = 0, i = 0;
+      function next() {
+        if (i >= list.length) {
+          ibMsg('✅ ' + done.length + ' bukti tersimpan ke folder penyimpanan.' + (gagal ? ' ⚠️ ' + gagal + ' gagal.' : ''), 'ok');
+          loadInbox();
+          if (done.length) ibOfferGalleryDelete(done);
+          return;
+        }
+        var f = list[i++];
+        ibMsg('<span class="spin"></span>Mengunggah ' + i + '/' + list.length + ' — ' + esc(f.name || 'bukti') + '…', 'info');
+        ibShrink(f, function (dataUrl) {
+          if (!dataUrl) { gagal++; next(); return; }
+          google.script.run
+            .withSuccessHandler(function (res) { done.push(res.name); next(); })
+            .withFailureHandler(function (e) { gagal++; ibMsg('⚠️ ' + esc(e.message || e), 'err'); next(); })
+            .uploadInbox(dataUrl, f.name || '', window._pin);
+        });
+      }
+      next();
+    }
+
+    // Otomatis menawarkan pembersihan galeri HP setelah bukti aman di Drive.
+    function ibOfferGalleryDelete(names) {
+      var h = '<div style="color:var(--muted)">' + names.length + ' bukti sudah aman tersimpan di folder Drive. ' +
+        'Hapus juga dari galeri HP supaya tidak menumpuk?</div>';
+      h += '<div class="card" style="padding:10px;margin:10px 0">' +
+        names.slice(0, 8).map(function (n) { return '📄 ' + esc(n); }).join('<br>') +
+        (names.length > 8 ? '<br><span class="ask-hint">… +' + (names.length - 8) + ' lagi</span>' : '') + '</div>';
+      h += '<div class="ask-hint">Penghapusan file galeri harus Anda lakukan di aplikasi <b>Galeri / Google Photos</b> ' +
+        '(demi keamanan, halaman web tidak diizinkan menghapus file di HP). Buka Galeri → pilih screenshot tadi → <b>Hapus</b>.</div>';
+      ibShowModal('🧹 Hapus dari galeri HP?', h, 'Oke, sudah paham', 'Nanti saja', null);
+    }
+
+    // --- Daftar bukti pada folder ---
+    function loadInbox() {
+      document.getElementById('ibList').innerHTML = '<div class="ask-hint"><span class="spin"></span> Memuat…</div>';
+      google.script.run.withSuccessHandler(function (res) {
+        inbox.items = (res && res.items) || [];
+        inbox.folderUrl = (res && res.folderUrl) || '';
+        inbox.loaded = true;
+        var ada = {};
+        inbox.items.forEach(function (i) { ada[i.id] = 1; });
+        Object.keys(inbox.sel).forEach(function (k) { if (!ada[k]) delete inbox.sel[k]; });
+        renderInbox();
+      }).withFailureHandler(function (e) {
+        inbox.loaded = false;
+        document.getElementById('ibList').innerHTML = '<div class="msg err">' + esc(e.message || e) + '</div>';
+        document.getElementById('ibActions').classList.add('hidden');
+      }).listInbox(window._pin);
+    }
+
+    function renderInbox() {
+      var box = document.getElementById('ibList');
+      document.getElementById('ibCount').textContent = inbox.items.length;
+      if (!inbox.items.length) {
+        box.innerHTML = '<div class="ask-hint">Belum ada bukti tersimpan. Unggah atau ambil foto di atas.</div>';
+        document.getElementById('ibActions').classList.add('hidden');
+        return;
+      }
+      var sel = ibSelectedIds();
+      var h = '<div class="qitem" style="background:transparent;border-style:dashed" onclick="ibToggleAll()">' +
+        '<input type="checkbox" style="width:18px;height:18px;flex:none"' +
+        (sel.length === inbox.items.length ? ' checked' : '') + ' onclick="event.stopPropagation();ibToggleAll()">' +
+        '<div class="qmeta"><div class="qname">Pilih semua</div>' +
+        '<div class="ask-hint">' + sel.length + ' dari ' + inbox.items.length + ' dipilih</div></div></div>';
+      inbox.items.forEach(function (it) {
+        var on = !!inbox.sel[it.id];
+        h += '<div class="qitem' + (on ? ' q-active' : '') + '" onclick="ibToggle(\'' + it.id + '\')">' +
+          '<input type="checkbox" style="width:18px;height:18px;flex:none"' + (on ? ' checked' : '') +
+          ' onclick="event.stopPropagation();ibToggle(\'' + it.id + '\')">' +
+          (it.thumb ? ('<img class="qthumb" src="' + it.thumb + '" alt="">') : '<div class="qthumb">🧾</div>') +
+          '<div class="qmeta"><div class="qname">' + esc(it.name) + '</div>' +
+          '<div class="ask-hint">' + esc(it.date) + ' · ' + ibSize(it.size) + '</div></div></div>';
+      });
+      box.innerHTML = h;
+      document.getElementById('ibActions').classList.remove('hidden');
+      document.getElementById('ibBtnProcess').textContent = '▶ Proses terpilih' + (sel.length ? ' (' + sel.length + ')' : '');
+    }
+
+    function ibToggle(id) {
+      if (inbox.sel[id]) delete inbox.sel[id]; else inbox.sel[id] = 1;
+      renderInbox();
+    }
+    function ibToggleAll() {
+      var semua = ibSelectedIds().length === inbox.items.length;
+      inbox.sel = {};
+      if (!semua) inbox.items.forEach(function (i) { inbox.sel[i.id] = 1; });
+      renderInbox();
+    }
+
+    /** Buang satu bukti dari daftar tab Simpanan (setelah tersimpan / terhapus). */
+    function ibForget(fileId) {
+      inbox.items = inbox.items.filter(function (i) { return i.id !== fileId; });
+      delete inbox.sel[fileId];
+      if (inbox.loaded) renderInbox();
+    }
+
+    // --- Proses bukti terpilih: masuk ke antrean tab Input lalu dibaca ---
+    function ibProcessSelected() {
+      var ids = ibSelectedIds();
+      if (!ids.length) { ibMsg('Pilih dulu bukti yang mau diproses.', 'err'); return; }
+      var tambah = 0;
+      ids.forEach(function (id) {
+        var it = ibFind(id);
+        if (!it) return;
+        var sudah = queue.filter(function (q) { return q.fileId === id && q.status !== 'saved'; }).length;
+        if (sudah) return;   // sudah ada di antrean
+        queue.push({ id: ++_qid, name: it.name, dataUrl: null, thumb: it.thumb, fileId: id,
+          status: 'pending', data: null, error: '' });
+        tambah++;
+      });
+      inbox.sel = {}; renderInbox(); ibMsg('', '');
+      showTab('input');
+      renderQueue();
+      if (tambah) {
+        analyzeAll();   // analyzeAll() memasang pesannya sendiri, jadi pesan kita ditulis sesudahnya
+        showInfo(tambah + ' bukti dari penyimpanan masuk antrean — sedang dibaca…');
+      } else showInfo('Bukti terpilih sudah ada di antrean.');
+    }
+
+    // --- Hapus bukti terpilih dari folder ---
+    function ibDeleteSelected() {
+      var ids = ibSelectedIds();
+      if (!ids.length) { ibMsg('Pilih dulu bukti yang mau dihapus.', 'err'); return; }
+      ibShowModal('🗑 Hapus bukti?',
+        '<div style="color:var(--muted)">' + ids.length + ' bukti akan dihapus dari folder penyimpanan ' +
+        '(masuk ke Sampah Google Drive, masih bisa dipulihkan 30 hari).</div>',
+        'Ya, hapus', 'Batal', function () {
+          ibMsg('<span class="spin"></span>Menghapus…', 'info');
+          google.script.run.withSuccessHandler(function (r) {
+            ibMsg('🗑 ' + r.ok + ' bukti dihapus.' + (r.gagal ? ' ⚠️ ' + r.gagal + ' gagal.' : ''), 'ok');
+            inbox.sel = {}; loadInbox();
+          }).withFailureHandler(function (e) {
+            ibMsg('⚠️ ' + esc(e.message || e), 'err');
+          }).deleteInbox(ids, window._pin);
+        });
+    }
+
     // ===================== MENU SISA BUDGET =====================
-    var budgetLoaded = false, settingsLoaded = false, daftarLoaded = false;
+    var budgetLoaded = false, settingsLoaded = false, daftarLoaded = false, inboxLoaded = false;
     function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
     function showTab(t) {
-      ['input', 'budget', 'daftar', 'pengaturan'].forEach(function (x) {
+      ['input', 'simpanan', 'budget', 'daftar', 'pengaturan'].forEach(function (x) {
         document.getElementById('tab' + cap(x)).classList.toggle('hidden', x !== t);
         document.getElementById('nav' + cap(x)).classList.toggle('active', x === t);
       });
       clearMsg();
+      if (t === 'simpanan' && !inboxLoaded) { inboxLoaded = true; loadInbox(); }
       if (t === 'budget' && !budgetLoaded) { budgetLoaded = true; initBudget(); }
       if (t === 'daftar' && !daftarLoaded) { daftarLoaded = true; initDaftar(); }
       if (t === 'pengaturan' && !settingsLoaded) { settingsLoaded = true; loadSettings(); }

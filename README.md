@@ -77,6 +77,12 @@ Cara termudah — terikat langsung ke spreadsheet:
 4. **Deploy** → izinkan akses (OAuth) saat diminta.
 5. Salin **Web app URL** (berakhiran `/exec`) — itulah dashboard Anda.
 
+> **Saat memperbarui kode:** gunakan **Deploy → Manage deployments → Edit → Version:
+> New version → Deploy** (bukan sekadar Save), agar URL `/exec` memakai kode terbaru.
+> Khusus setelah fitur **Simpanan** ditambahkan, project meminta izin **Google Drive**
+> yang baru — jalankan sekali fungsi apa pun dari editor (atau deploy ulang) lalu
+> **Review permissions → Allow** saat diminta.
+
 ### 4. (Opsional) Pasang sebagai aplikasi HP (iPhone/Android)
 Lihat **`docs/README.md`** untuk menjadikannya **PWA installable** (ikon di layar utama,
 full-screen) lewat GitHub Pages. Atau cukup buka URL di HP lalu **Add to Home Screen**.
@@ -119,6 +125,35 @@ bila sumber dana Pendapatan Usaha).
 > **mempelajari nomor rekening baru → sumber dana** secara otomatis: rekening yang
 > belum terdaftar cukup Anda koreksi sekali–dua kali, lalu dikenali sendiri.
 > (Sheet `AI_MEMORY` dibuat & disembunyikan otomatis; boleh Anda buka untuk audit.)
+
+## Menu "Simpanan" (penyimpanan sementara bukti)
+
+Tab **📦 Simpanan** menampung screenshot/bukti transfer yang **belum sempat diproses**,
+di sebuah folder Google Drive. Berguna saat Anda menerima bukti tapi belum sempat
+menginput biayanya.
+
+| Fitur | Keterangan |
+|---|---|
+| **🖼 Pilih Gambar** | Unggah satu/banyak bukti dari galeri ke folder penyimpanan. |
+| **📷 Ambil Foto** | Ambil foto langsung dari kamera HP, langsung tersimpan ke folder. |
+| **Tawaran bersihkan galeri** | Setelah unggah berhasil, dashboard **otomatis menawarkan** untuk menghapus bukti dari galeri HP (lihat catatan di bawah). |
+| **Daftar bukti** | Semua bukti di folder tampil dengan thumbnail, nama, tanggal & ukuran (terbaru dulu). |
+| **Pilih satu/semua** | Centang bukti satu per satu atau **Pilih semua**. |
+| **▶ Proses terpilih** | Bukti terpilih masuk ke antrean tab **Input** lalu langsung dibaca Claude — tinjau & simpan seperti biasa. |
+| **🗑 Hapus terpilih** | Hapus bukti dari folder (masuk Sampah Drive, bisa dipulihkan 30 hari). |
+| **Auto-hapus setelah tersimpan** | Begitu sebuah bukti **berhasil terinput** ke TRANSAKSI, file-nya otomatis dihapus dari folder penyimpanan. |
+
+Gambar diperkecil otomatis (sisi terpanjang 1600 px) sebelum diunggah, agar hemat ruang
+Drive dan cepat dibaca. Bukti dibaca **langsung di server** dari Drive, jadi tidak perlu
+diunduh dulu ke HP.
+
+> **Catatan penting soal menghapus dari galeri HP:** dashboard **otomatis menawarkan**
+> pembersihan galeri setelah unggah berhasil, tetapi **penghapusan file di galeri harus
+> Anda ketuk sendiri** di aplikasi Galeri/Google Photos. Ini batasan keamanan
+> Android/iOS — halaman web (termasuk PWA) tidak diizinkan menghapus file di
+> penyimpanan HP. Yang otomatis adalah *tawaran + daftar nama file*-nya.
+
+Folder penyimpanan diatur lewat konstanta `INBOX_FOLDER_ID` di `Code.gs`.
 
 ## Menu "Sisa Budget"
 
