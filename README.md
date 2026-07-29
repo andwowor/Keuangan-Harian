@@ -92,7 +92,9 @@ full-screen) lewat GitHub Pages. Atau cukup buka URL di HP lalu **Add to Home Sc
    tersimpan). Anda juga bisa menambah gambar lagi kapan saja atau menghapus satu bukti.
 3. Klik **Baca Otomatis** — semua bukti dibaca berurutan; bukti pertama yang selesai
    langsung terbuka untuk ditinjau sementara sisanya masih diproses.
-4. Periksa hasil baca (POS BIAYA, KETERANGAN, NOMINAL, TANGGAL). Bila bukti
+4. Periksa hasil baca (POS BIAYA, KETERANGAN, NOMINAL, TANGGAL). Di kartu tinjau
+   juga tampil **gambar bukti yang dibaca** — ketuk untuk memperbesar (ketuk lagi
+   untuk zoom penuh) sehingga mudah dicocokkan dengan hasil baca. Bila bukti
    memakai mata uang asing, NOMINAL sudah dikonversi ke Rupiah (info kurs tampil).
 5. Bagian **✅ Terisi otomatis** sudah diisi dari pola history (SUMBER DANA,
    BIAYA/BUDGET BULAN & TAHUN, serta Rekening bila Pendapatan Usaha) —

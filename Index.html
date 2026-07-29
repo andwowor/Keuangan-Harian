@@ -134,6 +134,19 @@
     .qdel { width: 28px; height: 28px; flex: none; border-radius: 8px; background: rgba(255,255,255,.06);
       color: var(--muted); border: 1px solid var(--line); font-size: 13px; padding: 0; cursor: pointer; }
     .qdel:hover { color: var(--err); border-color: var(--err); }
+    /* --- Pratinjau bukti di form tinjau + lightbox --- */
+    .review-img { margin: 10px 0 4px; }
+    .review-img img { width: 100%; max-height: 240px; object-fit: contain; border-radius: 10px;
+      border: 1px solid var(--line); background: rgba(0,0,0,.28); cursor: zoom-in; display: block; }
+    .imgmodal { position: fixed; inset: 0; z-index: 70; background: rgba(3,6,15,.93);
+      display: flex; align-items: center; justify-content: center; padding: 16px; }
+    .imgmodal img { max-width: 100%; max-height: 100%; border-radius: 8px; cursor: zoom-in;
+      box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+    .imgmodal.zoom { align-items: flex-start; justify-content: flex-start; overflow: auto; }
+    .imgmodal.zoom img { max-width: none; max-height: none; width: auto; cursor: zoom-out; }
+    .imgclose { position: fixed; top: 12px; right: 14px; z-index: 71; width: 40px; height: 40px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; color: #fff; font-size: 20px;
+      background: rgba(255,255,255,.14); border-radius: 50%; }
   </style>
 </head>
 <body>
@@ -185,6 +198,12 @@
       </div>
       <div id="queueInfo" class="ask-hint" style="margin-top:2px"></div>
       <div id="catatan" class="note hidden"></div>
+
+      <!-- Pratinjau bukti yang dibaca (ketuk untuk perbesar) -->
+      <div id="reviewImgWrap" class="review-img hidden">
+        <img id="reviewImg" alt="bukti transfer" onclick="openImg()">
+        <div class="ask-hint" style="margin-top:4px">📎 Bukti yang dibaca — ketuk gambar untuk perbesar</div>
+      </div>
 
       <!-- Dibaca dari bukti (boleh dikoreksi) -->
       <label>POS BIAYA <span style="color:var(--muted);font-weight:400">(ketik untuk cari, pilih dari daftar)</span></label>
@@ -345,6 +364,11 @@
           <button id="btnConfirm" class="btn-primary" onclick="confirmPreview()">Konfirmasi &amp; Simpan</button>
         </div>
       </div>
+    </div>
+
+    <div id="imgModal" class="imgmodal" style="display:none" onclick="closeImg()">
+      <span class="imgclose" onclick="event.stopPropagation();closeImg()">✕</span>
+      <img id="imgModalPic" src="" alt="bukti transfer" onclick="event.stopPropagation();toggleImgZoom()">
     </div>
 
     <div id="msg"></div>
@@ -606,6 +630,15 @@
 
     function fillForm(d) {
       document.getElementById('formCard').classList.remove('hidden');
+
+      // Pratinjau gambar bukti yang sedang ditinjau (dari item antrean aktif).
+      var wrap = document.getElementById('reviewImgWrap');
+      if (currentDataUrl) {
+        document.getElementById('reviewImg').src = currentDataUrl;
+        wrap.classList.remove('hidden');
+      } else {
+        document.getElementById('reviewImg').src = ''; wrap.classList.add('hidden');
+      }
 
       // Dibaca dari bukti
       comboSetValue('posBiaya', d.pos_biaya);
@@ -1069,7 +1102,23 @@
       document.getElementById('rekWrap').classList.add('hidden');
       document.getElementById('bocNote').classList.add('hidden');
       document.getElementById('kursNote').classList.add('hidden');
+      document.getElementById('reviewImgWrap').classList.add('hidden');
+      document.getElementById('reviewImg').src = '';
     }
+
+    // --- Lightbox bukti (lihat gambar penuh, ketuk untuk zoom) ---
+    function openImg() {
+      var src = currentDataUrl;
+      if (!src && activeId != null) { var it = queueItem(activeId); if (it) src = it.dataUrl; }
+      if (!src) return;
+      document.getElementById('imgModalPic').src = src;
+      var m = document.getElementById('imgModal'); m.classList.remove('zoom'); m.style.display = 'flex';
+    }
+    function closeImg() {
+      var m = document.getElementById('imgModal'); m.style.display = 'none'; m.classList.remove('zoom');
+      document.getElementById('imgModalPic').src = '';
+    }
+    function toggleImgZoom() { document.getElementById('imgModal').classList.toggle('zoom'); }
 
     // --- Pesan ---
     function showOk(t) { setMsg(t, 'ok'); }
