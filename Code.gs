@@ -581,6 +581,20 @@ function getInboxFolder_() {
   }
 }
 
+/**
+ * Uji cepat dari editor Apps Script (tombol Run): memastikan izin Google Drive sudah
+ * diberikan dan folder penyimpanan bisa dibuka. Hasilnya muncul di Execution log.
+ */
+function cekFolderPenyimpanan() {
+  var folder = getInboxFolder_();
+  var files = folder.getFiles();
+  var n = 0;
+  while (files.hasNext()) { files.next(); n++; }
+  var pesan = 'OK - folder "' + folder.getName() + '" terbaca, berisi ' + n + ' berkas.';
+  Logger.log(pesan);
+  return pesan;
+}
+
 /** Simpan satu gambar ke folder penyimpanan sementara. */
 function uploadInbox(dataUrl, name, pin) {
   verifyPin_(pin);
