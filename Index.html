@@ -1195,7 +1195,7 @@
     function setMsg(t, cls) { document.getElementById('msg').innerHTML = '<div class="msg ' + cls + '">' + t + '</div>'; }
 
     // ============ PENYIMPANAN SEMENTARA BUKTI (FOLDER DRIVE) ============
-    var inbox = { items: [], sel: {}, folderUrl: '', loaded: false };
+    var inbox = { items: [], sel: {}, folderUrl: '', loaded: false, truncated: false, batas: 0 };
 
     function ibMsg(html, cls) {
       document.getElementById('ibUpMsg').innerHTML = html ? ('<div class="msg ' + cls + '">' + html + '</div>') : '';
@@ -1299,11 +1299,14 @@
       google.script.run.withSuccessHandler(function (res) {
         inbox.items = (res && res.items) || [];
         inbox.folderUrl = (res && res.folderUrl) || '';
+        inbox.truncated = !!(res && res.truncated);
+        inbox.batas = (res && res.batas) || 0;
         inbox.loaded = true;
         var ada = {};
         inbox.items.forEach(function (i) { ada[i.id] = 1; });
         Object.keys(inbox.sel).forEach(function (k) { if (!ada[k]) delete inbox.sel[k]; });
         renderInbox();
+        ibLoadThumbs();   // thumbnail sisanya menyusul bertahap
       }).withFailureHandler(function (e) {
         inbox.loaded = false;
         document.getElementById('ibList').innerHTML = '<div class="msg err">' + esc(e.message || e) + '</div>';
@@ -1334,9 +1337,29 @@
           '<div class="qmeta"><div class="qname">' + esc(it.name) + '</div>' +
           '<div class="ask-hint">' + esc(it.date) + ' · ' + ibSize(it.size) + '</div></div></div>';
       });
+      if (inbox.truncated) {
+        h += '<div class="msg info" style="margin-top:10px">Menampilkan ' + inbox.items.length +
+          ' bukti terbaru (batas aman ' + inbox.batas + ' per muat). Proses/hapus sebagian dulu ' +
+          'untuk melihat sisanya.</div>';
+      }
       box.innerHTML = h;
       document.getElementById('ibActions').classList.remove('hidden');
       document.getElementById('ibBtnProcess').textContent = '▶ Proses terpilih' + (sel.length ? ' (' + sel.length + ')' : '');
+    }
+
+    // Ambil thumbnail yang belum ada, sedikit demi sedikit, tanpa menahan tampilan daftar.
+    function ibLoadThumbs() {
+      var perlu = inbox.items.filter(function (i) { return !i.thumb && !i.thumbTried; });
+      if (!perlu.length) return;
+      var batch = perlu.slice(0, 12);
+      batch.forEach(function (i) { i.thumbTried = 1; });
+      google.script.run.withSuccessHandler(function (map) {
+        var berubah = false;
+        batch.forEach(function (i) { if (map && map[i.id]) { i.thumb = map[i.id]; berubah = true; } });
+        if (berubah) renderInbox();
+        ibLoadThumbs();   // lanjut ke kelompok berikutnya
+      }).withFailureHandler(function () {})
+        .getInboxThumbs(batch.map(function (i) { return i.id; }), window._pin);
     }
 
     function ibToggle(id) {

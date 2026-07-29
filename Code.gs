@@ -579,8 +579,9 @@ function getPosExamples() {
 
 // Folder Drive penampung screenshot/bukti transfer yang belum sempat diproses.
 var INBOX_FOLDER_ID = '1jBDHlpmo-3NfzJweYSB87reE8FSfniKs';
-var INBOX_MAX_LIST = 60;   // maksimal bukti yang ditampilkan sekali muat
-var INBOX_THUMB_MAX = 24;  // thumbnail hanya untuk N bukti terbaru (hemat waktu muat)
+var INBOX_MAX_LIST = 500;  // pengaman: batas atas jumlah bukti yang didaftar sekali muat
+var INBOX_THUMB_MAX = 24;  // thumbnail awal (sisanya dimuat bertahap dari klien)
+var INBOX_THUMB_BATCH = 12; // jumlah thumbnail per permintaan susulan
 var INBOX_MAX_BYTES = 3500000; // di atas ini, pakai versi resolusi lebih kecil dari Drive
 
 function getInboxFolder_() {
@@ -618,16 +619,22 @@ function uploadInbox(dataUrl, name, pin) {
   return { id: file.getId(), name: file.getName() };
 }
 
-/** Daftar bukti pada folder penyimpanan (terbaru dulu) + thumbnail untuk yang terbaru. */
+/**
+ * Daftar SELURUH bukti pada folder penyimpanan (terbaru dulu). Thumbnail hanya dibuat
+ * untuk sebagian teratas supaya daftar cepat tampil; sisanya diminta bertahap oleh klien
+ * lewat getInboxThumbs(). 'truncated' true bila jumlah berkas melampaui batas pengaman.
+ */
 function listInbox(pin) {
   verifyPin_(pin);
   var it = getInboxFolder_().getFiles();
-  var out = [];
-  while (it.hasNext() && out.length < INBOX_MAX_LIST) {
+  var out = [], byId = {}, truncated = false;
+  while (it.hasNext()) {
+    if (out.length >= INBOX_MAX_LIST) { truncated = true; break; }
     var f = it.next();
     var mt = f.getMimeType() || '';
     if (mt.indexOf('image/') !== 0) continue;   // hanya gambar
     var created = f.getDateCreated();
+    byId[f.getId()] = f;
     out.push({
       id: f.getId(), name: f.getName(), mime: mt, size: f.getSize(),
       date: Utilities.formatDate(created, TIMEZONE, 'd MMM yyyy HH:mm'),
@@ -637,14 +644,30 @@ function listInbox(pin) {
   out.sort(function (a, b) { return b.ts - a.ts; });
   // Thumbnail hanya untuk sebagian teratas supaya pemuatan tetap cepat.
   for (var i = 0; i < out.length && i < INBOX_THUMB_MAX; i++) {
-    out[i].thumb = inboxThumb_(out[i].id, out[i].size);
+    out[i].thumb = inboxThumb_(byId[out[i].id], out[i].size);
   }
-  return { folderUrl: 'https://drive.google.com/drive/folders/' + INBOX_FOLDER_ID, items: out };
+  return {
+    folderUrl: 'https://drive.google.com/drive/folders/' + INBOX_FOLDER_ID,
+    items: out, truncated: truncated, batas: INBOX_MAX_LIST
+  };
 }
 
-function inboxThumb_(fileId, size) {
+/** Thumbnail susulan untuk sekelompok bukti (dipanggil bertahap oleh klien). */
+function getInboxThumbs(fileIds, pin) {
+  verifyPin_(pin);
+  var ids = [].concat(fileIds || []);
+  var out = {};
+  for (var i = 0; i < ids.length && i < INBOX_THUMB_BATCH; i++) {
+    try {
+      var f = getInboxFile_(ids[i]);
+      out[ids[i]] = inboxThumb_(f, f.getSize());
+    } catch (e) { out[ids[i]] = ''; }
+  }
+  return out;
+}
+
+function inboxThumb_(file, size) {
   try {
-    var file = DriveApp.getFileById(fileId);
     var t = null;
     try { t = file.getThumbnail(); } catch (e) {}
     // File yang baru diunggah kadang belum punya thumbnail; pakai gambarnya langsung bila kecil.

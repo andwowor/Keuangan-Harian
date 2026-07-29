@@ -137,7 +137,7 @@ menginput biayanya.
 | **🖼 Pilih Gambar** | Unggah satu/banyak bukti dari galeri ke folder penyimpanan. |
 | **📷 Ambil Foto** | Ambil foto langsung dari kamera HP, langsung tersimpan ke folder. |
 | **Tawaran bersihkan galeri** | Setelah unggah berhasil, dashboard **otomatis menawarkan** untuk menghapus bukti dari galeri HP (lihat catatan di bawah). |
-| **Daftar bukti** | Semua bukti di folder tampil dengan thumbnail, nama, tanggal & ukuran (terbaru dulu). |
+| **Daftar bukti** | **Semua** bukti di folder tampil dengan thumbnail, nama, tanggal & ukuran (terbaru dulu). Daftar muncul lebih dulu, thumbnail menyusul bertahap agar tidak lama menunggu. |
 | **Pilih satu/semua** | Centang bukti satu per satu atau **Pilih semua**. |
 | **▶ Proses terpilih** | Bukti terpilih masuk ke antrean tab **Input** lalu langsung dibaca Claude — tinjau & simpan seperti biasa. |
 | **🗑 Hapus terpilih** | Hapus bukti dari folder (masuk Sampah Drive, bisa dipulihkan 30 hari). |
