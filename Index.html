@@ -113,6 +113,27 @@
     .combo-item:last-child { border-bottom: 0; }
     .combo-item:hover { background: rgba(56,189,248,.16); }
     .combo-empty { padding: 10px 11px; color: var(--muted); font-size: 13px; }
+    /* --- Antrean bukti (multi-upload) --- */
+    .queue { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .qitem { display: flex; align-items: center; gap: 10px; padding: 8px; border: 1px solid var(--line);
+      border-radius: 10px; background: rgba(255,255,255,.04); }
+    .qitem[onclick] { cursor: pointer; }
+    .qitem[onclick]:hover { border-color: var(--accent); }
+    .qitem.q-active { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(56,189,248,.25); }
+    .qthumb { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; border: 1px solid var(--line);
+      flex: none; display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--muted);
+      background: rgba(255,255,255,.05); }
+    .qmeta { flex: 1; min-width: 0; }
+    .qname { font-size: 13px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .qbadge { display: inline-block; margin-top: 3px; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+    .b-wait { background: rgba(148,163,184,.18); color: #cbd5e1; }
+    .b-read { background: rgba(56,189,248,.16); color: #7dd3fc; }
+    .b-ready { background: rgba(251,191,36,.16); color: #fcd34d; }
+    .b-saved { background: rgba(52,211,153,.16); color: #6ee7b7; }
+    .b-err { background: rgba(251,113,133,.16); color: #fda4af; }
+    .qdel { width: 28px; height: 28px; flex: none; border-radius: 8px; background: rgba(255,255,255,.06);
+      color: var(--muted); border: 1px solid var(--line); font-size: 13px; padding: 0; cursor: pointer; }
+    .qdel:hover { color: var(--err); border-color: var(--err); }
   </style>
 </head>
 <body>
@@ -143,18 +164,17 @@
     <div id="tabInput">
     <div id="target" class="target">Memeriksa baris kosong terbawah…</div>
 
-    <!-- Langkah 1: Upload -->
+    <!-- Langkah 1: Upload (bisa lebih dari satu bukti) -->
     <div class="card">
       <div id="drop" class="drop">
         <div style="font-size:28px">📷</div>
         <div><strong>Ketuk untuk pilih gambar</strong> atau jatuhkan di sini</div>
-        <div style="font-size:12px;margin-top:4px">PNG / JPG · screenshot atau foto bukti transfer</div>
+        <div style="font-size:12px;margin-top:4px">Bisa pilih <b>lebih dari satu</b> · PNG / JPG · tiap gambar = 1 biaya</div>
       </div>
-      <input id="file" type="file" accept="image/*" class="hidden">
-      <img id="preview" alt="preview">
-      <button id="btnAnalyze" class="btn-primary hidden" style="margin-top:12px" onclick="analyze()">
-        Baca Otomatis
-      </button>
+      <input id="file" type="file" accept="image/*" multiple class="hidden">
+      <div id="queue" class="queue hidden"></div>
+      <button id="btnAnalyze" class="btn-primary hidden" style="margin-top:12px" onclick="analyzeAll()">Baca Otomatis</button>
+      <button id="btnClearQueue" class="btn-ghost hidden" style="margin-top:8px" onclick="clearQueue()">Bersihkan daftar bukti</button>
     </div>
 
     <!-- Langkah 2: Form -->
@@ -163,6 +183,7 @@
         <strong style="font-size:15px">Tinjau & Konfirmasi</strong>
         <span id="confPill" class="pill"></span>
       </div>
+      <div id="queueInfo" class="ask-hint" style="margin-top:2px"></div>
       <div id="catatan" class="note hidden"></div>
 
       <!-- Dibaca dari bukti (boleh dikoreksi) -->
@@ -225,8 +246,8 @@
       </div>
 
       <div class="row-btns">
-        <button class="btn-ghost" onclick="resetAll()">Batal</button>
-        <button id="btnSave" class="btn-primary" onclick="save()">Simpan ke Spreadsheet</button>
+        <button class="btn-ghost" onclick="closeForm()">Tutup</button>
+        <button id="btnSave" class="btn-primary" onclick="save()">Simpan &amp; Lanjut</button>
       </div>
     </div>
 
@@ -417,48 +438,170 @@
       sel.value = includeYear ? String(includeYear) : '';
     }
 
-    // --- Upload ---
+    // --- Upload (antrean bukti: bisa lebih dari satu) ---
+    // Tiap item: { id, name, dataUrl, status: loading|pending|reading|ready|saved|error, data, error }
+    var queue = [];
+    var activeId = null;   // item yang sedang ditinjau di form
+    var _qid = 0;
+    var analyzing = false;
+
     var drop = document.getElementById('drop');
     var fileInput = document.getElementById('file');
     drop.addEventListener('click', function () { fileInput.click(); });
-    fileInput.addEventListener('change', function (e) { if (e.target.files.length) loadFile(e.target.files[0]); });
+    fileInput.addEventListener('change', function (e) {
+      if (e.target.files.length) addFiles(e.target.files);
+      fileInput.value = ''; // izinkan pilih file yang sama / tambah lagi
+    });
     ['dragover', 'dragenter'].forEach(function (ev) {
       drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('over'); });
     });
     ['dragleave', 'drop'].forEach(function (ev) {
       drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('over'); });
     });
-    drop.addEventListener('drop', function (e) { if (e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]); });
+    drop.addEventListener('drop', function (e) { if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files); });
 
-    function loadFile(file) {
-      if (!file.type.match('image.*')) { showErr('File harus berupa gambar.'); return; }
-      var reader = new FileReader();
-      reader.onload = function (e) {
-        currentDataUrl = e.target.result;
-        var img = document.getElementById('preview');
-        img.src = currentDataUrl; img.style.display = 'block';
-        document.getElementById('btnAnalyze').classList.remove('hidden');
-        clearMsg();
-      };
-      reader.readAsDataURL(file);
+    function addFiles(files) {
+      var arr = Array.prototype.slice.call(files || []);
+      var imgs = arr.filter(function (f) { return f.type && f.type.match('image.*'); });
+      if (!imgs.length) { showErr('Pilih file gambar (PNG/JPG).'); return; }
+      imgs.forEach(function (f) {
+        var item = { id: ++_qid, name: f.name || ('bukti-' + _qid), dataUrl: null, status: 'loading', data: null, error: '' };
+        queue.push(item);
+        var reader = new FileReader();
+        reader.onload = function (e) { item.dataUrl = e.target.result; if (item.status === 'loading') item.status = 'pending'; renderQueue(); };
+        reader.onerror = function () { item.status = 'error'; item.error = 'gagal baca file'; renderQueue(); };
+        reader.readAsDataURL(f);
+      });
+      renderQueue(); clearMsg();
     }
 
-    // --- Analisis ---
-    function analyze() {
-      if (!currentDataUrl) return;
-      var btn = document.getElementById('btnAnalyze');
-      btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Membaca gambar...';
-      showInfo('Sedang membaca bukti dengan Claude…');
+    function queueItem(id) { for (var i = 0; i < queue.length; i++) { if (queue[i].id === id) return queue[i]; } return null; }
+    function queueCount(st) { return queue.filter(function (q) { return q.status === st; }).length; }
+
+    function qbadge(it) {
+      var map = { loading: ['memuat…', 'b-wait'], pending: ['menunggu', 'b-wait'], reading: ['membaca…', 'b-read'],
+        ready: ['siap ditinjau', 'b-ready'], saved: ['tersimpan ✓', 'b-saved'], error: ['gagal', 'b-err'] };
+      var m = map[it.status] || ['', 'b-wait'];
+      var t = m[0]; if (it.status === 'error' && it.error) t = 'gagal: ' + it.error;
+      return '<span class="qbadge ' + m[1] + '">' + esc(t) + '</span>';
+    }
+
+    function renderQueue() {
+      var box = document.getElementById('queue');
+      if (!queue.length) { box.innerHTML = ''; box.classList.add('hidden'); updateAnalyzeBtn(); updateFormHeader(); return; }
+      box.classList.remove('hidden');
+      var h = '';
+      queue.forEach(function (it) {
+        var active = (it.id === activeId) ? ' q-active' : '';
+        var clickable = (it.status === 'ready' || it.status === 'saved' || it.status === 'error');
+        h += '<div class="qitem' + active + '"' + (clickable ? (' onclick="loadQueueItem(' + it.id + ')"') : '') + '>';
+        h += it.dataUrl ? ('<img class="qthumb" src="' + it.dataUrl + '" alt="">') : '<div class="qthumb">📄</div>';
+        h += '<div class="qmeta"><div class="qname">' + esc(it.name) + '</div>' + qbadge(it) + '</div>';
+        h += '<button class="qdel" title="Hapus" onclick="event.stopPropagation();removeQueueItem(' + it.id + ')">✕</button>';
+        h += '</div>';
+      });
+      box.innerHTML = h;
+      updateAnalyzeBtn(); updateFormHeader();
+    }
+
+    function updateAnalyzeBtn() {
+      var b = document.getElementById('btnAnalyze');
+      var clr = document.getElementById('btnClearQueue');
+      var pending = queueCount('pending');
+      if (analyzing) {
+        b.classList.remove('hidden'); b.disabled = true;
+        var done = queueCount('ready') + queueCount('saved') + queueCount('error');
+        b.innerHTML = '<span class="spin"></span>Membaca… (' + done + '/' + queue.length + ')';
+      } else if (pending > 0) {
+        b.classList.remove('hidden'); b.disabled = false;
+        b.textContent = 'Baca Otomatis' + (pending > 1 ? (' (' + pending + ')') : '');
+      } else {
+        b.classList.add('hidden');
+      }
+      clr.classList.toggle('hidden', queue.length === 0);
+    }
+
+    function updateFormHeader() {
+      var el = document.getElementById('queueInfo'); if (!el) return;
+      if (activeId == null || queue.length <= 1) { el.textContent = ''; return; }
+      var pos = 0; for (var i = 0; i < queue.length; i++) { if (queue[i].id === activeId) { pos = i + 1; break; } }
+      el.textContent = '🧾 Bukti ' + pos + ' dari ' + queue.length + ' · ' + queueCount('saved') + ' tersimpan';
+    }
+
+    function removeQueueItem(id) {
+      queue = queue.filter(function (q) { return q.id !== id; });
+      if (activeId === id) { activeId = null; resetAll(); }
+      renderQueue();
+    }
+
+    function clearQueue() {
+      queue = []; activeId = null; analyzing = false;
+      fileInput.value = '';
+      resetAll();
+      renderQueue(); clearMsg();
+    }
+
+    // --- Analisis semua bukti (berurutan) ---
+    function analyzeAll() {
+      if (analyzing) return;
+      analyzing = true; updateAnalyzeBtn();
+      showInfo('Membaca bukti dengan Claude…');
+      analyzeNext();
+    }
+
+    function analyzeNext() {
+      var it = queue.filter(function (q) { return q.status === 'pending'; })[0];
+      if (!it) { analyzing = false; updateAnalyzeBtn(); onAnalyzeDone(); return; }
+      it.status = 'reading'; renderQueue();
       google.script.run
         .withSuccessHandler(function (data) {
-          btn.disabled = false; btn.textContent = 'Baca Ulang';
-          fillForm(data); clearMsg();
+          it.data = data; it.status = 'ready'; renderQueue();
+          if (activeId == null) loadQueueItem(it.id); // tinjau yang pertama sambil sisanya diproses
+          analyzeNext();
         })
         .withFailureHandler(function (err) {
-          btn.disabled = false; btn.textContent = 'Baca Otomatis';
-          showErr(err.message || err);
+          it.status = 'error'; it.error = (err && err.message) ? err.message : String(err); renderQueue();
+          analyzeNext();
         })
-        .analyzeImage(currentDataUrl, window._pin);
+        .analyzeImage(it.dataUrl, window._pin);
+    }
+
+    function onAnalyzeDone() {
+      var parts = [];
+      if (queueCount('ready')) parts.push(queueCount('ready') + ' siap ditinjau');
+      if (queueCount('saved')) parts.push(queueCount('saved') + ' tersimpan');
+      if (queueCount('error')) parts.push(queueCount('error') + ' gagal');
+      if (parts.length) showInfo('Selesai membaca. ' + parts.join(' · ') + '. Tinjau tiap entri lalu Simpan.');
+      else clearMsg();
+    }
+
+    function loadQueueItem(id) {
+      var it = queueItem(id);
+      if (!it || !it.data) return;
+      activeId = id; currentDataUrl = it.dataUrl;
+      fillForm(it.data);
+      renderQueue();
+    }
+
+    function closeForm() {
+      activeId = null;
+      document.getElementById('formCard').classList.add('hidden');
+      renderQueue();
+    }
+
+    function advanceQueue() {
+      var next = queue.filter(function (q) { return q.status === 'ready'; })[0];
+      if (next) { loadQueueItem(next.id); return; }
+      activeId = null;
+      document.getElementById('formCard').classList.add('hidden');
+      var busy = queueCount('pending') + queueCount('reading');
+      if (busy === 0) {
+        var saved = queueCount('saved');
+        showOk('✅ Semua bukti selesai. ' + saved + ' tersimpan.');
+      } else {
+        showInfo('Tersimpan. Masih ada ' + busy + ' bukti diproses…');
+      }
+      renderQueue();
     }
 
     function fillForm(d) {
@@ -740,30 +883,40 @@
       if (payload.sumberDana === 'PENDAPATAN USAHA') {
         showInfo('Menyiapkan pratinjau…');
         google.script.run.withSuccessHandler(function (pv) {
-          clearMsg(); showPreview(payload, pv);
+          clearMsg(); showPreview(payload, pv, activeId);
         }).withFailureHandler(function (e) {
           showErr('Pratinjau CASHFLOW gagal: ' + (e.message || e) + ' (atur link di tab Setelan).');
         }).previewCashflow(payload, window._pin);
         return;
       }
-      doSave(payload);
+      doSave(payload, activeId);
     }
 
-    function doSave(payload) {
+    // queueId != null -> simpan dari antrean bukti (lanjut ke bukti berikutnya);
+    // queueId == null -> simpan dari Input Manual.
+    function doSave(payload, queueId) {
+      var fromQueue = (queueId != null);
       var btn = document.getElementById('btnSave');
+      var label = fromQueue ? 'Simpan & Lanjut' : 'Simpan ke Spreadsheet';
       btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Menyimpan...';
       google.script.run
         .withSuccessHandler(function (res) {
-          btn.disabled = false; btn.textContent = 'Simpan ke Spreadsheet';
+          btn.disabled = false; btn.textContent = label;
           var m = '✅ Tersimpan ke baris ' + res.row + ' (TRANSAKSI).';
           if (res.cashflow) {
             if (res.cashflow.error) m += ' ⚠️ CASHFLOW gagal: ' + res.cashflow.error;
             else m += ' Juga ke CASHFLOW baris ' + res.cashflow.row + '.';
           }
-          showOk(m); closePreview(); resetAll(); mReset(); refreshTarget();
+          closePreview(); showOk(m); refreshTarget();
+          if (fromQueue) {
+            var it = queueItem(queueId); if (it) it.status = 'saved';
+            advanceQueue();
+          } else {
+            mReset();
+          }
         })
         .withFailureHandler(function (err) {
-          btn.disabled = false; btn.textContent = 'Simpan ke Spreadsheet';
+          btn.disabled = false; btn.textContent = label;
           closePreview(); showErr(err.message || err);
         })
         .appendTransaction(payload);
@@ -771,8 +924,10 @@
 
     // --- Pratinjau (TRANSAKSI + opsional CASHFLOW) ---
     var _pendingPayload = null;
-    function showPreview(payload, cf) {
+    var _pendingQueueId = null;
+    function showPreview(payload, cf, queueId) {
       _pendingPayload = payload;
+      _pendingQueueId = (typeof queueId === 'undefined') ? null : queueId;
       var h = '<div style="margin-bottom:6px;color:var(--muted)">' +
         (cf ? 'Akan ditulis ke <b>2</b> spreadsheet:' : 'Pratinjau entri:') + '</div>';
       h += '<div class="card" style="padding:10px;margin:0 0 8px"><b>TRANSAKSI (ANALISA KEUANGAN)</b><br>' +
@@ -794,7 +949,7 @@
       document.getElementById('previewModal').style.display = 'flex';
     }
     function closePreview() { document.getElementById('previewModal').style.display = 'none'; _pendingPayload = null; }
-    function confirmPreview() { if (_pendingPayload) doSave(_pendingPayload); }
+    function confirmPreview() { if (_pendingPayload) doSave(_pendingPayload, _pendingQueueId); }
 
     // ===================== INPUT MANUAL =====================
     function toggleManual() {
@@ -871,14 +1026,14 @@
       if (!payload.tahunBiaya) return showErr('Tahun Biaya wajib dipilih.');
       if (!payload.budgetBulan) return showErr('Budget Bulan wajib dipilih.');
       if (!payload.tahunBudget) return showErr('Tahun Budget wajib dipilih.');
-      // Selalu pratinjau dulu.
+      // Selalu pratinjau dulu (Input Manual -> queueId null).
       if (payload.sumberDana === 'PENDAPATAN USAHA') {
         showInfo('Menyiapkan pratinjau…');
-        google.script.run.withSuccessHandler(function (pv) { clearMsg(); showPreview(payload, pv); })
+        google.script.run.withSuccessHandler(function (pv) { clearMsg(); showPreview(payload, pv, null); })
           .withFailureHandler(function (e) { showErr('Pratinjau CASHFLOW gagal: ' + (e.message || e) + ' (atur link di tab Setelan).'); })
           .previewCashflow(payload, window._pin);
       } else {
-        showPreview(payload, null);
+        showPreview(payload, null, null);
       }
     }
 
@@ -899,15 +1054,16 @@
       }
     }
 
+    // Bersihkan isian form tinjau (tidak menyentuh antrean bukti).
     function resetAll() {
       currentDataUrl = null;
       window._bankSaran = ''; window._isBoc = false; window._sdSaran = ''; window._sdAlasan = '';
       window._rekSaran = ''; window._bankModel = ''; window._meta = null;
       window._mataUang = 'IDR'; window._nominalAsli = 0; window._kurs = 0;
-      fileInput.value = '';
-      var img = document.getElementById('preview'); img.src = ''; img.style.display = 'none';
-      document.getElementById('btnAnalyze').classList.add('hidden');
-      document.getElementById('btnAnalyze').textContent = 'Baca Otomatis';
+      comboSetValue('posBiaya', '');
+      document.getElementById('keterangan').value = '';
+      document.getElementById('nominal').value = '';
+      document.getElementById('tanggal').value = '';
       document.getElementById('formCard').classList.add('hidden');
       document.getElementById('ketChips').innerHTML = '';
       document.getElementById('rekWrap').classList.add('hidden');

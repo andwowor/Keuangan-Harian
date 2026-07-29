@@ -86,14 +86,20 @@ full-screen) lewat GitHub Pages. Atau cukup buka URL di HP lalu **Add to Home Sc
 ## Cara Pakai
 
 1. Buka URL dashboard.
-2. Ketuk area upload → pilih/foto bukti transfer.
-3. Klik **Baca Otomatis** — tunggu beberapa detik.
+2. Ketuk area upload → pilih/foto bukti transfer. **Bisa memilih lebih dari satu
+   gambar sekaligus** (atau jatuhkan beberapa file) — tiap gambar = 1 biaya. Semua
+   bukti masuk ke **antrean** dengan status (menunggu → membaca → siap ditinjau →
+   tersimpan). Anda juga bisa menambah gambar lagi kapan saja atau menghapus satu bukti.
+3. Klik **Baca Otomatis** — semua bukti dibaca berurutan; bukti pertama yang selesai
+   langsung terbuka untuk ditinjau sementara sisanya masih diproses.
 4. Periksa hasil baca (POS BIAYA, KETERANGAN, NOMINAL, TANGGAL). Bila bukti
    memakai mata uang asing, NOMINAL sudah dikonversi ke Rupiah (info kurs tampil).
 5. Bagian **✅ Terisi otomatis** sudah diisi dari pola history (SUMBER DANA,
    BIAYA/BUDGET BULAN & TAHUN, serta Rekening bila Pendapatan Usaha) —
    cukup **koreksi yang meleset**.
-6. Klik **Simpan ke Spreadsheet**. Baris masuk di posisi kosong terbawah.
+6. Klik **Simpan & Lanjut**. Baris masuk di posisi kosong terbawah, lalu form
+   otomatis lompat ke bukti berikutnya yang siap ditinjau — ulangi sampai semua
+   bukti tersimpan. (**Tutup** menutup form tanpa menyimpan; bukti tetap di antrean.)
 
 **Input Manual (tanpa foto):** di tab Input ada bagian **✍️ Input Manual** untuk mengetik
 biaya langsung (POS, keterangan, nominal, tanggal, biaya bulan/tahun, sumber dana, budget
