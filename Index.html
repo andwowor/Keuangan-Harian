@@ -403,7 +403,7 @@
         <div id="ibModalTitle" style="font-weight:700;font-size:15px;margin-bottom:8px"></div>
         <div id="ibModalBody" style="font-size:13px"></div>
         <div class="row-btns">
-          <button id="ibModalCancel" class="btn-ghost" onclick="ibCloseModal()">Batal</button>
+          <button id="ibModalCancel" class="btn-ghost" onclick="ibModalCancel()">Batal</button>
           <button id="ibModalOk" class="btn-primary" onclick="ibModalConfirm()">OK</button>
         </div>
       </div>
@@ -1208,18 +1208,19 @@
       return b >= 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
     }
 
-    // --- Modal serbaguna (konfirmasi / tawaran hapus galeri) ---
-    var _ibCb = null;
-    function ibShowModal(title, html, okLabel, cancelLabel, cb) {
+    // --- Modal serbaguna (konfirmasi / tawaran hapus galeri / peringatan duplikat) ---
+    var _ibCb = null, _ibCancelCb = null;
+    function ibShowModal(title, html, okLabel, cancelLabel, cb, cancelCb) {
       document.getElementById('ibModalTitle').textContent = title;
       document.getElementById('ibModalBody').innerHTML = html;
       document.getElementById('ibModalOk').textContent = okLabel;
       document.getElementById('ibModalCancel').textContent = cancelLabel;
-      _ibCb = cb || null;
+      _ibCb = cb || null; _ibCancelCb = cancelCb || null;
       document.getElementById('ibModal').style.display = 'flex';
     }
-    function ibCloseModal() { document.getElementById('ibModal').style.display = 'none'; _ibCb = null; }
+    function ibCloseModal() { document.getElementById('ibModal').style.display = 'none'; _ibCb = null; _ibCancelCb = null; }
     function ibModalConfirm() { var cb = _ibCb; ibCloseModal(); if (cb) cb(); }
+    function ibModalCancel() { var cb = _ibCancelCb; ibCloseModal(); if (cb) cb(); }
 
     // --- Unggah ke folder penyimpanan ---
     function ibPick() { document.getElementById('ibFile').click(); }
@@ -1261,23 +1262,70 @@
     function ibUpload(files) {
       var list = Array.prototype.slice.call(files || []).filter(function (f) { return f.type && f.type.match('image.*'); });
       if (!list.length) { ibMsg('Pilih file gambar (PNG/JPG).', 'err'); return; }
-      var done = [], gagal = 0, i = 0;
+      var done = [], gagal = 0, dupPending = [], i = 0;
       function next() {
         if (i >= list.length) {
-          ibMsg('✅ ' + done.length + ' bukti tersimpan ke folder penyimpanan.' + (gagal ? ' ⚠️ ' + gagal + ' gagal.' : ''), 'ok');
+          var pesan = '✅ ' + done.length + ' bukti tersimpan.' +
+            (dupPending.length ? ' ⚠️ ' + dupPending.length + ' duplikat.' : '') +
+            (gagal ? ' ⚠️ ' + gagal + ' gagal.' : '');
+          ibMsg(pesan, done.length ? 'ok' : (dupPending.length ? 'info' : 'err'));
           loadInbox();
-          if (done.length) ibOfferGalleryDelete(done);
+          ibAfterUpload(done, dupPending);
           return;
         }
         var f = list[i++];
-        ibMsg('<span class="spin"></span>Mengunggah ' + i + '/' + list.length + ' — ' + esc(f.name || 'bukti') + '…', 'info');
+        ibMsg('<span class="spin"></span>Memeriksa & mengunggah ' + i + '/' + list.length + ' — ' + esc(f.name || 'bukti') + '…', 'info');
         ibShrink(f, function (dataUrl) {
           if (!dataUrl) { gagal++; next(); return; }
           google.script.run
-            .withSuccessHandler(function (res) { done.push(res.name); next(); })
+            .withSuccessHandler(function (res) {
+              if (res && res.duplicate) dupPending.push({ name: f.name || 'bukti', dataUrl: dataUrl, of: res.of });
+              else if (res) done.push(res.name);
+              next();
+            })
             .withFailureHandler(function (e) { gagal++; ibMsg('⚠️ ' + esc(e.message || e), 'err'); next(); })
-            .uploadInbox(dataUrl, f.name || '', window._pin);
+            .uploadInbox(dataUrl, f.name || '', window._pin, false);
         });
+      }
+      next();
+    }
+
+    // Urutkan tindak lanjut: peringatan duplikat dulu, baru tawaran bersihkan galeri.
+    function ibAfterUpload(done, dups) {
+      if (dups.length) ibWarnDuplicates(dups, function () { if (done.length) ibOfferGalleryDelete(done); });
+      else if (done.length) ibOfferGalleryDelete(done);
+    }
+
+    // Peringatan otomatis: bukti dengan isi sama sudah pernah diunggah.
+    function ibWarnDuplicates(list, thenCb) {
+      var h = '<div style="color:var(--warn)">⚠️ ' + list.length + ' bukti tampaknya <b>sudah pernah diunggah</b> ' +
+        '(isi gambar sama persis):</div>';
+      h += '<div class="card" style="padding:10px;margin:10px 0">' +
+        list.slice(0, 8).map(function (d) {
+          return '📄 ' + esc(d.name) + '<br><span class="ask-hint">≈ sama dengan: ' + esc(d.of.name) + ' · ' + esc(d.of.date) + '</span>';
+        }).join('<br>') +
+        (list.length > 8 ? ('<br><span class="ask-hint">… +' + (list.length - 8) + ' lagi</span>') : '') + '</div>';
+      h += '<div class="ask-hint">Pilih <b>Lewati</b> agar tidak menyimpan yang duplikat, atau <b>Unggah tetap</b> ' +
+        'bila menurut Anda ini bukti yang berbeda.</div>';
+      ibShowModal('⚠️ Duplikat terdeteksi', h, 'Unggah tetap', 'Lewati (disarankan)',
+        function () { ibUploadForced(list, thenCb); },
+        function () { ibMsg(list.length + ' bukti duplikat dilewati (tidak disimpan).', 'info'); if (thenCb) thenCb(); });
+    }
+
+    function ibUploadForced(list, thenCb) {
+      var i = 0, done = 0, gagal = 0;
+      function next() {
+        if (i >= list.length) {
+          ibMsg('✅ ' + done + ' bukti (duplikat) tetap diunggah.' + (gagal ? ' ⚠️ ' + gagal + ' gagal.' : ''), 'ok');
+          loadInbox(); if (thenCb) thenCb();
+          return;
+        }
+        var d = list[i++];
+        ibMsg('<span class="spin"></span>Mengunggah duplikat ' + i + '/' + list.length + '…', 'info');
+        google.script.run
+          .withSuccessHandler(function (res) { if (res && !res.duplicate) done++; next(); })
+          .withFailureHandler(function () { gagal++; next(); })
+          .uploadInbox(d.dataUrl, d.name, window._pin, true);
       }
       next();
     }

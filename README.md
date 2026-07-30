@@ -136,6 +136,7 @@ menginput biayanya.
 |---|---|
 | **🖼 Pilih Gambar** | Unggah satu/banyak bukti dari galeri ke folder penyimpanan. |
 | **📷 Ambil Foto** | Ambil foto langsung dari kamera HP, langsung tersimpan ke folder. |
+| **Peringatan duplikat** | Bila bukti yang diunggah **isinya sama** dengan yang sudah ada di folder (dibandingkan lewat sidik jari MD5), sistem **otomatis memperingatkan** dan menunjukkan bukti mana yang sama — Anda bisa **Lewati** (default) atau **Unggah tetap**. |
 | **Tawaran bersihkan galeri** | Setelah unggah berhasil, dashboard **otomatis menawarkan** untuk menghapus bukti dari galeri HP (lihat catatan di bawah). |
 | **Daftar bukti** | **Semua** bukti di folder tampil dengan thumbnail, nama, tanggal & ukuran (terbaru dulu). Daftar muncul lebih dulu, thumbnail menyusul bertahap agar tidak lama menunggu. |
 | **Lihat penuh** | **Ketuk bukti** (atau ikon ⤢) untuk membuka gambar **full screen**; ketuk lagi untuk zoom/geser. Ketuk **kotak centang** untuk memilih (proses/hapus). |

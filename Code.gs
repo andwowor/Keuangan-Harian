@@ -606,17 +606,72 @@ function cekFolderPenyimpanan() {
   return pesan;
 }
 
-/** Simpan satu gambar ke folder penyimpanan sementara. */
-function uploadInbox(dataUrl, name, pin) {
+/**
+ * Simpan satu gambar ke folder penyimpanan sementara.
+ * Bila isi gambar SAMA dengan bukti yang sudah ada (deteksi duplikat via hash MD5) dan
+ * allowDuplicate != true, file TIDAK dibuat dan dikembalikan { duplicate:true, of:{...} }.
+ */
+function uploadInbox(dataUrl, name, pin, allowDuplicate) {
   verifyPin_(pin);
   var img = parseDataUrl_(dataUrl);
+  var bytes = Utilities.base64Decode(img.data);
+  var hash = inboxHashHex_(bytes);
+
+  if (!allowDuplicate) {
+    var dup = findInboxDuplicate_(bytes.length, hash);
+    if (dup) return { duplicate: true, of: dup };
+  }
+
   var ext = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp' }[img.mediaType] || 'png';
   var base = String(name || '').replace(/\.[a-zA-Z0-9]+$/, '').replace(/[\\\/:*?"<>|]/g, '-').trim();
   if (!base) base = 'bukti';
   var stamp = Utilities.formatDate(new Date(), TIMEZONE, 'yyyyMMdd-HHmmss');
-  var blob = Utilities.newBlob(Utilities.base64Decode(img.data), img.mediaType, base + '_' + stamp + '.' + ext);
+  var blob = Utilities.newBlob(bytes, img.mediaType, base + '_' + stamp + '.' + ext);
   var file = getInboxFolder_().createFile(blob);
-  return { id: file.getId(), name: file.getName() };
+  file.setDescription('kh-md5:' + hash);   // sidik jari isi gambar untuk deteksi duplikat
+  return { id: file.getId(), name: file.getName(), duplicate: false };
+}
+
+/** Hash MD5 (hex) dari byte gambar — sidik jari isi berkas. */
+function inboxHashHex_(bytes) {
+  var raw = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, bytes);
+  var s = '';
+  for (var i = 0; i < raw.length; i++) {
+    var b = (raw[i] + 256) % 256;
+    s += (b < 16 ? '0' : '') + b.toString(16);
+  }
+  return s;
+}
+
+/** Ambil sidik jari yang tersimpan di deskripsi berkas, atau '' bila belum ada. */
+function inboxStoredHash_(file) {
+  var m = /kh-md5:([0-9a-f]{32})/.exec(file.getDescription() || '');
+  return m ? m[1] : '';
+}
+
+/**
+ * Cari bukti dengan isi identik. Pra-saring cepat berdasarkan UKURAN byte yang sama,
+ * lalu bandingkan hash. Berkas lama yang belum punya sidik jari akan dihitung & disimpan
+ * sekali (backfill) supaya cek berikutnya cepat. Mengembalikan {id,name,date} atau null.
+ */
+function findInboxDuplicate_(size, hash) {
+  var it = getInboxFolder_().getFiles();
+  while (it.hasNext()) {
+    var f = it.next();
+    var mt = f.getMimeType() || '';
+    if (mt.indexOf('image/') !== 0) continue;
+    if (f.getSize() !== size) continue;   // hanya berkas berukuran sama yang mungkin duplikat
+    var h = inboxStoredHash_(f);
+    if (!h) {
+      try { h = inboxHashHex_(f.getBlob().getBytes()); f.setDescription('kh-md5:' + h); }
+      catch (e) { continue; }
+    }
+    if (h === hash) {
+      return { id: f.getId(), name: f.getName(),
+        date: Utilities.formatDate(f.getDateCreated(), TIMEZONE, 'd MMM yyyy HH:mm') };
+    }
+  }
+  return null;
 }
 
 /**
