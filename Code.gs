@@ -27,7 +27,7 @@
 var SPREADSHEET_ID = '1IsRwEzQ7xJdd0jpzxpGmvhBvx34CVuOElPFfyRs-5fM';
 var SHEET_NAME = 'TRANSAKSI';
 var MEMORY_SHEET = 'AI_MEMORY'; // sheet tersembunyi: catatan pembelajaran (bukti + saran AI + pilihan akhir)
-var TIMEZONE = 'Asia/Jakarta';
+var TIMEZONE = 'Asia/Makassar'; // WITA (Waktu Indonesia Tengah, UTC+8)
 
 // Model Claude untuk membaca gambar. Ganti ke 'claude-opus-4-8' (lebih akurat) atau
 // 'claude-haiku-4-5' (lebih hemat) bila perlu.

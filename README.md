@@ -258,3 +258,9 @@ Apps Script menyediakan endpoint ringkas (dilindungi `token` = `APP_PIN`):
   teks berformat (`Rp…`, `19 November 2025`) — terdeteksi otomatis.
 - Skema input mengikuti 10 kolom sheet TRANSAKSI:
   `POS BIAYA · KETERANGAN · NOMINAL · TANGGAL · BIAYA BULAN · TAHUN BIAYA · SUMBER DANA · BUDGET BULAN · TAHUN BUDGET · Rekening`.
+- **Zona waktu: WITA (Waktu Indonesia Tengah, UTC+8 / `Asia/Makassar`)** — dipakai untuk
+  tanggal default, cap waktu bukti, dan penentuan bulan/tahun berjalan. Diatur di dua tempat:
+  konstanta `TIMEZONE` (`Code.gs`) dan `timeZone` (`appsscript.json`). Penulisan TANGGAL ke sheet
+  mengikuti zona waktu **spreadsheet** (agar tanggal tidak bergeser). Untuk konsistensi penuh,
+  set juga zona waktu Google Sheet Anda ke **(GMT+08:00) Makassar** lewat *File → Setelan →
+  Zona waktu* pada spreadsheet.
