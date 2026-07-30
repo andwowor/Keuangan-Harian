@@ -971,8 +971,10 @@ function analyzeImg_(img) {
     'contoh: "•••••••••5620", "026 - 3** - **85", "*******055", "1543 **** **** 507". ' +
     'Sertakan nama bank bila tertera. Jangan menghapus tanda samaran, jangan menebak angka yang tertutup, ' +
     'dan JANGAN mengosongkan hanya karena disamarkan.\n' +
-    '- akun_sumber_nama: nama pemilik & bank/aplikasi SUMBER DANA (pengirim) apa adanya pada bukti — ' +
-    'mis. "Andre Stefano Wowor", "blu by BCA Digital", "BNI Multicurrency", "Allo". Bukan penerima. Bila tidak ada, isi "".\n' +
+    '- akun_sumber_nama: nama pemilik & bank/aplikasi/kartu SUMBER DANA (pengirim) apa adanya pada bukti — ' +
+    'mis. "Andre Stefano Wowor", "blu by BCA Digital", "BNI Multicurrency", "Allo". ' +
+    'Bila sumber dana berupa KARTU KREDIT, sertakan nama jaringan/produknya persis (mis. ' +
+    '"BNI Visa Affinity Platinum", "Mastercard", "Kartu Kredit"). Bukan penerima. Bila tidak ada, isi "".\n' +
     '- is_boc_1201: true bila pada bukti tertulis "BOC Debit Card (1201)".\n' +
     '- bank_rekening: cadangan bila akun_sumber tidak terbaca — bila bukti transfer dari bank, ' +
     'petakan bank pengirim ke Mandiri/BNI/BRI/BCA; jika tidak jelas isi "". ' +
@@ -1080,7 +1082,7 @@ function analyzeImg_(img) {
   if (acct) {
     data.sumberDanaSaran = acct.sumberDana;
     data.rekeningSaran = acct.bank || '';
-    data.sumberDanaAlasan = 'Rekening ' + acct.label + ' → ' + acct.sumberDana;
+    data.sumberDanaAlasan = acct.alasan || ('Rekening ' + acct.label + ' → ' + acct.sumberDana);
   } else if (data.is_boc_1201) {
     data.sumberDanaSaran = 'UANG SAKU';
     data.sumberDanaAlasan = 'BOC Debit Card (1201) → Uang Saku';
@@ -1133,6 +1135,15 @@ function normalizeCurrency_(c) {
 function detectAccount_(text, nameText, learned) {
   var raw = String(text || '');
   var nm = (raw + ' ' + String(nameText || '')).toLowerCase();
+
+  // 0) KARTU KREDIT: bila sumber dana berupa kartu kredit (mis. "BNI Visa Affinity
+  //    Platinum · 4512 49** **** 6010"), utamakan sebelum pencocokan rekening bank —
+  //    nama bank pada kartu (mis. "BNI") tidak boleh tertukar dengan rekening tabungan.
+  if (isCreditCard_(nm)) {
+    return { label: 'Kartu Kredit', alasan: 'Kartu kredit terdeteksi pada bukti → KARTU KREDIT',
+      sumberDana: 'KARTU KREDIT', bank: '' };
+  }
+
   // Angka bisa berada di field nomor atau (bila kosong) di field nama.
   var digitSrc = /\d/.test(raw) ? raw : String(nameText || '');
   var d = digitSrc.replace(/\D/g, '');
@@ -1195,6 +1206,18 @@ function isMaskedNumber_(t) {
 }
 
 /**
+ * Deteksi sumber dana berupa KARTU KREDIT dari teks sumber dana. Contoh yang cocok:
+ * "BNI Visa Affinity Platinum", "Kartu Kredit", "Mastercard", "credit card".
+ * Kartu DEBIT dikecualikan (mis. "BOC Debit Card" ditangani terpisah -> UANG SAKU).
+ */
+function isCreditCard_(text) {
+  var t = String(text || '').toLowerCase();
+  if (t.indexOf('debit') >= 0) return false;
+  if (/kartu\s*kredit|credit\s*card/.test(t)) return true;
+  return /\b(visa|mastercard|master\s*card|jcb|amex|american\s*express)\b/.test(t);
+}
+
+/**
  * Uji cepat aturan deteksi rekening dari editor Apps Script (pilih fungsi ini lalu Run).
  * Membuktikan logika deteksi berjalan pada kode yang TERPASANG — hasil di Execution log.
  * Mensimulasikan apa yang terbaca pada bukti (nomor tersamar + nama pemilik).
@@ -1204,7 +1227,8 @@ function cekDeteksiRekening() {
     { ak: '026 - 3** - **85', nm: '' },                                   // BCA (tanpa nama bank)
     { ak: 'Bank Mandiri - •••••••••5620', nm: 'ANDRE STEFANO WOWOR' },    // Mandiri
     { ak: '1543 **** **** 507', nm: 'ANDRE STEFANO WOWOR BANK BRI' },     // BRI
-    { ak: '*******055', nm: 'ANDRE STEFANO WOWOR' }                       // BNI (bank cuma watermark)
+    { ak: '*******055', nm: 'ANDRE STEFANO WOWOR' },                      // BNI (bank cuma watermark)
+    { ak: '4512 49** **** 6010', nm: 'ANDRE STEFANO WOWOR BNI Visa Affinity Platinum' } // Kartu Kredit
   ];
   var learned = getLearnedAccounts_();
   var out = [];
