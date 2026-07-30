@@ -137,6 +137,8 @@
     .qdel { width: 28px; height: 28px; flex: none; border-radius: 8px; background: rgba(255,255,255,.06);
       color: var(--muted); border: 1px solid var(--line); font-size: 13px; padding: 0; cursor: pointer; }
     .qdel:hover { color: var(--err); border-color: var(--err); }
+    .qdel-x { color: var(--err); border-color: rgba(251,113,133,.35); }
+    .qdel-x:hover { background: rgba(251,113,133,.14); }
     /* --- Pratinjau bukti di form tinjau + lightbox --- */
     .review-img { margin: 10px 0 4px; }
     .review-img img { width: 100%; max-height: 240px; object-fit: contain; border-radius: 10px;
@@ -340,7 +342,7 @@
           <div class="bt-title" style="margin:0">🗂 Bukti tersimpan (<span id="ibCount">–</span>)</div>
           <button class="btn-ghost" style="width:auto;padding:6px 10px;font-size:12px" onclick="loadInbox()">↻ Muat ulang</button>
         </div>
-        <div class="ask-hint" style="margin-top:4px">Ketuk bukti untuk melihat <b>gambar penuh (full screen)</b>; ketuk kotak centang untuk memilih.</div>
+        <div class="ask-hint" style="margin-top:4px">Ketuk bukti untuk <b>lihat penuh</b> · <b>🗑</b> hapus satu bukti · kotak centang untuk memilih (proses/hapus banyak sekaligus).</div>
         <div id="ibList" style="margin-top:10px"></div>
         <div id="ibActions" class="row-btns hidden">
           <button class="btn-ghost" onclick="ibDeleteSelected()">🗑 Hapus terpilih</button>
@@ -1386,7 +1388,8 @@
           (it.thumb ? ('<img class="qthumb" src="' + it.thumb + '" alt="">') : '<div class="qthumb">🧾</div>') +
           '<div class="qmeta"><div class="qname">' + esc(it.name) + '</div>' +
           '<div class="ask-hint">' + esc(it.date) + ' · ' + ibSize(it.size) + '</div></div>' +
-          '<span class="qdel" title="Lihat penuh" onclick="event.stopPropagation();ibViewImage(\'' + it.id + '\')">⤢</span></div>';
+          '<span class="qdel" title="Lihat penuh" onclick="event.stopPropagation();ibViewImage(\'' + it.id + '\')">⤢</span>' +
+          '<span class="qdel qdel-x" title="Hapus bukti ini" onclick="event.stopPropagation();ibDeleteOne(\'' + it.id + '\')">🗑</span></div>';
       });
       if (inbox.truncated) {
         h += '<div class="msg info" style="margin-top:10px">Menampilkan ' + inbox.items.length +
@@ -1427,6 +1430,24 @@
       }).withFailureHandler(function (e) {
         if (!(it && it.thumb)) { m.style.display = 'none'; showErr('Gagal memuat gambar: ' + (e.message || e)); }
       }).getInboxImage(id, window._pin);
+    }
+
+    // Hapus satu bukti langsung dari barisnya (dengan konfirmasi).
+    function ibDeleteOne(id) {
+      var it = ibFind(id);
+      var nama = it ? it.name : 'bukti ini';
+      ibShowModal('🗑 Hapus bukti?',
+        '<div style="color:var(--muted)">Hapus <b>' + esc(nama) + '</b> dari folder penyimpanan? ' +
+        'Berkas masuk ke Sampah Google Drive (bisa dipulihkan 30 hari).</div>',
+        'Ya, hapus', 'Batal', function () {
+          ibMsg('<span class="spin"></span>Menghapus…', 'info');
+          google.script.run.withSuccessHandler(function (r) {
+            if (r && r.ok) { ibForget(id); ibMsg('🗑 1 bukti dihapus.', 'ok'); }
+            else ibMsg('⚠️ Gagal menghapus.' + (r && r.pesan ? ' ' + esc(r.pesan) : ''), 'err');
+          }).withFailureHandler(function (e) {
+            ibMsg('⚠️ ' + esc(e.message || e), 'err');
+          }).deleteInbox([id], window._pin);
+        });
     }
 
     function ibToggle(id) {
