@@ -242,6 +242,7 @@
 
         <label>SUMBER DANA</label>
         <select id="sumberDana" onchange="onSumberDanaChange()"></select>
+        <div id="srcRead" class="ask-hint hidden" style="margin-top:4px"></div>
         <div id="bocNote" class="note boc hidden"></div>
 
         <div id="rekWrap" class="hidden">
@@ -770,6 +771,13 @@
         sugPos: d.pos_biaya || '', sugSumber: d.sumberDanaSaran || '', sugKeterangan: d.keterangan || ''
       };
 
+      // Tampilkan apa yang TERBACA sebagai sumber dana (untuk transparansi & diagnosa).
+      var srcTxt = [d.akun_sumber, d.akun_sumber_nama].filter(function (x) { return x && x.trim(); }).join(' · ');
+      var sr = document.getElementById('srcRead');
+      sr.classList.remove('hidden');
+      sr.textContent = srcTxt ? ('🔎 Sumber dana terbaca dari bukti: ' + srcTxt)
+        : '🔎 Sumber dana tidak terbaca dari bukti — pilih manual.';
+
       // Periode: BIAYA/BUDGET BULAN = bulan transaksi, TAHUN = tahun transaksi
       var my = deriveMonthYear(d.tanggal);
       setSelect('biayaBulan', my.bulan);
@@ -1214,6 +1222,7 @@
       document.getElementById('ketChips').innerHTML = '';
       document.getElementById('rekWrap').classList.add('hidden');
       document.getElementById('bocNote').classList.add('hidden');
+      document.getElementById('srcRead').classList.add('hidden');
       document.getElementById('kursNote').classList.add('hidden');
       setReviewImg('');
     }
