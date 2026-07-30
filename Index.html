@@ -340,6 +340,7 @@
           <div class="bt-title" style="margin:0">🗂 Bukti tersimpan (<span id="ibCount">–</span>)</div>
           <button class="btn-ghost" style="width:auto;padding:6px 10px;font-size:12px" onclick="loadInbox()">↻ Muat ulang</button>
         </div>
+        <div class="ask-hint" style="margin-top:4px">Ketuk bukti untuk melihat <b>gambar penuh (full screen)</b>; ketuk kotak centang untuk memilih.</div>
         <div id="ibList" style="margin-top:10px"></div>
         <div id="ibActions" class="row-btns hidden">
           <button class="btn-ghost" onclick="ibDeleteSelected()">🗑 Hapus terpilih</button>
@@ -1330,12 +1331,14 @@
         '<div class="ask-hint">' + sel.length + ' dari ' + inbox.items.length + ' dipilih</div></div></div>';
       inbox.items.forEach(function (it) {
         var on = !!inbox.sel[it.id];
-        h += '<div class="qitem' + (on ? ' q-active' : '') + '" onclick="ibToggle(\'' + it.id + '\')">' +
-          '<input type="checkbox" style="width:18px;height:18px;flex:none"' + (on ? ' checked' : '') +
+        // Ketuk baris/gambar => lihat bukti penuh (full screen). Ketuk kotak centang => pilih.
+        h += '<div class="qitem' + (on ? ' q-active' : '') + '" onclick="ibViewImage(\'' + it.id + '\')" title="Ketuk untuk lihat penuh">' +
+          '<input type="checkbox" style="width:20px;height:20px;flex:none" title="Pilih"' + (on ? ' checked' : '') +
           ' onclick="event.stopPropagation();ibToggle(\'' + it.id + '\')">' +
           (it.thumb ? ('<img class="qthumb" src="' + it.thumb + '" alt="">') : '<div class="qthumb">🧾</div>') +
           '<div class="qmeta"><div class="qname">' + esc(it.name) + '</div>' +
-          '<div class="ask-hint">' + esc(it.date) + ' · ' + ibSize(it.size) + '</div></div></div>';
+          '<div class="ask-hint">' + esc(it.date) + ' · ' + ibSize(it.size) + '</div></div>' +
+          '<span class="qdel" title="Lihat penuh" onclick="event.stopPropagation();ibViewImage(\'' + it.id + '\')">⤢</span></div>';
       });
       if (inbox.truncated) {
         h += '<div class="msg info" style="margin-top:10px">Menampilkan ' + inbox.items.length +
@@ -1360,6 +1363,22 @@
         ibLoadThumbs();   // lanjut ke kelompok berikutnya
       }).withFailureHandler(function () {})
         .getInboxThumbs(batch.map(function (i) { return i.id; }), window._pin);
+    }
+
+    // Buka satu bukti secara penuh (full screen) memakai lightbox yang sama seperti di tab Input.
+    function ibViewImage(id) {
+      var it = ibFind(id);
+      var m = document.getElementById('imgModal');
+      var pic = document.getElementById('imgModalPic');
+      m.classList.remove('zoom');
+      pic.src = (it && it.thumb) || '';   // tampilkan thumbnail dulu (bila ada) selagi ambil gambar penuh
+      m.style.display = 'flex';
+      google.script.run.withSuccessHandler(function (res) {
+        // Hanya perbarui bila lightbox masih terbuka untuk bukti ini.
+        if (res && res.dataUrl && m.style.display !== 'none') pic.src = res.dataUrl;
+      }).withFailureHandler(function (e) {
+        if (!(it && it.thumb)) { m.style.display = 'none'; showErr('Gagal memuat gambar: ' + (e.message || e)); }
+      }).getInboxImage(id, window._pin);
     }
 
     function ibToggle(id) {
