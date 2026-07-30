@@ -184,6 +184,13 @@ Menampilkan tiap transaksi (POS, keterangan, tanggal, sumber dana, nominal) **ur
 plus jumlah transaksi & total nominal sesuai filter. Tombol **Reset filter tambahan** mengosongkan
 filter tanggal/POS/keterangan/sumber.
 
+**Edit manual transaksi:** ketuk salah satu transaksi (ikon ✏️) untuk membuka form edit —
+POS BIAYA (combobox), KETERANGAN, NOMINAL, TANGGAL, BIAYA BULAN/TAHUN, SUMBER DANA (+Rekening
+bila Pendapatan Usaha), BUDGET BULAN/TAHUN. **Simpan Perubahan** menulis balik ke baris yang
+sama di sheet TRANSAKSI. Catatan: bila NOMINAL berupa **formula** (mis. BIAYA KULIAH CHINA =
+nominal×kurs), formula dipertahankan selama angkanya tidak diubah. Sheet **CASHFLOW tidak ikut
+berubah otomatis** saat edit (agar tidak menggandakan entri) — sesuaikan manual bila perlu.
+
 ## Menu "Setelan" & auto-isi CASHFLOW
 
 Tab ketiga (**⚙ Setelan**) untuk menautkan **spreadsheet CASHFLOW & BIAYA bulan berjalan**

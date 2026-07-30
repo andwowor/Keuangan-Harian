@@ -365,6 +365,7 @@ function getTransaksiList(filter) {
       var nom = Number(r[2]) || 0;                                   // C NOMINAL
       total += nom;
       out.push({
+        row: hdr + 1 + i,                                           // baris asli di sheet (untuk edit)
         pos: String(r[0]).trim(),
         ket: String(r[1]).trim(),
         nominal: nom,
@@ -375,6 +376,120 @@ function getTransaksiList(filter) {
   }
   out.sort(function (a, b) { return a.tgl < b.tgl ? 1 : (a.tgl > b.tgl ? -1 : 0); }); // terbaru -> terlama
   return { count: out.length, total: total, items: out };
+}
+
+/** Ambil satu baris transaksi lengkap (A..J) untuk diedit. */
+function getTransaksiRow(row, pin) {
+  verifyPin_(pin);
+  var sheet = getSheet_();
+  var hdr = findHeaderRow_(sheet);
+  var last = findLastDataRow_(sheet, hdr);
+  row = Number(row);
+  if (!(row > hdr && row <= last)) throw new Error('Baris transaksi tidak valid.');
+  var rng = sheet.getRange(row, 1, 1, 10);
+  var v = rng.getValues()[0];
+  var fx = rng.getFormulas()[0];
+  if (!String(v[0]).trim()) throw new Error('Baris ini kosong.');
+  var tz = sheet.getParent().getSpreadsheetTimeZone();
+  return {
+    row: row,
+    pos: String(v[0]).trim(),
+    keterangan: String(v[1]).trim(),
+    nominal: Number(v[2]) || 0,
+    nominalFormula: fx[2] || '',                     // ada isinya bila NOMINAL berupa formula
+    tanggal: parseTanggalCell_(v[3], tz),            // yyyy-MM-dd
+    biayaBulan: String(v[4]).trim().toUpperCase(),
+    tahunBiaya: String(v[5]).trim().replace(/\.0$/, ''),
+    sumberDana: String(v[6]).trim(),
+    budgetBulan: String(v[7]).trim().toUpperCase(),
+    tahunBudget: String(v[8]).trim().replace(/\.0$/, ''),
+    rekening: String(v[9]).trim()
+  };
+}
+
+/**
+ * Perbarui satu baris transaksi yang sudah ada (edit manual dari menu Daftar).
+ * Catatan: sheet CASHFLOW TIDAK ikut diubah otomatis (agar tidak menggandakan entri) —
+ * bila perlu, sesuaikan CASHFLOW secara manual.
+ */
+function updateTransaction(payload, pin) {
+  verifyPin_(pin || (payload && payload.pin));
+  if (!payload) throw new Error('Data kosong.');
+  var row = Number(payload.row);
+
+  // Validasi field wajib (sama seperti saat menambah).
+  if (!payload.posBiaya) throw new Error('POS BIAYA wajib dipilih.');
+  if (!(payload.nominal > 0)) throw new Error('NOMINAL harus angka lebih dari 0.');
+  if (!payload.tanggal) throw new Error('TANGGAL wajib diisi.');
+  if (!payload.sumberDana) throw new Error('SUMBER DANA wajib dipilih.');
+  if (!payload.biayaBulan) throw new Error('BIAYA BULAN wajib dipilih.');
+  if (!payload.tahunBiaya) throw new Error('TAHUN BIAYA wajib dipilih.');
+  if (!payload.budgetBulan) throw new Error('BUDGET BULAN wajib dipilih.');
+  if (!payload.tahunBudget) throw new Error('TAHUN BUDGET wajib dipilih.');
+
+  var sheet = getSheet_();
+  var hdr = findHeaderRow_(sheet);
+  var last = findLastDataRow_(sheet, hdr);
+  if (!(row > hdr && row <= last)) throw new Error('Baris transaksi tidak valid.');
+
+  // Aturan Rekening: hanya untuk PENDAPATAN USAHA; selain itu paksa kosong.
+  var rekening = '';
+  if (payload.sumberDana === SUMBER_DANA_REKENING) {
+    rekening = (payload.rekening || '').trim();
+    if (rekening && BANK_REKENING.indexOf(rekening) === -1) throw new Error('Rekening tidak valid: ' + rekening);
+  }
+
+  var tz = sheet.getParent().getSpreadsheetTimeZone();
+  var tanggalDate = parseIsoDate_(payload.tanggal, tz);
+
+  // Ikuti tipe sel yang ADA di baris ini (angka/teks, date/teks).
+  var curNominal = sheet.getRange(row, 3).getValue();
+  var curTanggal = sheet.getRange(row, 4).getValue();
+
+  var nominalValue;
+  if (payload.keepFormula && payload.nominalFormula) {
+    nominalValue = String(payload.nominalFormula);           // pertahankan formula asli
+  } else {
+    nominalValue = (typeof curNominal === 'number' || curNominal === '' || curNominal == null)
+      ? Number(payload.nominal) : formatRupiah_(payload.nominal);
+  }
+  var tanggalValue = (curTanggal instanceof Date || curTanggal === '' || curTanggal == null)
+    ? tanggalDate : formatTanggalIdFromIso_(payload.tanggal);
+
+  sheet.getRange(row, 1, 1, 10).setValues([[
+    payload.posBiaya, payload.keterangan || '', nominalValue, tanggalValue,
+    payload.biayaBulan, Number(payload.tahunBiaya), payload.sumberDana,
+    payload.budgetBulan, Number(payload.tahunBudget), rekening
+  ]]);
+  SpreadsheetApp.flush();
+
+  try {
+    var c = CacheService.getScriptCache();
+    c.remove('histctx'); c.remove('posex'); c.remove('learnacct');
+  } catch (e) {}
+
+  return { ok: true, row: row };
+}
+
+/** Ubah nilai sel TANGGAL (Date atau teks "14 Juni 2026"/"14 Jun 2026"/ISO) menjadi yyyy-MM-dd. */
+function parseTanggalCell_(val, tz) {
+  if (val instanceof Date) return Utilities.formatDate(val, tz, 'yyyy-MM-dd');
+  var s = String(val || '').trim();
+  if (!s) return '';
+  var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+  if (m) return m[1] + '-' + m[2] + '-' + m[3];
+  // "14 Juni 2026" atau "14 Jun 2026"
+  m = /^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/.exec(s);
+  if (m) {
+    var nama = m[2].toLowerCase();
+    for (var i = 0; i < BULAN_TITLE.length; i++) {
+      var full = BULAN_TITLE[i].toLowerCase();
+      if (nama === full || nama === full.slice(0, 3)) {
+        return m[3] + '-' + ('0' + (i + 1)).slice(-2) + '-' + ('0' + m[1]).slice(-2);
+      }
+    }
+  }
+  return '';
 }
 
 // ====================== PENGATURAN & AUTO-ISI CASHFLOW ======================

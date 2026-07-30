@@ -84,6 +84,7 @@
     table.bt td.num { text-align: right; white-space: nowrap; }
     .bt-group td { font-weight: 700; color: var(--accent-d); padding-top: 12px; border-bottom: none; }
     .bt-item td:first-child { padding-left: 14px; }
+    table.bt tr[onclick]:hover td { background: rgba(56,189,248,.07); }
     .bt-total td { font-weight: 700; background: #f8fafc; }
     .lock { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
     .lockbox { max-width: 340px; width: 100%; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 24px; text-align: center; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
@@ -400,6 +401,53 @@
       </div>
     </div>
 
+    <div id="editModal" class="lock" style="display:none;z-index:60">
+      <div class="lockbox" style="max-width:460px;text-align:left;max-height:92vh;overflow:auto">
+        <div style="font-weight:700;font-size:15px;margin-bottom:2px">✏️ Edit transaksi</div>
+        <div id="edInfo" class="ask-hint" style="margin-bottom:6px"></div>
+
+        <label>POS BIAYA <span style="color:var(--muted);font-weight:400">(ketik untuk cari)</span></label>
+        <div class="combo">
+          <input id="edPos" type="text" autocomplete="off" placeholder="— pilih / cari pos biaya —"
+            oninput="comboFilter('edPos')" onfocus="comboOpen('edPos')" onblur="comboBlur('edPos')">
+          <div id="edPos_list" class="combo-list"></div>
+        </div>
+
+        <label>KETERANGAN</label>
+        <input id="edKeterangan" type="text" autocomplete="off" placeholder="keterangan">
+
+        <label>NOMINAL</label>
+        <div class="nominal-prefix"><span>Rp</span><input id="edNominal" type="text" inputmode="numeric" placeholder="0" oninput="edOnNominalInput()"></div>
+        <div id="edFormulaNote" class="note hidden" style="color:var(--muted)"></div>
+
+        <label>TANGGAL</label>
+        <input id="edTanggal" type="date">
+
+        <div class="grid2">
+          <div><label>BIAYA BULAN</label><select id="edBiayaBulan"></select></div>
+          <div><label>TAHUN BIAYA</label><select id="edTahunBiaya"></select></div>
+        </div>
+
+        <label>SUMBER DANA</label>
+        <select id="edSumberDana" onchange="edOnSumberDanaChange()"></select>
+        <div id="edRekWrap" class="hidden">
+          <label>Rekening <span style="color:var(--muted);font-weight:400">(khusus Pendapatan Usaha)</span></label>
+          <select id="edRekening"></select>
+        </div>
+
+        <div class="grid2">
+          <div><label>BUDGET BULAN</label><select id="edBudgetBulan"></select></div>
+          <div><label>TAHUN BUDGET</label><select id="edTahunBudget"></select></div>
+        </div>
+
+        <div class="ask-hint" style="margin-top:10px">Catatan: sheet <b>CASHFLOW</b> tidak ikut berubah otomatis saat edit — sesuaikan manual bila perlu.</div>
+        <div class="row-btns">
+          <button class="btn-ghost" onclick="closeEdit()">Batal</button>
+          <button id="edBtnSave" class="btn-primary" onclick="saveEdit()">Simpan Perubahan</button>
+        </div>
+      </div>
+    </div>
+
     <div id="ibModal" class="lock" style="display:none;z-index:65">
       <div class="lockbox" style="max-width:430px;text-align:left">
         <div id="ibModalTitle" style="font-weight:700;font-size:15px;margin-bottom:8px"></div>
@@ -439,6 +487,7 @@
           CFG.sumberDanaByPos = (ctx && ctx.sumberDanaByPos) || {};
         }).getHistoryContext();
         mInitSelects();
+        edInitSelects();
       }).withFailureHandler(showErr).getConfig();
       refreshTarget();
     }
@@ -1595,15 +1644,110 @@
         h += '<div class="card"><div class="ask-hint">Tidak ada biaya pada filter ini.</div></div>';
         document.getElementById('daftarView').innerHTML = h; return;
       }
+      h += '<div class="ask-hint" style="margin:0 2px 8px">Ketuk transaksi untuk <b>edit</b>.</div>';
       h += '<div class="card"><table class="bt">';
       d.items.forEach(function (it) {
         var sub = [it.ket, formatTglShort(it.tgl), it.sumber].filter(Boolean).join(' · ');
-        h += '<tr><td><div style="font-weight:600">' + esc(it.pos) + '</div>' +
+        h += '<tr onclick="daftarEdit(' + it.row + ')" style="cursor:pointer">' +
+          '<td><div style="font-weight:600">' + esc(it.pos) +
+          ' <span style="color:var(--muted);font-weight:400;font-size:11px">✏️</span></div>' +
           '<div class="ask-hint" style="margin-top:2px">' + esc(sub) + '</div></td>' +
           '<td class="num">' + rp(it.nominal) + '</td></tr>';
       });
       h += '</table></div>';
       document.getElementById('daftarView').innerHTML = h;
+    }
+
+    // ===================== EDIT TRANSAKSI (dari Daftar) =====================
+    var _editRow = null, _editNominalFormula = '', _editNominalOrig = 0;
+
+    function edInitSelects() {
+      comboInit('edPos', CFG.posBiaya, function () {});
+      fillSelect('edSumberDana', CFG.sumberDana, true, '— pilih sumber dana —');
+      fillSelect('edBiayaBulan', CFG.bulan, true, '— pilih bulan —');
+      fillSelect('edBudgetBulan', CFG.bulan, true, '— pilih bulan —');
+      buildRekeningOptions('edRekening');
+    }
+
+    function edOnSumberDanaChange() {
+      var sd = document.getElementById('edSumberDana').value;
+      document.getElementById('edRekWrap').classList.toggle('hidden', sd !== CFG.sumberDanaRekening);
+      if (sd !== CFG.sumberDanaRekening) document.getElementById('edRekening').value = '';
+    }
+    function edOnNominalInput() { var el = document.getElementById('edNominal'); el.value = groupThousands(el.value); }
+
+    function daftarEdit(row) {
+      showInfo('Memuat transaksi…');
+      google.script.run.withSuccessHandler(function (d) {
+        clearMsg();
+        _editRow = d.row;
+        _editNominalFormula = d.nominalFormula || '';
+        _editNominalOrig = Number(d.nominal) || 0;
+        comboSetValue('edPos', d.pos);
+        document.getElementById('edKeterangan').value = d.keterangan || '';
+        document.getElementById('edNominal').value = groupThousands(String(Math.round(d.nominal || 0)));
+        document.getElementById('edTanggal').value = d.tanggal || '';
+        setSelect('edBiayaBulan', d.biayaBulan);
+        setSelect('edBudgetBulan', d.budgetBulan);
+        buildYears('edTahunBiaya', d.tahunBiaya ? Number(d.tahunBiaya) : CFG.tahunIni);
+        buildYears('edTahunBudget', d.tahunBudget ? Number(d.tahunBudget) : CFG.tahunIni);
+        setSelect('edSumberDana', d.sumberDana);
+        edOnSumberDanaChange();
+        if (d.rekening) document.getElementById('edRekening').value = d.rekening;
+        var fn = document.getElementById('edFormulaNote');
+        if (_editNominalFormula) {
+          fn.classList.remove('hidden');
+          fn.textContent = 'ℹ️ NOMINAL asli berupa formula (' + _editNominalFormula +
+            '). Bila angka tidak diubah, formula dipertahankan.';
+        } else { fn.classList.add('hidden'); fn.textContent = ''; }
+        document.getElementById('edInfo').textContent = 'Baris ' + d.row + ' pada sheet TRANSAKSI';
+        document.getElementById('editModal').style.display = 'flex';
+      }).withFailureHandler(function (e) { showErr(e.message || e); }).getTransaksiRow(row, window._pin);
+    }
+
+    function closeEdit() { document.getElementById('editModal').style.display = 'none'; _editRow = null; }
+
+    function saveEdit() {
+      if (_editRow == null) return;
+      var sd = document.getElementById('edSumberDana').value;
+      var nominal = Number(document.getElementById('edNominal').value.replace(/[^\d]/g, ''));
+      var keepFormula = !!_editNominalFormula && (nominal === Math.round(_editNominalOrig));
+      var payload = {
+        row: _editRow,
+        posBiaya: document.getElementById('edPos').value,
+        keterangan: document.getElementById('edKeterangan').value.trim(),
+        nominal: nominal,
+        tanggal: document.getElementById('edTanggal').value,
+        biayaBulan: document.getElementById('edBiayaBulan').value,
+        tahunBiaya: document.getElementById('edTahunBiaya').value,
+        sumberDana: sd,
+        budgetBulan: document.getElementById('edBudgetBulan').value,
+        tahunBudget: document.getElementById('edTahunBudget').value,
+        rekening: (sd === CFG.sumberDanaRekening) ? document.getElementById('edRekening').value : '',
+        keepFormula: keepFormula,
+        nominalFormula: _editNominalFormula,
+        pin: window._pin
+      };
+      if (!payload.posBiaya) return showErr('POS BIAYA wajib dipilih.');
+      if (!comboValid('edPos', payload.posBiaya)) return showErr('POS BIAYA harus dipilih dari daftar.');
+      if (!(payload.nominal > 0)) return showErr('Nominal harus lebih dari 0.');
+      if (!payload.tanggal) return showErr('Tanggal wajib diisi.');
+      if (!payload.sumberDana) return showErr('Sumber Dana wajib dipilih.');
+      if (!payload.biayaBulan) return showErr('Biaya Bulan wajib dipilih.');
+      if (!payload.tahunBiaya) return showErr('Tahun Biaya wajib dipilih.');
+      if (!payload.budgetBulan) return showErr('Budget Bulan wajib dipilih.');
+      if (!payload.tahunBudget) return showErr('Tahun Budget wajib dipilih.');
+      var btn = document.getElementById('edBtnSave');
+      btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Menyimpan...';
+      google.script.run.withSuccessHandler(function (res) {
+        btn.disabled = false; btn.textContent = 'Simpan Perubahan';
+        closeEdit();
+        showOk('✅ Transaksi baris ' + res.row + ' diperbarui.');
+        loadDaftar();
+      }).withFailureHandler(function (e) {
+        btn.disabled = false; btn.textContent = 'Simpan Perubahan';
+        showErr(e.message || e);
+      }).updateTransaction(payload, window._pin);
     }
 
     function loadSettings() {
