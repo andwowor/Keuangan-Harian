@@ -389,6 +389,17 @@
         <button id="btnCfSave" class="btn-primary" style="margin-top:10px" onclick="saveCashflow()">Simpan Link</button>
         <div class="ask-hint" style="margin-top:10px">Ganti link ini tiap awal bulan. Setiap input biaya ber-Sumber Dana <b>Pendapatan Usaha</b> otomatis dicatat ke sheet <b>INPUT PENGGUNAAN BIAYA</b> spreadsheet ini (selalu ada pratinjau dulu).</div>
       </div>
+
+      <div class="card">
+        <div class="bt-title">🔁 Periksa "Setoran Owner" CASHFLOW</div>
+        <div class="ask-hint" style="margin-bottom:8px">Bandingkan transaksi <b>Pendapatan Usaha</b> (TRANSAKSI) dengan Setoran Owner di CASHFLOW aktif. Yang belum masuk bisa langsung dilengkapi. Aman diulang — hanya menulis yang belum ada.</div>
+        <div class="grid2">
+          <div><label>Bulan (TANGGAL)</label><select id="auBulan"></select></div>
+          <div><label>Tahun</label><select id="auTahun"></select></div>
+        </div>
+        <button class="btn-ghost" style="margin-top:10px" onclick="auditCashflow()">Periksa</button>
+        <div id="auResult" style="margin-top:10px"></div>
+      </div>
     </div>
 
     <div id="previewModal" class="lock" style="display:none;z-index:60">
@@ -489,6 +500,7 @@
         }).getHistoryContext();
         mInitSelects();
         edInitSelects();
+        auInitSelects();
       }).withFailureHandler(showErr).getConfig();
       refreshTarget();
     }
@@ -1784,6 +1796,59 @@
         btn.disabled = false; btn.textContent = 'Simpan Link';
         showErr(e.message || e);
       }).setCashflowUrl(u, window._pin);
+    }
+
+    // ===================== PERIKSA & LENGKAPI SETORAN OWNER (CASHFLOW) =====================
+    function auInitSelects() {
+      fillSelect('auBulan', CFG.bulan, false);
+      buildYears('auTahun', CFG.tahunIni);
+      setSelect('auBulan', CFG.bulan[new Date().getMonth()]);
+      var ty = document.getElementById('auTahun'); ty.value = String(CFG.tahunIni);
+    }
+
+    function auditCashflow() {
+      var bulan = document.getElementById('auBulan').value;
+      var tahun = document.getElementById('auTahun').value;
+      var box = document.getElementById('auResult');
+      box.innerHTML = '<div class="ask-hint"><span class="spin"></span> Memeriksa…</div>';
+      google.script.run.withSuccessHandler(function (a) {
+        renderAudit(a, bulan, tahun);
+      }).withFailureHandler(function (e) {
+        box.innerHTML = '<div class="msg err">' + esc(e.message || e) + '</div>';
+      }).auditCashflowSetoran(bulan, tahun, window._pin);
+    }
+
+    function renderAudit(a, bulan, tahun) {
+      var box = document.getElementById('auResult');
+      var h = '<div class="msg ' + (a.missingCount ? 'info' : 'ok') + '">' +
+        'CASHFLOW: <b>' + esc(a.title) + '</b><br>' + esc(bulan) + ' ' + esc(tahun) + ' — ' +
+        a.total + ' transaksi Pendapatan Usaha · ' + a.matched + ' sudah tercatat · <b>' +
+        a.missingCount + ' belum masuk</b>.</div>';
+      if (a.missingCount) {
+        h += '<div class="card" style="padding:10px;margin:8px 0">';
+        a.missing.slice(0, 30).forEach(function (m) {
+          h += '<div style="display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px solid var(--line)">' +
+            '<span>' + esc(formatTglShort(m.tanggal)) + ' · ' + esc(m.keterangan || m.pos) + '</span>' +
+            '<b class="num">' + rp(m.nominal) + '</b></div>';
+        });
+        if (a.missing.length > 30) h += '<div class="ask-hint" style="margin-top:6px">… +' + (a.missing.length - 30) + ' lagi</div>';
+        h += '</div>';
+        h += '<button class="btn-primary" onclick="backfillCashflow()">Lengkapi — tulis ' + a.missingCount + ' Setoran Owner</button>';
+      }
+      box.innerHTML = h;
+    }
+
+    function backfillCashflow() {
+      var bulan = document.getElementById('auBulan').value;
+      var tahun = document.getElementById('auTahun').value;
+      var box = document.getElementById('auResult');
+      box.innerHTML = '<div class="ask-hint"><span class="spin"></span> Menulis Setoran Owner ke CASHFLOW…</div>';
+      google.script.run.withSuccessHandler(function (r) {
+        showOk('✅ ' + r.ditulis + ' Setoran Owner ditulis ke CASHFLOW.' + (r.gagal ? ' ⚠️ ' + r.gagal + ' gagal: ' + r.pesan : ''));
+        auditCashflow();   // periksa ulang -> harusnya 0 belum masuk
+      }).withFailureHandler(function (e) {
+        box.innerHTML = '<div class="msg err">' + esc(e.message || e) + '</div>';
+      }).backfillCashflowSetoran(bulan, tahun, window._pin);
     }
 
     function initBudget() {

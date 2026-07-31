@@ -606,6 +606,86 @@ function writeCashflow_(payload) {
   return { row: newRow, sumberDana: r.sumberDana, title: cf.ss.getName() };
 }
 
+/**
+ * Kumpulkan "Setoran Owner" yang SUDAH ada di CASHFLOW sebagai multiset key = "tglIso|nominal".
+ */
+function cashflowSetoranHave_(cf) {
+  var sheet = cf.sheet, tz = cf.ss.getSpreadsheetTimeZone();
+  var have = {}, last = sheet.getLastRow();
+  if (last < 1) return have;
+  var vals = sheet.getRange(1, 2, last, 3).getValues(); // B..D: KETERANGAN, NOMINAL, TANGGAL
+  for (var i = 0; i < vals.length; i++) {
+    if (String(vals[i][0] || '').trim().toLowerCase().indexOf('setoran owner') < 0) continue;
+    var nom = Math.round(Number(vals[i][1]) || 0);
+    var tg = vals[i][2];
+    var iso = tg instanceof Date ? Utilities.formatDate(tg, tz, 'yyyy-MM-dd') : parseTanggalCell_(tg, tz);
+    var key = iso + '|' + nom;
+    have[key] = (have[key] || 0) + 1;
+  }
+  return have;
+}
+
+/**
+ * PERIKSA: transaksi PENDAPATAN USAHA di TRANSAKSI (difilter berdasar TANGGAL bulan/tahun)
+ * yang BELUM tercatat sebagai "Setoran Owner" di spreadsheet CASHFLOW aktif. Tidak menulis apa pun.
+ */
+function auditCashflowSetoran(bulan, tahun, pin) {
+  verifyPin_(pin);
+  var cf = getCashflowSheet_();
+  var have = cashflowSetoranHave_(cf);
+
+  var sheet = getSheet_();
+  var hdr = findHeaderRow_(sheet);
+  var last = findLastDataRow_(sheet, hdr);
+  var tz = sheet.getParent().getSpreadsheetTimeZone();
+  var bulanU = String(bulan || '').trim().toUpperCase();
+  var tahunS = String(tahun || '').trim().replace(/\.0$/, '');
+  var missing = [], total = 0, matched = 0;
+
+  if (last > hdr) {
+    var rows = sheet.getRange(hdr + 1, 1, last - hdr, 10).getValues();
+    for (var r = 0; r < rows.length; r++) {
+      var row = rows[r];
+      if (String(row[6]).trim().toUpperCase() !== SUMBER_DANA_REKENING) continue; // G SUMBER DANA
+      var tgl = row[3];
+      var iso = tgl instanceof Date ? Utilities.formatDate(tgl, tz, 'yyyy-MM-dd') : parseTanggalCell_(tgl, tz);
+      if (!iso) continue;
+      if (bulanU && BULAN_UPPER[Number(iso.slice(5, 7)) - 1] !== bulanU) continue;
+      if (tahunS && iso.slice(0, 4) !== tahunS) continue;
+      total++;
+      var nom = Math.round(Number(row[2]) || 0);   // C NOMINAL
+      var key = iso + '|' + nom;
+      if (have[key] > 0) { have[key]--; matched++; continue; }
+      missing.push({
+        row: hdr + 1 + r, tanggal: iso, nominal: nom,
+        pos: String(row[0]).trim(), keterangan: String(row[1]).trim(),
+        rekening: String(row[9]).trim(), sumberCashflow: mapBankCashflow_(String(row[9]).trim())
+      });
+    }
+  }
+  return {
+    title: cf.ss.getName(), sheet: CASHFLOW_SHEET, bulan: bulanU, tahun: tahunS,
+    total: total, matched: matched, missingCount: missing.length, missing: missing
+  };
+}
+
+/**
+ * LENGKAPI: tulis semua "Setoran Owner" yang belum masuk (hasil auditCashflowSetoran) ke CASHFLOW.
+ * Aman dijalankan ulang — hanya menulis yang benar-benar belum ada.
+ */
+function backfillCashflowSetoran(bulan, tahun, pin) {
+  verifyPin_(pin);
+  var audit = auditCashflowSetoran(bulan, tahun, pin);
+  var ditulis = 0, err = [];
+  for (var i = 0; i < audit.missing.length; i++) {
+    var m = audit.missing[i];
+    try { writeCashflow_({ nominal: m.nominal, tanggal: m.tanggal, rekening: m.rekening }); ditulis++; }
+    catch (e) { err.push('Baris ' + m.row + ': ' + (e && e.message || e)); }
+  }
+  return { ditulis: ditulis, gagal: err.length, pesan: err.join('; '),
+    diperiksa: audit.total, title: audit.title };
+}
+
 
 /** Rekomendasi KETERANGAN (dari history sheet) untuk POS BIAYA tertentu. */
 function getKeteranganOptions(posBiaya) {

@@ -214,6 +214,22 @@ terbawah, dengan aturan:
 **Selalu muncul pratinjau** (isi ke TRANSAKSI **dan** ke CASHFLOW) sebelum disubmit. Untuk
 sumber dana selain Pendapatan Usaha, perilaku tetap seperti biasa (tanpa CASHFLOW).
 
+### 🔁 Periksa & lengkapi "Setoran Owner" CASHFLOW
+
+Bila ada transaksi Pendapatan Usaha yang **belum** tercatat sebagai Setoran Owner di CASHFLOW
+(mis. karena saat itu link CASHFLOW menunjuk bulan lain, atau penulisan sempat gagal), tab
+**Setelan** punya kartu **🔁 Periksa "Setoran Owner" CASHFLOW**:
+- Pilih **Bulan (TANGGAL)** & **Tahun**, klik **Periksa** — dashboard membandingkan transaksi
+  Pendapatan Usaha di TRANSAKSI (berdasar TANGGAL) dengan Setoran Owner di CASHFLOW aktif,
+  lalu menampilkan berapa yang **belum masuk** beserta daftarnya.
+- Klik **Lengkapi** untuk menuliskan semua Setoran Owner yang belum ada. **Aman diulang** —
+  pencocokan lewat (tanggal + nominal) memastikan hanya yang benar-benar belum ada yang ditulis,
+  jadi tidak menggandakan entri.
+
+Catatan: bila Setoran Owner sebelumnya tak sengaja tertulis ke spreadsheet CASHFLOW **bulan lain**
+(karena link belum diganti saat input), pelengkap ini menambahkannya ke link yang **aktif sekarang**;
+entri yang salah tempat di bulan lain perlu Anda hapus manual bila mau.
+
 ---
 
 ## Widget home screen (via app pihak ketiga)
