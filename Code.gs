@@ -780,6 +780,10 @@ var INBOX_MAX_LIST = 500;  // pengaman: batas atas jumlah bukti yang didaftar se
 var INBOX_THUMB_MAX = 24;  // thumbnail awal (sisanya dimuat bertahap dari klien)
 var INBOX_THUMB_BATCH = 12; // jumlah thumbnail per permintaan susulan
 var INBOX_MAX_BYTES = 3500000; // di atas ini, pakai versi resolusi lebih kecil dari Drive
+var INBOX_AUTOREAD_PER_RUN = 8;   // maks. bukti dibaca per satu jalannya trigger latar belakang
+var INBOX_READNOW_MAX = 12;       // maks. bukti dibaca dalam satu panggilan "baca sekarang"
+var AUTOREAD_HANDLER = 'autoReadInbox';
+var INBOX_READING_STALE_MS = 10 * 60 * 1000; // status "reading" dianggap macet setelah 10 menit
 
 function getInboxFolder_() {
   try { return DriveApp.getFolderById(INBOX_FOLDER_ID); }
@@ -825,7 +829,10 @@ function uploadInbox(dataUrl, name, pin, allowDuplicate) {
   var stamp = Utilities.formatDate(new Date(), TIMEZONE, 'yyyyMMdd-HHmmss');
   var blob = Utilities.newBlob(bytes, img.mediaType, base + '_' + stamp + '.' + ext);
   var file = getInboxFolder_().createFile(blob);
-  file.setDescription('kh-md5:' + hash);   // sidik jari isi gambar untuk deteksi duplikat
+  // Simpan sidik jari (deteksi duplikat) + tandai "pending" agar dibaca otomatis di latar.
+  var desc = descSetLine_('', 'kh-md5:', hash);
+  desc = descSetLine_(desc, 'kh-aistate:', 'pending');
+  file.setDescription(desc);
   return { id: file.getId(), name: file.getName(), duplicate: false };
 }
 
@@ -840,10 +847,146 @@ function inboxHashHex_(bytes) {
   return s;
 }
 
+// --- Deskripsi berkas = penyimpan metadata (berbaris). Tag: kh-md5:, kh-aistate:, kh-aits:, kh-ai:, kh-aierr:
+function descGetLine_(desc, tag) {
+  var lines = String(desc || '').split('\n');
+  for (var i = 0; i < lines.length; i++) { if (lines[i].indexOf(tag) === 0) return lines[i].slice(tag.length); }
+  return '';
+}
+function descSetLine_(desc, tag, val) {
+  var lines = String(desc || '').split('\n').filter(function (l) { return l && l.indexOf(tag) !== 0; });
+  if (val !== null && val !== undefined && val !== '') lines.push(tag + val);
+  return lines.join('\n');
+}
+
 /** Ambil sidik jari yang tersimpan di deskripsi berkas, atau '' bila belum ada. */
 function inboxStoredHash_(file) {
-  var m = /kh-md5:([0-9a-f]{32})/.exec(file.getDescription() || '');
-  return m ? m[1] : '';
+  var h = descGetLine_(file.getDescription(), 'kh-md5:');
+  return /^[0-9a-f]{32}$/.test(h) ? h : '';
+}
+/** Simpan/perbarui sidik jari TANPA menghapus metadata AI. */
+function inboxSetHash_(file, hash) {
+  file.setDescription(descSetLine_(file.getDescription(), 'kh-md5:', hash));
+}
+
+// --- Hasil baca AI yang tersimpan di deskripsi berkas ---
+function inboxGetAi_(file) {
+  var s = descGetLine_(file.getDescription(), 'kh-ai:');
+  if (!s) return null;
+  try { return JSON.parse(s); } catch (e) { return null; }
+}
+function inboxAiState_(desc) {
+  if (descGetLine_(desc, 'kh-ai:')) return 'done';
+  return descGetLine_(desc, 'kh-aistate:') || 'pending';
+}
+function inboxMarkReading_(file) {
+  var d = file.getDescription();
+  d = descSetLine_(d, 'kh-aistate:', 'reading');
+  d = descSetLine_(d, 'kh-aits:', String(new Date().getTime()));
+  d = descSetLine_(d, 'kh-aierr:', null);
+  file.setDescription(d);
+}
+function inboxSaveAi_(file, dataObj) {
+  var d = file.getDescription();
+  d = descSetLine_(d, 'kh-aistate:', 'done');
+  d = descSetLine_(d, 'kh-aits:', null);
+  d = descSetLine_(d, 'kh-aierr:', null);
+  d = descSetLine_(d, 'kh-ai:', JSON.stringify(dataObj));
+  file.setDescription(d);
+}
+function inboxMarkError_(file, msg) {
+  var d = file.getDescription();
+  d = descSetLine_(d, 'kh-aistate:', 'error');
+  d = descSetLine_(d, 'kh-aits:', null);
+  d = descSetLine_(d, 'kh-aierr:', String(msg || '').replace(/\s+/g, ' ').slice(0, 180));
+  file.setDescription(d);
+}
+
+/**
+ * Baca isi SATU bukti dengan Claude lalu simpan hasilnya di deskripsi berkas.
+ * Mengembalikan objek hasil baca (sama seperti analyzeImage). Menyimpan status bila gagal.
+ */
+function inboxReadOne_(file) {
+  if (!inboxStoredHash_(file)) {
+    try { inboxSetHash_(file, inboxHashHex_(file.getBlob().getBytes())); } catch (e) {}
+  }
+  inboxMarkReading_(file);
+  try {
+    var b = inboxImageBlob_(file);
+    var mt = b.getContentType(); if (mt === 'image/jpg') mt = 'image/jpeg';
+    if (['image/png', 'image/jpeg', 'image/gif', 'image/webp'].indexOf(mt) === -1) {
+      throw new Error('Tipe gambar tidak didukung: ' + mt);
+    }
+    var data = analyzeImg_({ mediaType: mt, data: Utilities.base64Encode(b.getBytes()) });
+    inboxSaveAi_(file, data);
+    return data;
+  } catch (e) {
+    inboxMarkError_(file, e && e.message || e);
+    throw e;
+  }
+}
+
+/** Perlu dibaca? true bila belum ada hasil AI dan tidak sedang diproses (kecuali macet). */
+function inboxNeedsRead_(desc) {
+  if (descGetLine_(desc, 'kh-ai:')) return false;                 // sudah ada hasil
+  if (descGetLine_(desc, 'kh-aistate:') === 'reading') {
+    var ts = Number(descGetLine_(desc, 'kh-aits:')) || 0;
+    if (new Date().getTime() - ts < INBOX_READING_STALE_MS) return false; // masih diproses
+  }
+  return true;
+}
+
+/** Baca hingga `max` bukti yang belum terbaca. Dipakai trigger latar & "baca sekarang". */
+function autoReadInboxBatch_(max) {
+  var it = getInboxFolder_().getFiles();
+  var done = 0;
+  while (it.hasNext() && done < max) {
+    var f = it.next();
+    if ((f.getMimeType() || '').indexOf('image/') !== 0) continue;
+    if (!inboxNeedsRead_(f.getDescription())) continue;
+    try { inboxReadOne_(f); } catch (e) {}
+    done++;
+  }
+  return done;
+}
+
+/** Target TRIGGER waktu: dibaca otomatis di latar belakang (jalan walau dashboard ditutup). */
+function autoReadInbox() { return autoReadInboxBatch_(INBOX_AUTOREAD_PER_RUN); }
+
+/** Dipanggil klien setelah upload (fire-and-forget): mulai baca bukti yang masih pending. */
+function readInboxNow(pin) {
+  verifyPin_(pin);
+  return { dibaca: autoReadInboxBatch_(INBOX_READNOW_MAX) };
+}
+
+/** Baca satu berkas sekarang bila belum terbaca (dipanggil klien). */
+function readInboxFileNow(fileId, pin) {
+  verifyPin_(pin);
+  var file = getInboxFile_(fileId);
+  if (inboxGetAi_(file)) return { done: true, cached: true };
+  try { inboxReadOne_(file); return { done: true }; }
+  catch (e) { return { done: false, error: String(e && e.message || e) }; }
+}
+
+// --- Trigger baca-otomatis: pasang / lepas / status ---
+function setupAutoRead(pin) {
+  verifyPin_(pin);
+  disableAutoRead_();
+  ScriptApp.newTrigger(AUTOREAD_HANDLER).timeBased().everyMinutes(5).create();
+  return autoReadStatus(pin);
+}
+function disableAutoRead(pin) { verifyPin_(pin); disableAutoRead_(); return autoReadStatus(pin); }
+function disableAutoRead_() {
+  var ts = ScriptApp.getProjectTriggers();
+  for (var i = 0; i < ts.length; i++) {
+    if (ts[i].getHandlerFunction() === AUTOREAD_HANDLER) ScriptApp.deleteTrigger(ts[i]);
+  }
+}
+function autoReadStatus(pin) {
+  verifyPin_(pin);
+  var ts = ScriptApp.getProjectTriggers(), aktif = false;
+  for (var i = 0; i < ts.length; i++) { if (ts[i].getHandlerFunction() === AUTOREAD_HANDLER) aktif = true; }
+  return { aktif: aktif };
 }
 
 /**
@@ -860,7 +1003,7 @@ function findInboxDuplicate_(size, hash) {
     if (f.getSize() !== size) continue;   // hanya berkas berukuran sama yang mungkin duplikat
     var h = inboxStoredHash_(f);
     if (!h) {
-      try { h = inboxHashHex_(f.getBlob().getBytes()); f.setDescription('kh-md5:' + h); }
+      try { h = inboxHashHex_(f.getBlob().getBytes()); inboxSetHash_(f, h); }
       catch (e) { continue; }
     }
     if (h === hash) {
@@ -890,7 +1033,8 @@ function listInbox(pin) {
     out.push({
       id: f.getId(), name: f.getName(), mime: mt, size: f.getSize(),
       date: Utilities.formatDate(created, TIMEZONE, 'd MMM yyyy HH:mm'),
-      ts: created.getTime(), thumb: ''
+      ts: created.getTime(), thumb: '',
+      aiState: inboxAiState_(f.getDescription())   // done | reading | pending | error
     });
   }
   out.sort(function (a, b) { return b.ts - a.ts; });
@@ -898,9 +1042,10 @@ function listInbox(pin) {
   for (var i = 0; i < out.length && i < INBOX_THUMB_MAX; i++) {
     out[i].thumb = inboxThumb_(byId[out[i].id], out[i].size);
   }
+  var belum = out.filter(function (o) { return o.aiState !== 'done'; }).length;
   return {
     folderUrl: 'https://drive.google.com/drive/folders/' + INBOX_FOLDER_ID,
-    items: out, truncated: truncated, batas: INBOX_MAX_LIST
+    items: out, truncated: truncated, batas: INBOX_MAX_LIST, belumTerbaca: belum
   };
 }
 
@@ -970,17 +1115,17 @@ function getInboxImage(fileId, pin) {
     dataUrl: 'data:' + b.getContentType() + ';base64,' + Utilities.base64Encode(b.getBytes()) };
 }
 
-/** Baca bukti langsung dari folder penyimpanan (tanpa diunduh dulu ke HP). */
+/**
+ * Baca bukti dari folder penyimpanan. Bila sudah pernah dibaca di latar belakang,
+ * langsung kembalikan hasil yang tersimpan (tanpa memanggil Claude lagi). Bila belum,
+ * baca sekarang lalu simpan hasilnya.
+ */
 function analyzeInboxFile(fileId, pin) {
   verifyPin_(pin);
   var f = getInboxFile_(fileId);
-  var b = inboxImageBlob_(f);
-  var mt = b.getContentType();
-  if (mt === 'image/jpg') mt = 'image/jpeg';
-  if (['image/png', 'image/jpeg', 'image/gif', 'image/webp'].indexOf(mt) === -1) {
-    throw new Error('Tipe gambar tidak didukung: ' + mt);
-  }
-  return analyzeImg_({ mediaType: mt, data: Utilities.base64Encode(b.getBytes()) });
+  var cached = inboxGetAi_(f);
+  if (cached) return cached;          // hasil sudah ada -> instan
+  return inboxReadOne_(f);            // belum -> baca sekarang & simpan
 }
 
 /** Hapus (ke Sampah Drive) satu atau beberapa bukti dari folder penyimpanan. */

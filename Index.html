@@ -337,6 +337,10 @@
         <input id="ibFile" type="file" accept="image/*" multiple class="hidden">
         <input id="ibCam" type="file" accept="image/*" capture="environment" class="hidden">
         <div id="ibUpMsg"></div>
+        <div id="ibAutoRow" class="ask-hint" style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <span id="ibAutoStatus">Baca otomatis di latar: memeriksa…</span>
+          <button id="ibAutoBtn" class="btn-ghost" style="width:auto;padding:6px 10px;font-size:12px;display:none" onclick="ibToggleAutoRead()"></button>
+        </div>
       </div>
 
       <div class="card">
@@ -1268,7 +1272,7 @@
     function setMsg(t, cls) { document.getElementById('msg').innerHTML = '<div class="msg ' + cls + '">' + t + '</div>'; }
 
     // ============ PENYIMPANAN SEMENTARA BUKTI (FOLDER DRIVE) ============
-    var inbox = { items: [], sel: {}, folderUrl: '', loaded: false, truncated: false, batas: 0 };
+    var inbox = { items: [], sel: {}, folderUrl: '', loaded: false, truncated: false, batas: 0, belumTerbaca: 0 };
 
     function ibMsg(html, cls) {
       document.getElementById('ibUpMsg').innerHTML = html ? ('<div class="msg ' + cls + '">' + html + '</div>') : '';
@@ -1341,6 +1345,8 @@
             (dupPending.length ? ' ⚠️ ' + dupPending.length + ' duplikat.' : '') +
             (gagal ? ' ⚠️ ' + gagal + ' gagal.' : '');
           ibMsg(pesan, done.length ? 'ok' : (dupPending.length ? 'info' : 'err'));
+          // Mulai baca otomatis di latar untuk bukti yang baru masuk (fire-and-forget).
+          if (done.length) google.script.run.readInboxNow(window._pin);
           loadInbox();
           ibAfterUpload(done, dupPending);
           return;
@@ -1415,24 +1421,77 @@
     }
 
     // --- Daftar bukti pada folder ---
+    var _ibPollTimer = null;
     function loadInbox() {
       document.getElementById('ibList').innerHTML = '<div class="ask-hint"><span class="spin"></span> Memuat…</div>';
+      ibLoadAutoStatus();
       google.script.run.withSuccessHandler(function (res) {
         inbox.items = (res && res.items) || [];
         inbox.folderUrl = (res && res.folderUrl) || '';
         inbox.truncated = !!(res && res.truncated);
         inbox.batas = (res && res.batas) || 0;
+        inbox.belumTerbaca = (res && res.belumTerbaca) || 0;
         inbox.loaded = true;
         var ada = {};
         inbox.items.forEach(function (i) { ada[i.id] = 1; });
         Object.keys(inbox.sel).forEach(function (k) { if (!ada[k]) delete inbox.sel[k]; });
         renderInbox();
-        ibLoadThumbs();   // thumbnail sisanya menyusul bertahap
+        ibLoadThumbs();       // thumbnail sisanya menyusul bertahap
+        ibScheduleRefresh();  // segarkan status baca selama masih ada yang belum terbaca
       }).withFailureHandler(function (e) {
         inbox.loaded = false;
         document.getElementById('ibList').innerHTML = '<div class="msg err">' + esc(e.message || e) + '</div>';
         document.getElementById('ibActions').classList.add('hidden');
       }).listInbox(window._pin);
+    }
+
+    // Segarkan daftar otomatis (setiap 15 dtk) selama masih ada bukti yang belum terbaca
+    // dan tab Simpanan sedang aktif — supaya status "terbaca" ter-update sendiri.
+    function ibScheduleRefresh() {
+      if (_ibPollTimer) { clearTimeout(_ibPollTimer); _ibPollTimer = null; }
+      var aktif = !document.getElementById('tabSimpanan').classList.contains('hidden');
+      if (aktif && inbox.belumTerbaca > 0) {
+        _ibPollTimer = setTimeout(loadInbox, 15000);
+      }
+    }
+    function ibStopRefresh() { if (_ibPollTimer) { clearTimeout(_ibPollTimer); _ibPollTimer = null; } }
+
+    // Badge status baca AI per bukti.
+    function aiBadge(state) {
+      var map = { done: ['✓ terbaca', 'b-saved'], reading: ['⏳ dibaca', 'b-read'],
+        pending: ['… antre baca', 'b-wait'], error: ['⚠️ gagal baca', 'b-err'] };
+      var m = map[state] || map.pending;
+      return '<span class="qbadge ' + m[1] + '" style="margin-top:0;margin-left:6px">' + m[0] + '</span>';
+    }
+
+    // --- Baca otomatis di latar belakang (trigger) ---
+    function ibLoadAutoStatus() {
+      google.script.run.withSuccessHandler(function (s) {
+        var st = document.getElementById('ibAutoStatus'), btn = document.getElementById('ibAutoBtn');
+        if (s && s.aktif) {
+          st.innerHTML = '🟢 Baca otomatis di latar: <b>aktif</b> (jalan walau dashboard ditutup)';
+          btn.textContent = 'Nonaktifkan'; btn.dataset.on = '1';
+        } else {
+          st.innerHTML = '⚪ Baca otomatis di latar: <b>nonaktif</b>';
+          btn.textContent = 'Aktifkan'; btn.dataset.on = '';
+        }
+        btn.style.display = 'inline-block';
+      }).withFailureHandler(function () {
+        document.getElementById('ibAutoStatus').textContent = 'Baca otomatis di latar: status tak terbaca.';
+      }).autoReadStatus(window._pin);
+    }
+
+    function ibToggleAutoRead() {
+      var btn = document.getElementById('ibAutoBtn');
+      var nyalakan = !btn.dataset.on;
+      btn.disabled = true; btn.textContent = '…';
+      google.script.run.withSuccessHandler(function () {
+        btn.disabled = false; ibLoadAutoStatus();
+        ibMsg(nyalakan ? '🟢 Baca otomatis diaktifkan (tiap ±5 menit di latar).' : '⚪ Baca otomatis dinonaktifkan.', 'ok');
+      }).withFailureHandler(function (e) {
+        btn.disabled = false; ibLoadAutoStatus();
+        ibMsg('⚠️ ' + esc(e.message || e), 'err');
+      })[nyalakan ? 'setupAutoRead' : 'disableAutoRead'](window._pin);
     }
 
     function renderInbox() {
@@ -1456,7 +1515,7 @@
           '<input type="checkbox" style="width:20px;height:20px;flex:none" title="Pilih"' + (on ? ' checked' : '') +
           ' onclick="event.stopPropagation();ibToggle(\'' + it.id + '\')">' +
           (it.thumb ? ('<img class="qthumb" src="' + it.thumb + '" alt="">') : '<div class="qthumb">🧾</div>') +
-          '<div class="qmeta"><div class="qname">' + esc(it.name) + '</div>' +
+          '<div class="qmeta"><div class="qname">' + esc(it.name) + aiBadge(it.aiState) + '</div>' +
           '<div class="ask-hint">' + esc(it.date) + ' · ' + ibSize(it.size) + '</div></div>' +
           '<span class="qdel" title="Lihat penuh" onclick="event.stopPropagation();ibViewImage(\'' + it.id + '\')">⤢</span>' +
           '<span class="qdel qdel-x" title="Hapus bukti ini" onclick="event.stopPropagation();ibDeleteOne(\'' + it.id + '\')">🗑</span></div>';
@@ -1588,7 +1647,11 @@
         document.getElementById('nav' + cap(x)).classList.toggle('active', x === t);
       });
       clearMsg();
-      if (t === 'simpanan' && !inboxLoaded) { inboxLoaded = true; loadInbox(); }
+      if (t !== 'simpanan') ibStopRefresh();   // hentikan polling saat keluar tab Simpanan
+      if (t === 'simpanan') {
+        if (!inboxLoaded) { inboxLoaded = true; loadInbox(); }
+        else ibScheduleRefresh();
+      }
       if (t === 'budget' && !budgetLoaded) { budgetLoaded = true; initBudget(); }
       if (t === 'daftar' && !daftarLoaded) { daftarLoaded = true; initDaftar(); }
       if (t === 'pengaturan' && !settingsLoaded) { settingsLoaded = true; loadSettings(); }

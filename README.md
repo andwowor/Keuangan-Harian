@@ -141,7 +141,8 @@ menginput biayanya.
 | **Daftar bukti** | **Semua** bukti di folder tampil dengan thumbnail, nama, tanggal & ukuran (terbaru dulu). Daftar muncul lebih dulu, thumbnail menyusul bertahap agar tidak lama menunggu. |
 | **Lihat penuh** | **Ketuk bukti** (atau ikon ⤢) untuk membuka gambar **full screen**; ketuk lagi untuk zoom/geser. Ketuk **kotak centang** untuk memilih (proses/hapus). |
 | **Pilih satu/semua** | Centang bukti satu per satu atau **Pilih semua**. |
-| **▶ Proses terpilih** | Bukti terpilih masuk ke antrean tab **Input** lalu langsung dibaca Claude — tinjau & simpan seperti biasa. |
+| **Baca otomatis di latar** | Begitu bukti masuk folder, isinya **dibaca otomatis** oleh Claude dan hasilnya disimpan permanen (di deskripsi file Drive). Berjalan lewat **trigger waktu** (±5 menit) sehingga **tetap jalan walau dashboard ditutup**, plus pembacaan seketika saat upload. Aktifkan sekali lewat tombol **Aktifkan** di kartu upload. Tiap bukti menampilkan status: `✓ terbaca` / `⏳ dibaca` / `… antre baca` / `⚠️ gagal`. |
+| **▶ Proses terpilih** | Bukti terpilih masuk ke antrean tab **Input**. Bila sudah dibaca di latar, **hasilnya tampil langsung** tanpa Claude membaca ulang; bila belum, dibaca saat itu juga. |
 | **🗑 Hapus terpilih** | Hapus bukti dari folder (masuk Sampah Drive, bisa dipulihkan 30 hari). |
 | **Auto-hapus setelah tersimpan** | Begitu sebuah bukti **berhasil terinput** ke TRANSAKSI, file-nya otomatis dihapus dari folder penyimpanan. |
 
