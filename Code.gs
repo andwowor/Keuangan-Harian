@@ -926,14 +926,21 @@ function inboxReadOne_(file) {
   }
 }
 
-/** Perlu dibaca? true bila belum ada hasil AI dan tidak sedang diproses (kecuali macet). */
+/**
+ * Perlu dibaca OTOMATIS? Hanya untuk bukti BARU yang belum pernah dibaca.
+ * Bukti yang sudah punya hasil ('done'/kh-ai) atau sudah pernah dicoba & gagal ('error')
+ * TIDAK dibaca ulang — jadi menambah file baru tidak memicu pembacaan ulang yang lama.
+ * (Bukti 'error' bisa dibaca ulang manual lewat "Proses terpilih".)
+ */
 function inboxNeedsRead_(desc) {
   if (descGetLine_(desc, 'kh-ai:')) return false;                 // sudah ada hasil
-  if (descGetLine_(desc, 'kh-aistate:') === 'reading') {
+  var state = descGetLine_(desc, 'kh-aistate:');
+  if (state === 'done' || state === 'error') return false;        // sudah dibaca / sudah dicoba
+  if (state === 'reading') {
     var ts = Number(descGetLine_(desc, 'kh-aits:')) || 0;
-    if (new Date().getTime() - ts < INBOX_READING_STALE_MS) return false; // masih diproses
+    if (new Date().getTime() - ts < INBOX_READING_STALE_MS) return false; // sedang diproses
   }
-  return true;
+  return true;   // hanya '' / 'pending' (baru) atau 'reading' yang macet
 }
 
 /** Baca hingga `max` bukti yang belum terbaca. Dipakai trigger latar & "baca sekarang". */
@@ -1042,7 +1049,9 @@ function listInbox(pin) {
   for (var i = 0; i < out.length && i < INBOX_THUMB_MAX; i++) {
     out[i].thumb = inboxThumb_(byId[out[i].id], out[i].size);
   }
-  var belum = out.filter(function (o) { return o.aiState !== 'done'; }).length;
+  // Hanya hitung yang MASIH akan dibaca (pending/reading) — bukan 'error' —
+  // supaya auto-refresh berhenti bila tak ada lagi yang sedang diproses.
+  var belum = out.filter(function (o) { return o.aiState === 'pending' || o.aiState === 'reading'; }).length;
   return {
     folderUrl: 'https://drive.google.com/drive/folders/' + INBOX_FOLDER_ID,
     items: out, truncated: truncated, batas: INBOX_MAX_LIST, belumTerbaca: belum
