@@ -1,17 +1,91 @@
-# Dashboard Pengisian Biaya Harian
+# Keuangan Harian — Dashboard Pengisian Biaya
 
-Dashboard untuk mencatat pengeluaran harian dari **screenshot / bukti transfer**.
-Gambar yang Anda unggah dibaca otomatis oleh **Claude Vision**, hasilnya
-ditampilkan di form untuk Anda tinjau & koreksi, lalu disimpan ke sheet
-**TRANSAKSI** pada Google Spreadsheet.
+> Mengikuti **Standar Arsitektur Perangkat Lunak v1.0 (Andre S. Wowor)**.
+> Dokumen arsitektur: [`docs/architecture/`](docs/architecture/00-overview.md) · Operasional: [`docs/runbook.md`](docs/runbook.md)
+
+## Tujuan
+
+Mencatat pengeluaran harian dari **screenshot / bukti transfer** dengan koreksi seminimal
+mungkin. Gambar dibaca otomatis oleh **Claude Vision**, hasilnya ditinjau pengguna, lalu
+disimpan ke sheet **TRANSAKSI**. Rekap/pivot (saldo, budget vs realisasi) tetap dihitung
+formula yang sudah ada di spreadsheet — dashboard hanya menambah/mengubah baris.
+
+## Arsitektur singkat
+
+Gaya: **Modular Monolith = Layered + Ports & Adapters + Event-driven** pada batas otomasi
+([ADR-0001](docs/architecture/adr/ADR-0001-modular-monolith-apps-script.md)).
 
 ```
-Upload bukti  →  Claude membaca (nominal, tanggal, kategori, sumber dana)
-              →  Anda tinjau/koreksi di form  →  Simpan ke sheet TRANSAKSI
+ inbound adapters          application            domain (MURNI)
+ 50_inbound_webapp  ──▶  20_app_transaksi  ──▶  10_domain_rekening
+ 90_triggers             21_app_inbox           11_domain_transaksi
+                         22_app_laporan         12_domain_cashflow
+                              │                 13_domain_inbox
+                              ▼                        ▲
+ outbound adapters  40_sheets 41_drive 42_claude 43_kurs 44_properties
+                                                 05_shared · 00_config
+
+ Dependensi hanya mengarah ke DALAM. domain tidak memanggil API Google apa pun.
 ```
 
-Ringkasan & pivot di sheet lain (saldo bulanan, budget vs realisasi, proyeksi)
-otomatis terhitung dari tabel transaksi — dashboard hanya menambah baris baru.
+Rincian: [logical](docs/architecture/02-views/logical.md) ·
+[deployment](docs/architecture/02-views/deployment.md) ·
+[process](docs/architecture/02-views/process.md) ·
+[QAS](docs/architecture/01-quality-attributes.md) ·
+[evaluasi & utang teknis](docs/architecture/03-evaluation.md)
+
+## Prasyarat
+
+- Akun Google + spreadsheet **ANALISA KEUANGAN** (sheet `TRANSAKSI`, `REAL`)
+- Spreadsheet **CASHFLOW & BIAYA `<bulan>`** (sheet `INPUT PENGGUNAAN BIAYA`)
+- Folder Google Drive untuk penyimpanan sementara bukti
+- **Kunci API Anthropic**
+- (Opsional) Node.js + [`clasp`](https://github.com/google/clasp) untuk deploy satu perintah
+
+## Instalasi
+
+1. Buka spreadsheet → **Extensions → Apps Script**.
+2. Salin **semua modul** `*.gs`, `Index.html`, dan `appsscript.json` dari repo ini
+   (atau `clasp push` — jauh lebih aman, tidak ada berkas yang terlewat).
+3. **Project Settings → Script Properties**, isi sesuai [`.env.example`](.env.example):
+   `ANTHROPIC_API_KEY`, `APP_PIN`, `CASHFLOW_URL`.
+4. Jalankan fungsi apa pun dari editor → **Review permissions → Allow**.
+
+## Menjalankan
+
+**Deploy → New deployment → Web app** · *Execute as*: **Me** · *Who has access*: **Anyone**
+(keamanan dijaga `APP_PIN` — [ADR-0006](docs/architecture/adr/ADR-0006-akses-publik-dengan-pin.md)).
+Buka **Web app URL** (`…/exec`). Untuk dipasang sebagai aplikasi HP, lihat [`docs/README.md`](docs/README.md).
+
+## Test
+
+Di editor Apps Script, pilih fungsi lalu **Run** (hasil di *Execution log*):
+
+| Fungsi | Cakupan |
+|---|---|
+| `jalankanSemuaTest` | **61 test unit domain** — murni, tidak menyentuh data nyata |
+| `cekFolderPenyimpanan` | Integrasi: izin Drive & folder inbox |
+| `cekDeteksiRekening` | Aturan sumber dana pada contoh bukti nyata |
+
+Sesuai §5.8: **setiap perbaikan bug didahului satu test yang gagal** di `99_tests.gs`.
+
+## Deploy pembaruan
+
+`Deploy → Manage deployments → Edit → Version: **New version** → Deploy`.
+Menekan Save saja tidak memperbarui URL `/exec`.
+
+## Runbook
+
+Operasional harian, rutinitas awal/akhir bulan, dan pemulihan masalah:
+[`docs/runbook.md`](docs/runbook.md).
+
+## Lisensi
+
+Penggunaan pribadi (proprietary). Hak cipta © Andre S. Wowor.
+
+---
+
+# Referensi Fitur
 
 ### Aturan pengisian yang diterapkan
 
@@ -32,32 +106,23 @@ sudah berisi data — dashboard mengecek posisi ini secara live sebelum menyimpa
 
 ---
 
-## Arsitektur
-
-| Komponen | Teknologi |
-|----------|-----------|
-| Hosting & backend | **Google Apps Script** (Web App) — gratis, akses tulis ke Spreadsheet secara native |
-| Pembaca gambar (OCR + kategorisasi) | **Claude Vision API** (`claude-sonnet-4-6`) via `UrlFetchApp` |
-| UI | HTML/CSS/JS sederhana, mobile-friendly |
-
-File:
-- `Code.gs` — backend (baca gambar ke Claude, tulis ke sheet)
-- `Index.html` — tampilan dashboard
-- `appsscript.json` — manifest (scope & konfigurasi web app)
-
----
-
 ## Cara Pasang (sekali saja)
 
 ### 1. Buat project Apps Script
 Cara termudah — terikat langsung ke spreadsheet:
 1. Buka [spreadsheet Anda](https://docs.google.com/spreadsheets/d/1IsRwEzQ7xJdd0jpzxpGmvhBvx34CVuOElPFfyRs-5fM/edit).
 2. Menu **Extensions → Apps Script**.
-3. Hapus isi `Code.gs` bawaan, lalu **salin isi `Code.gs`** dari repo ini.
+3. Hapus `Code.gs` bawaan. Buat **satu berkas Script per modul** di repo ini dan salin isinya
+   (nama tanpa akhiran `.gs`): `00_config`, `05_shared`, `10_domain_rekening`,
+   `11_domain_transaksi`, `12_domain_cashflow`, `13_domain_inbox`, `20_app_transaksi`,
+   `21_app_inbox`, `22_app_laporan`, `30_ports`, `40_adapter_sheets`, `41_adapter_drive`,
+   `42_adapter_claude`, `43_adapter_kurs`, `44_adapter_properties`, `50_inbound_webapp`,
+   `90_triggers`, `99_tests`. Urutan berkas tidak berpengaruh, tetapi **tidak boleh ada yang terlewat**.
 4. Klik **+** di samping "Files" → **HTML** → beri nama `Index` → salin isi `Index.html`.
-5. (Opsional) Klik ikon ⚙ **Project Settings** → centang *"Show appsscript.json manifest"*, lalu samakan isinya dengan `appsscript.json` repo ini.
+5. Klik ikon ⚙ **Project Settings** → centang *"Show appsscript.json manifest"*, lalu samakan isinya dengan `appsscript.json` repo ini.
 
-> Atau pakai **clasp** (`clasp push`) bila Anda terbiasa dengan CLI.
+> **Jauh lebih aman:** pakai **clasp** (`clasp push`) — semua modul terkirim sekali jalan
+> tanpa risiko ada berkas tertinggal. Lihat [`docs/runbook.md`](docs/runbook.md).
 
 ### 2. Set Script Properties (API key + PIN)
 1. Di editor Apps Script: **Project Settings (⚙) → Script Properties → Add script property**.
@@ -156,7 +221,7 @@ diunduh dulu ke HP.
 > Android/iOS — halaman web (termasuk PWA) tidak diizinkan menghapus file di
 > penyimpanan HP. Yang otomatis adalah *tawaran + daftar nama file*-nya.
 
-Folder penyimpanan diatur lewat konstanta `INBOX_FOLDER_ID` di `Code.gs`.
+Folder penyimpanan diatur lewat konstanta `INBOX_FOLDER_ID` di `00_config.gs`.
 
 ## Menu "Sisa Budget"
 
@@ -249,15 +314,15 @@ Apps Script menyediakan endpoint ringkas (dilindungi `token` = `APP_PIN`):
 
 ## Kustomisasi
 
-- **Ganti model (hemat biaya):** ubah `CLAUDE_MODEL` di `Code.gs`.
+- **Ganti model (hemat biaya):** ubah `CLAUDE_MODEL` di `00_config.gs`.
   - `claude-sonnet-4-6` — seimbang (default)
   - `claude-opus-4-8` — paling akurat
   - `claude-haiku-4-5` — paling murah & cepat
 - **Daftar POS BIAYA** di dashboard otomatis dibaca dari **sheet REAL kolom B** pada baris item
-  biaya (`POS_SOURCE_ROWS` di `Code.gs`: 3–13, 17–20, 23–24, 28–42, 46, 49–50, 54–64; baris
+  biaya (`POS_SOURCE_ROWS` di `00_config.gs`: 3–13, 17–20, 23–24, 28–42, 46, 49–50, 54–64; baris
   "TOTAL"/kosong di-skip). Cukup ubah di REAL, dashboard menyesuaikan (cache ±5 menit). Array
-  `POS_BIAYA` di `Code.gs` hanya cadangan bila gagal dibaca. **SUMBER DANA** memakai daftar
-  bawaan `SUMBER_DANA` di `Code.gs`.
+  `POS_BIAYA` di `00_config.gs` hanya cadangan bila gagal dibaca. **SUMBER DANA** memakai daftar
+  bawaan `SUMBER_DANA` di `00_config.gs`.
 - **Tema (futuristik, dark):** warna didefinisikan di `:root` pada `Index.html` — latar
   gelap `#0a0e1c` dengan aksen neon cyan `#38bdf8` → violet `#8b5cf6`, kartu kaca (glass).
   Ubah di satu tempat untuk seluruh tampilan. Ikon PWA (HUD ring) ada di `docs/icon-192.png`
@@ -277,7 +342,7 @@ Apps Script menyediakan endpoint ringkas (dilindungi `token` = `APP_PIN`):
   `POS BIAYA · KETERANGAN · NOMINAL · TANGGAL · BIAYA BULAN · TAHUN BIAYA · SUMBER DANA · BUDGET BULAN · TAHUN BUDGET · Rekening`.
 - **Zona waktu: WITA (Waktu Indonesia Tengah, UTC+8 / `Asia/Makassar`)** — dipakai untuk
   tanggal default, cap waktu bukti, dan penentuan bulan/tahun berjalan. Diatur di dua tempat:
-  konstanta `TIMEZONE` (`Code.gs`) dan `timeZone` (`appsscript.json`). Penulisan TANGGAL ke sheet
+  konstanta `TIMEZONE` (`00_config.gs`) dan `timeZone` (`appsscript.json`). Penulisan TANGGAL ke sheet
   mengikuti zona waktu **spreadsheet** (agar tanggal tidak bergeser). Untuk konsistensi penuh,
   set juga zona waktu Google Sheet Anda ke **(GMT+08:00) Makassar** lewat *File → Setelan →
   Zona waktu* pada spreadsheet.

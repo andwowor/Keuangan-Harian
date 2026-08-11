@@ -15,7 +15,7 @@ GitHub Pages (shell PWA)  ──menampilkan──►  Web app Apps Script (dashb
 ### 1. Siapkan Apps Script jadi publik + PIN
 Karena diakses dari luar (PWA), web app perlu bisa dibuka tanpa login Google, dan
 dikunci dengan PIN.
-1. Pastikan `Code.gs`, `Index.html`, `appsscript.json` sudah versi terbaru
+1. Pastikan semua modul `*.gs`, `Index.html`, `appsscript.json` sudah versi terbaru
    (`appsscript.json` sudah berisi `"access": "ANYONE_ANONYMOUS"`).
 2. **Project Settings → Script properties**, tambahkan:
    - `ANTHROPIC_API_KEY` = API key Anda (sudah ada).
