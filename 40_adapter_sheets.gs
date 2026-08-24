@@ -52,18 +52,32 @@ function getPosList_() {
   try {
     var sh = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(POS_SOURCE_SHEET);
     if (sh) {
-      var seen = {};
-      POS_SOURCE_ROWS.forEach(function (rg) {
-        var vals = sh.getRange(rg[0], POS_SOURCE_COL, rg[1] - rg[0] + 1, 1).getValues();
-        vals.forEach(function (row) {
-          var v = String(row[0]).trim();
-          if (v && v.toUpperCase() !== 'TOTAL' && !seen[v]) { seen[v] = 1; out.push(v); }
-        });
-      });
+      // Utama: kenali baris POS dari STRUKTUR sheet (tahan sisip/hapus baris).
+      var n = Math.min(sh.getLastRow(), POS_SCAN_MAX_ROWS);
+      if (n > 0) {
+        var grid = sh.getRange(1, 1, n, 2).getValues();   // kolom A & B
+        var hasil = posDariGrid_(grid);                   // aturan domain
+        if (hasil && hasil.length) out = hasil;
+      }
+      // Cadangan: rentang baris tetap, bila penanda batas tidak ditemukan.
+      if (!out.length) out = posDariRentang_(sh);
     }
   } catch (e) {}
   if (!out.length) out = POS_BIAYA;
   cache.put('poslist', JSON.stringify(out), 300);
+  return out;
+}
+
+/** Cadangan lama: baca POS dari rentang baris tetap POS_SOURCE_ROWS. */
+function posDariRentang_(sh) {
+  var out = [], seen = {};
+  POS_SOURCE_ROWS.forEach(function (rg) {
+    var vals = sh.getRange(rg[0], POS_SOURCE_COL, rg[1] - rg[0] + 1, 1).getValues();
+    vals.forEach(function (row) {
+      var v = String(row[0]).trim();
+      if (v && v.toUpperCase() !== 'TOTAL' && !seen[v]) { seen[v] = 1; out.push(v); }
+    });
+  });
   return out;
 }
 

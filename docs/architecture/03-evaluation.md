@@ -19,7 +19,7 @@ Tanggal evaluasi: 2026-08-11 · Standar §2 Langkah 7, §5.9
 | S1 | `TIMEZONE` skrip vs zona waktu spreadsheet | Correctness tanggal (QAS-03) |
 | S2 | Nilai `CASHFLOW_URL` harus menunjuk bulan berjalan | Integrity TRANSAKSI↔CASHFLOW (QAS-07) |
 | S3 | Struktur kolom sheet TRANSAKSI (A..J) | Seluruh alur tulis |
-| S4 | Baris sumber POS di sheet REAL (3-13,17-20,…) | Validitas dropdown POS |
+| S4 | ~~Baris sumber POS di sheet REAL~~ **DIPERBAIKI**: POS kini dikenali dari struktur (penanda `TOTAL PENGELUARAN`), bukan nomor baris tetap | Validitas dropdown POS |
 | S5 | Batas ukuran gambar Claude (±5 MB base64) | Keberhasilan pembacaan |
 
 ## Risiko
@@ -28,7 +28,7 @@ Tanggal evaluasi: 2026-08-11 · Standar §2 Langkah 7, §5.9
 |---|---|---|---|
 | R1 | `CASHFLOW_URL` lupa diganti awal bulan | Setoran Owner masuk bulan salah | **Terjadi nyata (Juli 2026)** → dibuat audit + backfill idempoten |
 | R2 | Kuota API Claude habis | Bukti gagal dibaca | Status `error` disimpan; tidak dibaca ulang otomatis; bisa diproses manual |
-| R3 | Perubahan tata letak sheet oleh pengguna | Alur tulis rusak | Terpusat di `40_adapter_sheets.gs`; ditandai S3 |
+| R3 | Perubahan tata letak sheet oleh pengguna | Alur tulis rusak | Terpusat di `40_adapter_sheets.gs`; daftar POS kini tahan sisip/hapus baris; diagnostik `cekStrukturReal` |
 | R4 | PIN bocor | Data biaya terekspos | Ganti `APP_PIN`; akses Drive dibatasi hanya folder inbox |
 | R5 | Salin manual 17 modul ke editor Apps Script tidak lengkap | Aplikasi rusak saat deploy | Gunakan `clasp push`; lihat `docs/runbook.md` |
 

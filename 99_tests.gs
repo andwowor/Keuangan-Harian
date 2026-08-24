@@ -33,6 +33,7 @@ function jalankanSemuaTest() {
   testDomainKartuKredit();
   testDomainTransaksi();
   testDomainPos();
+  testDomainDaftarPos();
   testDomainCashflow();
   testDomainInbox();
   var pesan = _tesGagal.length
@@ -155,6 +156,85 @@ function testDomainPos() {
   _cek_('POS di luar daftar -> kosong', samakanPos_('Retribusi Sampah', ['DAILY DRIVER']), '');
   _cek_('alasan tersedia utk transparansi',
     posDariPenerima_('Kairagi Dua 009', '').alasan.indexOf('Kairagi Dua 009') >= 0, true);
+}
+
+// ============ DOMAIN: DAFTAR POS DARI GRID SHEET REAL ============
+// Fixture = struktur NYATA sheet REAL (hasil cekStrukturReal, 24 Agustus 2026).
+
+function _gridRealUji_() {
+  var g = [];
+  for (var i = 0; i < 113; i++) g.push(['', '']);          // indeks 0 = baris 1
+  function set(baris, a, b) { g[baris - 1] = [a, b]; }
+  set(3, 'Biaya Pinjaman', 'Cicilan KTA Flexy');
+  ['Cicilan KPR','Bayar Kredit','Tagihan Kredivo','Tagihan Shopee Paylater','Paylater Traveloka',
+   'Tagihan Indodana','Tagihan Ada Kami','Tagihan Allo Paylater','Tagihan OVO Paylater',
+   'Tagihan Gojek Paylater'].forEach(function (v, i) { set(4 + i, '', v); });
+  set(14, '', 'TOTAL');
+  set(17, 'Kartu Kredit', 'BNI Platinum AMEX Card');
+  ['BNI Platinum Card','BNI Corporate Card','BRI Card Mega'].forEach(function (v, i) { set(18 + i, '', v); });
+  set(21, '', 'TOTAL');
+  set(23, 'Parkir', 'Parkir');
+  set(24, 'Biaya Transfer', 'Biaya Admin dan Biaya Transfer');
+  set(25, '', 'TOTAL');
+  set(28, 'Pengeluaran Rutin', 'Pulsa');
+  ['Rantang Bulanan','Token Listrik','XL Home','SPP Colin','SPP Darlene','Les Colin Darlene',
+   'Belanja Bulanan','Isi Bensin','Sabun Cuci Baju','Retribusi Sampah','Beras','Gaji ART',
+   'Tagihan PDAM','Air Galon'].forEach(function (v, i) { set(29 + i, '', v); });
+  set(43, '', 'TOTAL');
+  set(46, 'PLEASURE & HARIAN', 'DAILY DRIVER');
+  set(47, '', 'TOTAL');
+  set(49, 'BIAYA ANDRE CHINA', 'BIAYA KULIAH CHINA');
+  ['BIAYA PULANG','SEWA TEMPAT TINGGAL','BIAYA HIDUP'].forEach(function (v, i) { set(50 + i, '', v); });
+  set(53, '', 'TOTAL');
+  set(56, 'Kebutuhan Tidak Terduga', 'Kesehatan');
+  ['Perjalanan','Pembelian Barang','Perbaikan/Pemeliharaan','Dokumen','Acara','Liburan',
+   'Pendidikan','Tambahan Modal Usaha','Pengeluaran Tidak Terduga'].forEach(function (v, i) { set(57 + i, '', v); });
+  set(66, '', 'TOTAL');
+  set(68, 'TOTAL PENGELUARAN', 'TOTAL');                    // penanda batas
+  set(71, 'INCOME', 'GAJI');
+  ['UANG SAKU','PENDAPATAN USAHA','KAS LAIN USAHA','PENGEMBALIAN USAHA','THR/CUTI (SALDO BERGERAK)',
+   'KK','IKS','BONUS','SPPD','INVESTASI','INDODANA','KREDIVO','TRAVELOKA PAYLATER','ADA KAMI',
+   'PINJAMAN LAIN','KARTU KREDIT','LAIN-LAIN','TOTAL INCOME','SALDO','SALDO BULAN SEBELUMNYA',
+   'SALDO REAL','CASH BUFFER'].forEach(function (v, i) { set(72 + i, '', v); });
+  set(96, 'PROYEKSI PENDAPATAN DAN PINJAMAN', 'Indodana');
+  set(113, 'PROYEKSI SALDO', 'SALDO');
+  return g;
+}
+
+function testDomainDaftarPos() {
+  var g = _gridRealUji_();
+  var pos = posDariGrid_(g);
+  var ada = function (x) { return pos.indexOf(x) >= 0; };
+
+  _cek_('penanda batas ketemu di baris 68', batasPengeluaran_(g) + 1, 68);
+  _cek_('jumlah POS = 47', pos.length, 47);
+
+  // POS yang DULU TERLEWAT oleh rentang baris tetap - kini ikut
+  _cek_('SEWA TEMPAT TINGGAL ikut', ada('SEWA TEMPAT TINGGAL'), true);
+  _cek_('BIAYA HIDUP ikut', ada('BIAYA HIDUP'), true);
+  _cek_('Pengeluaran Tidak Terduga ikut', ada('Pengeluaran Tidak Terduga'), true);
+
+  // POS yang memang harus ada
+  _cek_('Retribusi Sampah ikut', ada('Retribusi Sampah'), true);
+  _cek_('DAILY DRIVER ikut', ada('DAILY DRIVER'), true);
+  _cek_('BIAYA KULIAH CHINA ikut', ada('BIAYA KULIAH CHINA'), true);
+  _cek_('Tagihan Gojek Paylater ikut', ada('Tagihan Gojek Paylater'), true);
+  _cek_('Air Galon ikut', ada('Air Galon'), true);
+
+  // Yang HARUS dikecualikan
+  _cek_('baris TOTAL dibuang', ada('TOTAL'), false);
+  _cek_('INCOME: GAJI tidak ikut', ada('GAJI'), false);
+  _cek_('INCOME: PENDAPATAN USAHA tidak ikut', ada('PENDAPATAN USAHA'), false);
+  _cek_('SALDO REAL tidak ikut', ada('SALDO REAL'), false);
+  _cek_('PROYEKSI Indodana tidak ikut', ada('Indodana'), false);
+  _cek_('TOTAL INCOME tidak ikut', ada('TOTAL INCOME'), false);
+
+  // Tahan penyisipan baris: sisipkan 1 baris di atas -> hasil tetap sama
+  var g2 = [['', '']].concat(_gridRealUji_());
+  _cek_('tahan sisip 1 baris di atas', JSON.stringify(posDariGrid_(g2)), JSON.stringify(pos));
+
+  // Struktur tak dikenali -> null (pemanggil memakai cara cadangan)
+  _cek_('tanpa penanda batas -> null', posDariGrid_([['x', 'y'], ['', 'z']]), null);
 }
 
 // ====================== DOMAIN: CASHFLOW ======================

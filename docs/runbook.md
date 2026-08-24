@@ -38,9 +38,10 @@ Status per bukti: `… antre baca` → `⏳ dibaca` → `✓ terbaca` (atau `⚠
 
 | Fungsi | Gunanya |
 |---|---|
-| `jalankanSemuaTest` | 72 test unit domain (tanpa menyentuh data nyata) |
+| `jalankanSemuaTest` | 90 test unit domain (tanpa menyentuh data nyata) |
 | `cekFolderPenyimpanan` | Memastikan izin Drive & folder inbox terbaca |
 | `cekDeteksiRekening` | Memastikan aturan sumber dana bekerja pada contoh bukti nyata |
+| `cekStrukturReal` | Melaporkan struktur sheet REAL + POS yang terbaca (jalankan setiap kali REAL diubah) |
 
 ## 7. Pemulihan masalah umum
 

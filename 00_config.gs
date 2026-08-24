@@ -115,6 +115,12 @@ var BULAN_TITLE = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
 // Sumber daftar POS BIAYA: sheet REAL kolom B pada baris item biaya (tanpa TOTAL/sub-header).
 var POS_SOURCE_SHEET = 'REAL';
 var POS_SOURCE_COL = 2; // kolom B
+// Penanda batas blok PENGELUARAN vs INCOME pada kolom A sheet REAL. Dipakai untuk
+// mengenali baris POS secara STRUKTURAL (tahan terhadap penyisipan/penghapusan baris).
+var POS_BATAS_PENGELUARAN = 'TOTAL PENGELUARAN';
+var POS_SCAN_MAX_ROWS = 200;   // batas aman pemindaian kolom A:B sheet REAL
+
+// CADANGAN: dipakai hanya bila penanda batas di atas tidak ditemukan.
 var POS_SOURCE_ROWS = [[3, 13], [17, 20], [23, 24], [28, 42], [46, 46], [49, 50], [54, 64]];
 
 // ====================== MENU SISA BUDGET (sheet REAL) ======================

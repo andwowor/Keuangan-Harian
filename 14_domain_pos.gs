@@ -54,3 +54,44 @@ function samakanPos_(pos, daftarPos) {
   }
   return '';
 }
+
+// ============ DAFTAR POS BIAYA DARI GRID SHEET REAL ============
+// Keputusan yang disembunyikan: BAGAIMANA mengenali baris POS pada sheet REAL.
+// Dulu memakai nomor baris tetap (POS_SOURCE_ROWS) sehingga rusak begitu pemilik
+// menyisipkan/menghapus baris. Sekarang dikenali dari STRUKTUR:
+//   - hanya baris DI ATAS penanda batas (kolom A memuat "TOTAL PENGELUARAN"),
+//   - kolom B tidak kosong, dan
+//   - kolom B bukan baris "TOTAL".
+// Semua baris di bawah penanda (INCOME, SALDO, PROYEKSI) otomatis terabaikan.
+
+/**
+ * Ambil daftar POS BIAYA dari grid sheet REAL.
+ * grid: array baris, tiap baris [kolomA, kolomB]; indeks 0 = baris 1 sheet.
+ * Mengembalikan array POS (urut, tanpa duplikat), atau NULL bila penanda batas
+ * tidak ditemukan (pemanggil harus memakai cara cadangan).
+ */
+function posDariGrid_(grid) {
+  var batas = batasPengeluaran_(grid);
+  if (batas < 0) return null;              // struktur tak dikenali -> biar pemanggil fallback
+  var out = [], seen = {};
+  for (var i = 0; i < batas; i++) {
+    var b = String((grid[i] && grid[i][1]) || '').trim();
+    if (!b || b.toUpperCase() === 'TOTAL') continue;
+    var k = b.toLowerCase();
+    if (seen[k]) continue;
+    seen[k] = 1; out.push(b);
+  }
+  return out;
+}
+
+/**
+ * Indeks baris penanda batas antara blok PENGELUARAN dan blok INCOME
+ * (kolom A memuat "TOTAL PENGELUARAN"). -1 bila tidak ditemukan.
+ */
+function batasPengeluaran_(grid) {
+  for (var i = 0; i < grid.length; i++) {
+    var a = String((grid[i] && grid[i][0]) || '').trim().toUpperCase();
+    if (a.indexOf(POS_BATAS_PENGELUARAN) >= 0) return i;
+  }
+  return -1;
+}
