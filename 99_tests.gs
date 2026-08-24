@@ -238,3 +238,69 @@ function cekDeteksiRekening() {
   Logger.log(pesan);
   return pesan;
 }
+
+/**
+ * DIAGNOSTIK STRUKTUR SHEET REAL.
+ * Membaca REAL apa adanya lalu melaporkan:
+ *   1) baris mana yang memuat label bulan ("BULAN YYYY") - kode saat ini membaca BARIS 1;
+ *   2) seluruh isi kolom B beserta NOMOR BARIS aslinya;
+ *   3) POS yang TERLEWAT oleh rentang POS_SOURCE_ROWS saat ini, dan rentang yang menunjuk
+ *      baris kosong/TOTAL.
+ * Jalankan dari editor, lalu salin isi Execution log.
+ */
+function cekStrukturReal() {
+  var sh = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(REAL_SHEET);
+  if (!sh) return 'Sheet "' + REAL_SHEET + '" tidak ditemukan.';
+  var out = [];
+  var lastRow = sh.getLastRow(), lastCol = sh.getLastColumn();
+  out.push('REAL: ' + lastRow + ' baris x ' + lastCol + ' kolom');
+
+  // 1) Cari baris yang memuat label bulan "BULAN YYYY"
+  var pola = /^[A-Za-z]+\s+\d{4}$/;
+  var atas = sh.getRange(1, 1, Math.min(6, lastRow), lastCol).getValues();
+  for (var r = 0; r < atas.length; r++) {
+    var contoh = [], jml = 0;
+    for (var c = 0; c < atas[r].length; c++) {
+      var v = String(atas[r][c]).trim();
+      if (pola.test(v)) { jml++; if (contoh.length < 4) contoh.push(kolomKe_(c + 1) + '=' + v); }
+    }
+    if (jml) out.push('  label bulan di BARIS ' + (r + 1) + ' -> ' + jml + ' bulan, contoh: ' + contoh.join(', '));
+  }
+  out.push('  (kode saat ini membaca label bulan dari BARIS 1)');
+
+  // 2) Isi kolom B + nomor baris
+  var nScan = Math.min(lastRow, 120);
+  var colB = sh.getRange(1, 2, nScan, 1).getValues();
+  var colA = sh.getRange(1, 1, nScan, 1).getValues();
+  var dalamRentang = {};
+  for (var i = 0; i < POS_SOURCE_ROWS.length; i++) {
+    for (var x = POS_SOURCE_ROWS[i][0]; x <= POS_SOURCE_ROWS[i][1]; x++) dalamRentang[x] = 1;
+  }
+  var terlewat = [], rentangKosong = [];
+  out.push('');
+  out.push('baris | cfg | KOLOM A | KOLOM B');
+  for (var n = 1; n <= nScan; n++) {
+    var b = String(colB[n - 1][0]).trim();
+    var a = String(colA[n - 1][0]).trim();
+    var ikut = !!dalamRentang[n];
+    var pos = b && b.toUpperCase().indexOf('TOTAL') < 0;
+    if (b || a) out.push('  ' + n + ' | ' + (ikut ? 'YA ' : '-  ') + ' | ' + a + ' | ' + b);
+    if (pos && !ikut) terlewat.push(n + ':' + b);
+    if (ikut && !pos) rentangKosong.push(n + ':' + (b || '(kosong)'));
+  }
+  out.push('');
+  out.push('POS TERLEWAT oleh konfigurasi (' + terlewat.length + '): ' + (terlewat.join(' | ') || '-'));
+  out.push('Rentang menunjuk kosong/TOTAL (' + rentangKosong.length + '): ' + (rentangKosong.join(' | ') || '-'));
+  out.push('POS yang kini dipakai dashboard (' + getPosList_().length + '): ' + getPosList_().join(', '));
+
+  var pesan = out.join('\n');
+  Logger.log(pesan);
+  return pesan;
+}
+
+/** Nomor kolom -> huruf kolom (1 -> A, 27 -> AA). */
+function kolomKe_(n) {
+  var s = '';
+  while (n > 0) { var m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = (n - m - 1) / 26; }
+  return s;
+}
