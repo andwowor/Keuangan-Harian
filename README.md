@@ -21,6 +21,7 @@ Gaya: **Modular Monolith = Layered + Ports & Adapters + Event-driven** pada bata
  90_triggers             21_app_inbox           11_domain_transaksi
                          22_app_laporan         12_domain_cashflow
                               │                 13_domain_inbox · 14_domain_pos
+                              │                 15_domain_budget
                               ▼                        ▲
  outbound adapters  40_sheets 41_drive 42_claude 43_kurs 44_properties
                                                  05_shared · 00_config
@@ -63,7 +64,7 @@ Di editor Apps Script, pilih fungsi lalu **Run** (hasil di *Execution log*):
 
 | Fungsi | Cakupan |
 |---|---|
-| `jalankanSemuaTest` | **90 test unit domain** — murni, tidak menyentuh data nyata |
+| `jalankanSemuaTest` | **110 test unit domain** — murni, tidak menyentuh data nyata |
 | `cekFolderPenyimpanan` | Integrasi: izin Drive & folder inbox |
 | `cekDeteksiRekening` | Aturan sumber dana pada contoh bukti nyata |
 
@@ -114,7 +115,8 @@ Cara termudah — terikat langsung ke spreadsheet:
 2. Menu **Extensions → Apps Script**.
 3. Hapus `Code.gs` bawaan. Buat **satu berkas Script per modul** di repo ini dan salin isinya
    (nama tanpa akhiran `.gs`): `00_config`, `05_shared`, `10_domain_rekening`,
-   `11_domain_transaksi`, `12_domain_cashflow`, `13_domain_inbox`, `14_domain_pos`, `20_app_transaksi`,
+   `11_domain_transaksi`, `12_domain_cashflow`, `13_domain_inbox`, `14_domain_pos`,
+   `15_domain_budget`, `20_app_transaksi`,
    `21_app_inbox`, `22_app_laporan`, `30_ports`, `40_adapter_sheets`, `41_adapter_drive`,
    `42_adapter_claude`, `43_adapter_kurs`, `44_adapter_properties`, `50_inbound_webapp`,
    `90_triggers`, `99_tests`. Urutan berkas tidak berpengaruh, tetapi **tidak boleh ada yang terlewat**.
@@ -229,8 +231,11 @@ Tab kedua di dashboard (**📊 Sisa Budget**) menampilkan kondisi keuangan bulan
 sheet **REAL**:
 - Pilih **bulan** (otomatis dari baris 1 sheet REAL; default bulan berjalan).
 - **Ringkasan**: Total Pemasukan, Total Pengeluaran, dan Sisa (Saldo Real).
-- **Sisa Kantong** — nilai per kantong (baris 69–86 REAL — semua kantong, termasuk yang 0).
-- **Biaya per kategori** (baris 3–64 REAL, dengan subtotal per grup).
+- **Sisa Kantong** — nilai per kantong (**baris 71–89** REAL — semua kantong, termasuk yang 0).
+- **Biaya per kategori** (**baris 3–68** REAL, dengan subtotal per grup).
+
+Baris **TOTAL PENGELUARAN / TOTAL INCOME / SALDO / SALDO BULAN SEBELUMNYA / SALDO REAL**
+dicari lewat **label**, bukan nomor baris — jadi tetap benar walau baris disisipkan/dihapus.
 
 Data dibaca langsung dari REAL (yang sudah terisi formula dari TRANSAKSI), jadi angkanya
 selalu sinkron. Kolom bulan dideteksi otomatis dari label "BULAN TAHUN" di baris 1

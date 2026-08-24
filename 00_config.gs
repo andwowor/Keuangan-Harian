@@ -120,6 +120,12 @@ var POS_SOURCE_COL = 2; // kolom B
 var POS_BATAS_PENGELUARAN = 'TOTAL PENGELUARAN';
 var POS_SCAN_MAX_ROWS = 200;   // batas aman pemindaian kolom A:B sheet REAL
 
+// Sumber data menu Budget pada sheet REAL (dikoreksi pemilik, 24 Agustus 2026).
+// Baris TOTAL/SALDO TIDAK di-hardcode - dicari lewat label di 15_domain_budget.gs.
+var BUDGET_BARIS_BIAYA = [3, 68];      // biaya per kategori (item + subtotal grup)
+var BUDGET_BARIS_KANTONG = [71, 89];   // sisa kantong (termasuk baris TOTAL INCOME)
+var BUDGET_BARIS_AKHIR = 95;           // batas akhir pembacaan blok (SALDO REAL dll.)
+
 // CADANGAN: dipakai hanya bila penanda batas di atas tidak ditemukan.
 var POS_SOURCE_ROWS = [[3, 13], [17, 20], [23, 24], [28, 42], [46, 46], [49, 50], [54, 64]];
 

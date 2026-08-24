@@ -27,26 +27,21 @@ function getBudget(monthLabel) {
   }
   if (col < 0) throw new Error('Bulan "' + monthLabel + '" tidak ada di sheet REAL.');
 
-  var blok = sheetsBacaReal_(3, 88, col);              // baris 3..90: label A,B + nilai bulan
-  var labels = blok.labels, vals = blok.values;
-  function row(r) {
-    var x = r - 3;
-    return { a: String(labels[x][0]).trim(), b: String(labels[x][1]).trim(), v: toNum_(vals[x][0]) };
+  // Baca blok REAL sekali, lalu susun memakai aturan domain (15_domain_budget).
+  var awal = BUDGET_BARIS_BIAYA[0];
+  var blok = sheetsBacaReal_(awal, BUDGET_BARIS_AKHIR - awal + 1, col);
+  var baris = [];
+  for (var k = 0; k < blok.labels.length; k++) {
+    baris.push({
+      n: awal + k,
+      a: blok.labels[k][0],
+      b: blok.labels[k][1],
+      v: toNum_(blok.values[k][0])
+    });
   }
-  var biaya = [], pemasukan = [], r, o;
-  for (r = 3; r <= 64; r++) { o = row(r); if (o.b === '') continue; biaya.push(o); }   // kategori + subtotal
-  for (r = 69; r <= 86; r++) { pemasukan.push(row(r)); }                               // kantong (semua, termasuk 0)
-
-  return {
-    month: String(header[col - 1]).trim(),
-    biaya: biaya,
-    pemasukan: pemasukan,
-    totalPengeluaran: row(66).v,
-    totalIncome: row(87).v,
-    saldo: row(88).v,
-    saldoBulanSebelumnya: row(89).v,
-    saldoReal: row(90).v
-  };
+  var d = susunBudget_(baris);
+  d.month = String(header[col - 1]).trim();
+  return d;
 }
 
 // ====================== DAFTAR BIAYA (sheet TRANSAKSI) ======================

@@ -34,6 +34,7 @@ function jalankanSemuaTest() {
   testDomainTransaksi();
   testDomainPos();
   testDomainDaftarPos();
+  testDomainBudget();
   testDomainCashflow();
   testDomainInbox();
   var pesan = _tesGagal.length
@@ -235,6 +236,56 @@ function testDomainDaftarPos() {
 
   // Struktur tak dikenali -> null (pemanggil memakai cara cadangan)
   _cek_('tanpa penanda batas -> null', posDariGrid_([['x', 'y'], ['', 'z']]), null);
+}
+
+// ============ DOMAIN: PENYUSUNAN DATA MENU BUDGET ============
+// Fixture memakai struktur NYATA sheet REAL; nilai tiap baris sengaja = nomor
+// barisnya, supaya salah-baris langsung ketahuan.
+
+function _barisBudgetUji_() {
+  var g = _gridRealUji_();                 // [kolomA, kolomB] indeks 0 = baris 1
+  var baris = [];
+  for (var n = BUDGET_BARIS_BIAYA[0]; n <= BUDGET_BARIS_AKHIR; n++) {
+    var sel = g[n - 1] || ['', ''];
+    baris.push({ n: n, a: sel[0], b: sel[1], v: n });   // nilai = nomor baris
+  }
+  return baris;
+}
+
+function testDomainBudget() {
+  var d = susunBudget_(_barisBudgetUji_());
+  var labelBiaya = d.biaya.map(function (o) { return o.b; });
+  var labelKantong = d.pemasukan.map(function (o) { return o.b; });
+
+  // Baris ringkasan dicari lewat LABEL -> harus menunjuk baris yang benar
+  _cek_('totalPengeluaran dari baris 68', d.totalPengeluaran, 68);
+  _cek_('totalIncome dari baris 89', d.totalIncome, 89);
+  _cek_('saldo dari baris 90', d.saldo, 90);
+  _cek_('saldoBulanSebelumnya dari baris 91', d.saldoBulanSebelumnya, 91);
+  _cek_('saldoReal dari baris 92', d.saldoReal, 92);
+
+  // Biaya per kategori: baris 3-68
+  _cek_('biaya memuat POS pertama', labelBiaya[0], 'Cicilan KTA Flexy');
+  _cek_('biaya memuat Pengeluaran Tidak Terduga (65)', labelBiaya.indexOf('Pengeluaran Tidak Terduga') >= 0, true);
+  _cek_('biaya memuat subtotal grup', labelBiaya.indexOf('TOTAL') >= 0, true);
+  _cek_('biaya TIDAK memuat kantong INCOME', labelBiaya.indexOf('GAJI') >= 0, false);
+
+  // Sisa kantong: baris 71-89
+  _cek_('kantong dimulai GAJI (71)', labelKantong[0], 'GAJI');
+  _cek_('kantong memuat KARTU KREDIT (87)', labelKantong.indexOf('KARTU KREDIT') >= 0, true);
+  _cek_('kantong memuat LAIN-LAIN (88)', labelKantong.indexOf('LAIN-LAIN') >= 0, true);
+  _cek_('kantong TIDAK memuat TOTAL INCOME', labelKantong.indexOf('TOTAL INCOME') >= 0, false);
+  _cek_('kantong TIDAK memuat SALDO', labelKantong.indexOf('SALDO') >= 0, false);
+  _cek_('kantong TIDAK memuat CASH BUFFER', labelKantong.indexOf('CASH BUFFER') >= 0, false);
+  _cek_('jumlah kantong = 18', d.pemasukan.length, 18);
+
+  // Nilai mengikuti baris yang benar (bukan geser)
+  _cek_('nilai GAJI = baris 71', d.pemasukan[0].v, 71);
+  _cek_('nilai kantong terakhir = baris 88', d.pemasukan[d.pemasukan.length - 1].v, 88);
+
+  // Blok PROYEKSI (96+) tidak ikut ke mana pun
+  _cek_('proyeksi tidak masuk biaya', labelBiaya.indexOf('Indodana') >= 0, false);
+  _cek_('proyeksi tidak masuk kantong', labelKantong.indexOf('Indodana') >= 0, false);
 }
 
 // ====================== DOMAIN: CASHFLOW ======================
