@@ -180,14 +180,14 @@
     </header>
 
     <div class="nav">
-      <button id="navInput" class="navbtn active" onclick="showTab('input')">📥 Input</button>
+      <button id="navInput" class="navbtn" onclick="showTab('input')">📥 Input</button>
       <button id="navSimpanan" class="navbtn" onclick="showTab('simpanan')">📦 Simpanan</button>
-      <button id="navBudget" class="navbtn" onclick="showTab('budget')">📊 Budget</button>
+      <button id="navBudget" class="navbtn active" onclick="showTab('budget')">📊 Budget</button>
       <button id="navDaftar" class="navbtn" onclick="showTab('daftar')">📋 Daftar</button>
       <button id="navPengaturan" class="navbtn" onclick="showTab('pengaturan')">⚙ Setelan</button>
     </div>
 
-    <div id="tabInput">
+    <div id="tabInput" class="hidden">
     <div id="target" class="target">Memeriksa baris kosong terbawah…</div>
 
     <!-- Langkah 1: Upload (bisa lebih dari satu bukti) -->
@@ -363,7 +363,7 @@
       </div>
     </div>
 
-    <div id="tabBudget" class="hidden">
+    <div id="tabBudget">
       <div class="card">
         <label>Bulan</label>
         <select id="budgetMonth" onchange="loadBudget()"></select>
@@ -490,6 +490,9 @@
   </div>
 
   <script>
+    // Menu yang tampil pertama saat aplikasi dibuka: 'budget' | 'input' | 'simpanan' | 'daftar' | 'pengaturan'
+    var TAB_AWAL = 'budget';
+
     var CFG = null;
     var currentDataUrl = null;
     window._pin = '';
@@ -513,6 +516,7 @@
         auInitSelects();
       }).withFailureHandler(showErr).getConfig();
       refreshTarget();
+      showTab(TAB_AWAL);   // menu yang tampil pertama saat aplikasi dibuka
     }
 
     function unlock() {

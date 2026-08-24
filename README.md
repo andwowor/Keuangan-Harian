@@ -227,7 +227,8 @@ Folder penyimpanan diatur lewat konstanta `INBOX_FOLDER_ID` di `00_config.gs`.
 
 ## Menu "Sisa Budget"
 
-Tab kedua di dashboard (**📊 Sisa Budget**) menampilkan kondisi keuangan bulanan dari
+Menu **📊 Budget** adalah **tampilan pertama saat aplikasi dibuka** (diatur lewat
+konstanta `TAB_AWAL` di `Index.html`). Menampilkan kondisi keuangan bulanan dari
 sheet **REAL**:
 - Pilih **bulan** (otomatis dari baris 1 sheet REAL; default bulan berjalan).
 - **Ringkasan**: Total Pemasukan, Total Pengeluaran, dan Sisa (Saldo Real).
