@@ -38,7 +38,7 @@ Status per bukti: `… antre baca` → `⏳ dibaca` → `✓ terbaca` (atau `⚠
 
 | Fungsi | Gunanya |
 |---|---|
-| `jalankanSemuaTest` | 61 test unit domain (tanpa menyentuh data nyata) |
+| `jalankanSemuaTest` | 72 test unit domain (tanpa menyentuh data nyata) |
 | `cekFolderPenyimpanan` | Memastikan izin Drive & folder inbox terbaca |
 | `cekDeteksiRekening` | Memastikan aturan sumber dana bekerja pada contoh bukti nyata |
 

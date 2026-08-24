@@ -20,7 +20,7 @@ Gaya: **Modular Monolith = Layered + Ports & Adapters + Event-driven** pada bata
  50_inbound_webapp  ──▶  20_app_transaksi  ──▶  10_domain_rekening
  90_triggers             21_app_inbox           11_domain_transaksi
                          22_app_laporan         12_domain_cashflow
-                              │                 13_domain_inbox
+                              │                 13_domain_inbox · 14_domain_pos
                               ▼                        ▲
  outbound adapters  40_sheets 41_drive 42_claude 43_kurs 44_properties
                                                  05_shared · 00_config
@@ -63,7 +63,7 @@ Di editor Apps Script, pilih fungsi lalu **Run** (hasil di *Execution log*):
 
 | Fungsi | Cakupan |
 |---|---|
-| `jalankanSemuaTest` | **61 test unit domain** — murni, tidak menyentuh data nyata |
+| `jalankanSemuaTest` | **72 test unit domain** — murni, tidak menyentuh data nyata |
 | `cekFolderPenyimpanan` | Integrasi: izin Drive & folder inbox |
 | `cekDeteksiRekening` | Aturan sumber dana pada contoh bukti nyata |
 
@@ -91,7 +91,7 @@ Penggunaan pribadi (proprietary). Hak cipta © Andre S. Wowor.
 
 | Kolom | Perilaku |
 |-------|----------|
-| **POS BIAYA** | Combobox: **ketik untuk mencari** lalu pilih dari daftar. Nilai **wajib dari daftar** (divalidasi), sehingga cocok dengan dropdown kolom POS BIAYA di sheet TRANSAKSI. |
+| **POS BIAYA** | **Terisi otomatis dari penerima** bila penerima ada di daftar aturan tetap (mis. penerima **Kairagi Dua 009** → **Retribusi Sampah**); aturan ini mengalahkan tebakan model. Selain itu ditebak dari merchant/barang. Combobox: **ketik untuk mencari** lalu pilih dari daftar. Nilai **wajib dari daftar** (divalidasi), sehingga cocok dengan dropdown kolom POS BIAYA di sheet TRANSAKSI. |
 | **KETERANGAN** | Ditebak dari isi bukti, dipandu **history pengisian per POS** dari sheet (muncul sebagai autocomplete + chip rekomendasi). Bila model tidak yakin, rekomendasi ditonjolkan untuk Anda pilih. |
 | **NOMINAL** | Dibaca dari bukti. Bila mata uang asing (mis. **RMB/CNY**, USD, SGD), otomatis dikonversi ke Rupiah memakai **kurs pada tanggal transaksi** (sumber: Frankfurter/ECB). Khusus POS **BIAYA KULIAH CHINA** + mata uang asing, sel NOMINAL ditulis sebagai **formula** `=nominal_asli*kurs` (transparan), bukan hasil akhirnya. |
 | **TANGGAL** | Selalu diambil dari tanggal pada bukti transaksi. |
@@ -114,7 +114,7 @@ Cara termudah — terikat langsung ke spreadsheet:
 2. Menu **Extensions → Apps Script**.
 3. Hapus `Code.gs` bawaan. Buat **satu berkas Script per modul** di repo ini dan salin isinya
    (nama tanpa akhiran `.gs`): `00_config`, `05_shared`, `10_domain_rekening`,
-   `11_domain_transaksi`, `12_domain_cashflow`, `13_domain_inbox`, `20_app_transaksi`,
+   `11_domain_transaksi`, `12_domain_cashflow`, `13_domain_inbox`, `14_domain_pos`, `20_app_transaksi`,
    `21_app_inbox`, `22_app_laporan`, `30_ports`, `40_adapter_sheets`, `41_adapter_drive`,
    `42_adapter_claude`, `43_adapter_kurs`, `44_adapter_properties`, `50_inbound_webapp`,
    `90_triggers`, `99_tests`. Urutan berkas tidak berpengaruh, tetapi **tidak boleh ada yang terlewat**.

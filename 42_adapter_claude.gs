@@ -46,7 +46,9 @@ function analyzeImg_(img) {
     'keterangan_yakin=false.\n' +
     '- keterangan_yakin: true hanya jika Anda cukup yakin keterangan-nya tepat.\n' +
     '- keterangan_opsi: hingga 4 usulan label singkat yang cocok (boleh kosong array).\n' +
-    '- merchant: nama merchant/toko/aplikasi/penerima pada bukti apa adanya (untuk pembelajaran), atau "".\n' +
+    '- merchant: nama PENERIMA/merchant/toko/aplikasi pada bukti APA ADANYA (untuk pembelajaran). '
+    'Untuk bukti TRANSFER, isi dengan nama/label rekening TUJUAN persis seperti tertulis '
+    '(mis. "Kairagi Dua 009"), termasuk angkanya. Bila tidak ada, isi "".\n' +
     '- akun_sumber: nomor rekening/akun SUMBER DANA pada bukti, yaitu rekening PENGIRIM / yang ' +
     'DIDEBIT (biasanya berlabel "Sumber Dana", "Source of Fund", "Rekening Sumber", "Dari", "From"), ' +
     'tulis ANGKANYA (boleh sertakan nama bank bila ada). Bukan rekening tujuan/penerima. Bila tidak ada, isi "". ' +
@@ -157,6 +159,14 @@ function analyzeImg_(img) {
       data.konversi = { error: true, mataUang: cur, nominalAsli: amt, message: String(e2) };
     }
   }
+  // POS BIAYA dari PENERIMA (aturan deterministik mengalahkan tebakan model).
+  var aturanPos = posDariPenerima_(data.merchant, data.keterangan);
+  data.posAlasan = '';
+  if (aturanPos) {
+    var posResmi = samakanPos_(aturanPos.pos, getPosList_());
+    if (posResmi) { data.pos_biaya = posResmi; data.posAlasan = aturanPos.alasan; }
+  }
+
   // Saran SUMBER DANA & Rekening dari nomor rekening sumber (deterministik + dipelajari), lalu aturan BOC.
   var acct = detectAccount_(data.akun_sumber, data.akun_sumber_nama, getLearnedAccounts_());
   data.sumberDanaSaran = '';

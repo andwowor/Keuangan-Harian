@@ -32,6 +32,7 @@ function jalankanSemuaTest() {
   testDomainRekening();
   testDomainKartuKredit();
   testDomainTransaksi();
+  testDomainPos();
   testDomainCashflow();
   testDomainInbox();
   var pesan = _tesGagal.length
@@ -126,6 +127,34 @@ function testDomainTransaksi() {
   _cek_('kolom A = POS', baris[0], 'DAILY DRIVER');
   _cek_('kolom F = tahun angka', baris[5], 2026);
   _cek_('kolom J = rekening', baris[9], '');
+}
+
+// ====================== DOMAIN: POS DARI PENERIMA ======================
+
+function testDomainPos() {
+  var posSheet = ['DAILY DRIVER', 'Retribusi Sampah', 'Isi Bensin', 'Pendidikan'];
+  var pos = function (merchant, ket) {
+    var a = posDariPenerima_(merchant, ket);
+    return a ? samakanPos_(a.pos, posSheet) : null;
+  };
+
+  // Aturan: penerima "Kairagi Dua 009" -> Retribusi Sampah
+  _cek_('Kairagi Dua 009 -> Retribusi Sampah', pos('Kairagi Dua 009', ''), 'Retribusi Sampah');
+  _cek_('huruf besar-kecil bebas', pos('KAIRAGI DUA 009', ''), 'Retribusi Sampah');
+  _cek_('spasi rangkap tetap cocok', pos('Kairagi   Dua  009', ''), 'Retribusi Sampah');
+  _cek_('nama panjang mengandung kunci', pos('TRF KAIRAGI DUA 009 - IURAN', ''), 'Retribusi Sampah');
+  _cek_('kunci pada keterangan juga terbaca', pos('', 'bayar kairagi dua 009'), 'Retribusi Sampah');
+
+  // Jangan salah tangkap
+  _cek_('penerima lain -> tidak diatur', pos('Kairagi Satu 010', ''), null);
+  _cek_('Kairagi saja -> tidak diatur', pos('Kairagi Dua', ''), null);
+  _cek_('kosong -> tidak diatur', pos('', ''), null);
+
+  // Penyelarasan ejaan ke daftar POS sheet
+  _cek_('samakan ejaan ke daftar sheet', samakanPos_('RETRIBUSI SAMPAH', posSheet), 'Retribusi Sampah');
+  _cek_('POS di luar daftar -> kosong', samakanPos_('Retribusi Sampah', ['DAILY DRIVER']), '');
+  _cek_('alasan tersedia utk transparansi',
+    posDariPenerima_('Kairagi Dua 009', '').alasan.indexOf('Kairagi Dua 009') >= 0, true);
 }
 
 // ====================== DOMAIN: CASHFLOW ======================

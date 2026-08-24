@@ -13,7 +13,7 @@
                                ▼
         ┌──────────────────────────────────────────────┐
         │  domain (MURNI)                              │
-        │  10_rekening 11_transaksi 12_cashflow 13_inbox
+        │  10_rekening 11_transaksi 12_cashflow 13_inbox 14_pos
         └──────────────────────────────────────────────┘
                                ▲
                     05_shared (utilitas platform)
@@ -32,6 +32,7 @@ Dependensi hanya mengarah ke DALAM. domain tidak menunjuk ke mana pun.
 | `11_domain_transaksi.gs` | domain | field wajib, aturan Rekening, nilai NOMINAL/TANGGAL, susunan baris A..J |
 | `12_domain_cashflow.gs` | domain | bentuk baris Setoran Owner & pemetaan bank |
 | `13_domain_inbox.gs` | domain | mesin status baca-otomatis + format metadata deskripsi berkas |
+| `14_domain_pos.gs` | domain | pemetaan **penerima → POS BIAYA** (mis. Kairagi Dua 009 → Retribusi Sampah) |
 | `20_app_transaksi.gs` | application | use case simpan/ubah/ambil transaksi |
 | `21_app_inbox.gs` | application | use case unggah, baca, hapus bukti |
 | `22_app_laporan.gs` | application | budget, daftar biaya, history, audit CASHFLOW |
