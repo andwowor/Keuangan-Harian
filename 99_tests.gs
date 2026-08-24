@@ -487,3 +487,64 @@ function dumpSheet_(nama, nKolom) {
   Logger.log(pesan);
   return pesan;
 }
+
+// ====================== CEK KELENGKAPAN MODUL ======================
+
+/**
+ * DIAGNOSTIK: pastikan SEMUA modul sudah versi terbaru.
+ * Memeriksa simbol kunci tiap modul; bila ada yang hilang berarti berkas itu
+ * belum tersalin / masih versi lama. Jalankan ini LEBIH DULU bila
+ * `jalankanSemuaTest` gagal dengan "... is not defined".
+ */
+function cekModulLengkap() {
+  var wajib = [
+    ['00_config', ['SPREADSHEET_ID', 'ACCOUNTS', 'POS_BATAS_PENGELUARAN', 'BUDGET_BARIS_BIAYA',
+                   'BUDGET_BARIS_KANTONG', 'BUDGET_BARIS_AKHIR']],
+    ['05_shared', ['parseIsoDate_', 'formatRupiah_', 'parseTanggalCell_', 'inboxHashHex_']],
+    ['10_domain_rekening', ['detectAccount_', 'cocokNomorUtuh_', 'cocokNamaPemilik_',
+                            'cocokNomorTersamar_', 'isCreditCard_']],
+    ['11_domain_transaksi', ['validasiTransaksi_', 'rekeningTransaksi_', 'nilaiNominal_',
+                             'barisTransaksi_', 'catatanMemori_']],
+    ['12_domain_cashflow', ['mapBankCashflow_', 'buildCashflowRow_']],
+    ['13_domain_inbox', ['descGetLine_', 'descSetLine_', 'inboxNeedsRead_', 'inboxAiState_']],
+    ['14_domain_pos', ['posDariPenerima_', 'samakanPos_', 'posDariGrid_', 'batasPengeluaran_']],
+    ['15_domain_budget', ['susunBudget_', 'barisTotalPengeluaran_', 'rentangBudget_']],
+    ['20_app_transaksi', ['appendTransaction', 'updateTransaction', 'lupakanCacheHistory_']],
+    ['21_app_inbox', ['uploadInbox', 'listInbox', 'analyzeInboxFile', 'inboxReadOne_']],
+    ['22_app_laporan', ['getBudget', 'getBudgetMonths', 'getTransaksiList', 'auditCashflowSetoran']],
+    ['40_adapter_sheets', ['getSheet_', 'getPosList_', 'posDariRentang_', 'sheetsBacaTransaksi_',
+                           'sheetsBacaReal_', 'sheetsSiapkanBarisBaru_']],
+    ['41_adapter_drive', ['getInboxFolder_', 'getInboxFile_', 'inboxImageBlob_', 'inboxGetAi_']],
+    ['42_adapter_claude', ['analyzeImage', 'analyzeImg_']],
+    ['43_adapter_kurs', ['getFxRate_']],
+    ['44_adapter_properties', ['checkPin', 'verifyPin_']],
+    ['50_inbound_webapp', ['doGet', 'getConfig', 'include']],
+    ['90_triggers', ['autoReadInbox', 'setupAutoRead', 'autoReadStatus']],
+    ['99_tests', ['jalankanSemuaTest', 'cekStrukturReal', 'daftarSheet', 'cekModulLengkap']]
+  ];
+  var out = [], perluSalin = [];
+  for (var i = 0; i < wajib.length; i++) {
+    var modul = wajib[i][0], simbol = wajib[i][1], hilang = [];
+    for (var j = 0; j < simbol.length; j++) {
+      if (!_adaSimbol_(simbol[j])) hilang.push(simbol[j]);
+    }
+    if (hilang.length) {
+      out.push('  ✗ ' + modul + '  -> HILANG: ' + hilang.join(', '));
+      perluSalin.push(modul);
+    } else {
+      out.push('  ✓ ' + modul);
+    }
+  }
+  var kepala = perluSalin.length
+    ? ('BELUM LENGKAP. Salin ulang berkas berikut dari repo lalu jalankan lagi:\n     ' +
+       perluSalin.join(', ') + '\n')
+    : 'LENGKAP - semua modul sudah versi terbaru.\n';
+  var pesan = kepala + '\n' + out.join('\n');
+  Logger.log(pesan);
+  return pesan;
+}
+
+/** true bila sebuah nama global (fungsi/konstanta) terdefinisi di project. */
+function _adaSimbol_(nama) {
+  try { return eval('typeof ' + nama) !== 'undefined'; } catch (e) { return false; }
+}
