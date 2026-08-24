@@ -384,3 +384,55 @@ function kolomKe_(n) {
   while (n > 0) { var m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = (n - m - 1) / 26; }
   return s;
 }
+
+/**
+ * DIAGNOSTIK: daftar SELURUH sheet pada spreadsheet ANALISA KEUANGAN, beserta
+ * ukurannya dan apakah sheet itu dipakai dashboard. Berguna untuk memastikan
+ * perubahan manual pada sheet tertentu berdampak atau tidak.
+ */
+function daftarSheet() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheets = ss.getSheets();
+  var peran = {};
+  peran[SHEET_NAME] = 'DIPAKAI: dibaca & ditulis (transaksi)';
+  peran[REAL_SHEET] = 'DIPAKAI: daftar POS + menu Budget';
+  peran[MEMORY_SHEET] = 'DIPAKAI: memori pembelajaran';
+  var out = ['Spreadsheet "' + ss.getName() + '" - ' + sheets.length + ' sheet:', ''];
+  for (var i = 0; i < sheets.length; i++) {
+    var sh = sheets[i], nama = sh.getName();
+    out.push('  ' + (i + 1) + '. ' + nama +
+      '  [' + sh.getLastRow() + ' baris x ' + sh.getLastColumn() + ' kolom]' +
+      (sh.isSheetHidden() ? ' (tersembunyi)' : '') +
+      '  -> ' + (peran[nama] || 'tidak disentuh dashboard'));
+  }
+  var pesan = out.join('\n');
+  Logger.log(pesan);
+  return pesan;
+}
+
+/** DIAGNOSTIK: struktur sheet REKAP (kolom A-C + nomor baris). */
+function cekStrukturRekap() { return dumpSheet_('REKAP', 3); }
+
+/** Dump isi kolom pertama sebuah sheet beserta nomor barisnya. */
+function dumpSheet_(nama, nKolom) {
+  var sh = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(nama);
+  if (!sh) {
+    var daftar = SpreadsheetApp.openById(SPREADSHEET_ID).getSheets().map(function (s) { return s.getName(); });
+    var e = 'Sheet "' + nama + '" tidak ada. Sheet yang tersedia: ' + daftar.join(', ');
+    Logger.log(e); return e;
+  }
+  var nBaris = Math.min(sh.getLastRow(), 150);
+  var nKol = Math.min(sh.getLastColumn(), nKolom || 3);
+  var out = [nama + ': ' + sh.getLastRow() + ' baris x ' + sh.getLastColumn() + ' kolom', ''];
+  if (nBaris > 0) {
+    var v = sh.getRange(1, 1, nBaris, nKol).getValues();
+    for (var r = 0; r < v.length; r++) {
+      var sel = [];
+      for (var c = 0; c < nKol; c++) sel.push(String(v[r][c]).trim());
+      if (sel.join('')) out.push('  ' + (r + 1) + ' | ' + sel.join(' | '));
+    }
+  }
+  var pesan = out.join('\n');
+  Logger.log(pesan);
+  return pesan;
+}
