@@ -51,6 +51,25 @@
     </div>
   </div>
 
+  <div id="gagal" class="setup" style="display:none">
+    <div class="box">
+      <div class="orb"></div>
+      <h1>Dashboard tidak termuat</h1>
+      <p>Halaman Apps Script tidak merespon dalam 10 detik. Penyebab tersering:</p>
+      <p style="font-size:12px">
+        1. URL <code>/exec</code> bukan dari deployment yang aktif<br>
+        2. Deployment belum diperbarui (<b>New version</b>)<br>
+        3. Izin OAuth belum disetujui setelah scope baru ditambahkan
+      </p>
+      <a id="bukaLangsung" href="#" target="_blank" rel="noopener"
+         style="display:block;text-decoration:none;padding:13px;margin-top:12px;border-radius:10px;
+                background:#4F46E5;color:#fff;font-weight:700;font-size:15px">Buka langsung di browser</a>
+      <button onclick="openSetup()" style="background:#fff;color:#454A54;border:1px solid #D5D9E0">Ganti URL</button>
+      <p style="font-size:12px">Bila "Buka langsung" juga gagal, masalahnya ada di Apps Script
+        (deployment/izin) — bukan di aplikasi ini.</p>
+    </div>
+  </div>
+
   <iframe id="app" title="Keuangan Harian" allow="camera; clipboard-write"></iframe>
   <button class="gear" id="gear" onclick="openSetup()" title="Ganti URL">⚙</button>
 
@@ -63,7 +82,13 @@
 
     // Prioritas: URL yang pernah disimpan di perangkat -> URL bawaan di atas.
     function getUrl() { return localStorage.getItem('appUrl') || URL_BAWAAN || ''; }
-    function openSetup() { document.getElementById('url').value = getUrl(); document.getElementById('setup').style.display = 'flex'; }
+
+    function tampilkanGagal(u) {
+      document.getElementById('bukaLangsung').href = u;
+      document.getElementById('gagal').style.display = 'flex';
+    }
+    function sembunyikanGagal() { document.getElementById('gagal').style.display = 'none'; }
+    function openSetup() { sembunyikanGagal(); document.getElementById('url').value = getUrl(); document.getElementById('setup').style.display = 'flex'; }
     function saveUrl() {
       var u = document.getElementById('url').value.trim();
       if (!/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec\b/.test(u)) {
@@ -82,6 +107,10 @@
         app.style.display = 'block';
         app.src = u;
         document.getElementById('gear').style.display = 'block';
+        // Bila halaman Apps Script tidak termuat, tampilkan penjelasan - jangan layar kosong.
+        var sudah = false;
+        app.addEventListener('load', function () { sudah = true; sembunyikanGagal(); });
+        setTimeout(function () { if (!sudah) tampilkanGagal(u); }, 10000);
       }
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js').catch(function () {});
