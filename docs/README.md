@@ -50,3 +50,19 @@ dikunci dengan PIN.
   perlu internet (butuh akses Sheets & Claude).
 - **Ikon:** `icon-192.png` / `icon-512.png` (boleh Anda ganti dengan desain sendiri,
   ukuran sama).
+
+## Kalau layar "tempel Web app URL" muncul lagi
+
+URL disimpan di **localStorage** perangkat. Ia hilang bila penyimpanan aplikasi
+dibersihkan (**Hapus data**, bukan "Hapus cache"), ganti HP, atau buka di browser lain.
+
+Cara memulihkan: tempel ulang URL-nya. Ambil dari editor Apps Script →
+**Deploy → Manage deployments → salin Web app URL** (berakhiran `/exec`).
+
+**Agar tidak terulang:** isi konstanta `URL_BAWAAN` di `docs/index.html` dengan URL
+tersebut. Bila diisi, layar setup tidak akan pernah muncul lagi — walau data aplikasi
+terhapus atau dipasang di HP baru. Tombol ⚙ tetap bisa dipakai untuk mengganti URL.
+
+> Catatan: mengisi `URL_BAWAAN` berarti URL `/exec` ikut tersimpan di repo. Dashboard
+> tetap terlindungi `APP_PIN`, tetapi bila repo Anda publik, siapa pun bisa melihat
+> alamatnya. Untuk repo privat hal ini tidak jadi masalah.

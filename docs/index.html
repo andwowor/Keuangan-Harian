@@ -44,7 +44,7 @@
     <div class="box">
       <div class="orb"></div>
       <h1>Keuangan Harian</h1>
-      <p>Tempel <b>Web app URL</b> Apps Script Anda (yang berakhiran <code>/exec</code>). Hanya disimpan di perangkat ini.</p>
+      <p>Tempel <b>Web app URL</b> Apps Script Anda (yang berakhiran <code>/exec</code>).</p><p style="font-size:12px">Lupa URL-nya? Buka editor Apps Script → <b>Deploy</b> → <b>Manage deployments</b> → salin <b>Web app URL</b>.</p>
       <input id="url" type="url" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec">
       <button onclick="saveUrl()">Simpan & Buka</button>
       <p id="err" class="err"></p>
@@ -55,7 +55,14 @@
   <button class="gear" id="gear" onclick="openSetup()" title="Ganti URL">⚙</button>
 
   <script>
-    function getUrl() { return localStorage.getItem('appUrl') || ''; }
+    // URL BAWAAN (opsional). Isi dengan Web app URL Anda yang berakhiran /exec agar
+    // layar setup TIDAK PERNAH muncul lagi - termasuk setelah data aplikasi terhapus,
+    // ganti HP, atau pasang ulang. Biarkan '' bila tidak ingin dipatri di berkas ini.
+    // Contoh: var URL_BAWAAN = 'https://script.google.com/macros/s/AKfy.../exec';
+    var URL_BAWAAN = '';
+
+    // Prioritas: URL yang pernah disimpan di perangkat -> URL bawaan di atas.
+    function getUrl() { return localStorage.getItem('appUrl') || URL_BAWAAN || ''; }
     function openSetup() { document.getElementById('url').value = getUrl(); document.getElementById('setup').style.display = 'flex'; }
     function saveUrl() {
       var u = document.getElementById('url').value.trim();
