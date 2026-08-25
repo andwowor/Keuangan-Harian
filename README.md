@@ -329,10 +329,13 @@ Apps Script menyediakan endpoint ringkas (dilindungi `token` = `APP_PIN`):
   "TOTAL"/kosong di-skip). Cukup ubah di REAL, dashboard menyesuaikan (cache ±5 menit). Array
   `POS_BIAYA` di `00_config.gs` hanya cadangan bila gagal dibaca. **SUMBER DANA** memakai daftar
   bawaan `SUMBER_DANA` di `00_config.gs`.
-- **Tema (futuristik, dark):** warna didefinisikan di `:root` pada `Index.html` — latar
-  gelap `#0a0e1c` dengan aksen neon cyan `#38bdf8` → violet `#8b5cf6`, kartu kaca (glass).
-  Ubah di satu tempat untuk seluruh tampilan. Ikon PWA (HUD ring) ada di `docs/icon-192.png`
-  & `docs/icon-512.png`.
+- **Tema (terang, aplikasi keuangan — [ADR-0008](docs/architecture/adr/ADR-0008-tema-terang-aplikasi-keuangan.md)):**
+  seluruh warna didefinisikan sebagai token di `:root` pada `Index.html` — latar `#F6F7F9`,
+  kartu putih, garis `#E4E7EC`, dan **satu** warna aksen indigo `#4F46E5`. Aksen sengaja
+  **bukan hijau/merah** karena keduanya dipakai sebagai makna angka (hijau = pemasukan
+  `#047857`, merah = pengeluaran `#C6303B`). Tidak ada warna literal di markup, jadi ganti
+  tema cukup di `:root`. Shell PWA & `theme_color` manifest mengikuti. Ikon PWA
+  (`docs/icon-192.png`, `docs/icon-512.png`) masih bernuansa gelap — tercatat sebagai utang D6.
 
 ---
 
