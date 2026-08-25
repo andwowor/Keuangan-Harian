@@ -329,13 +329,13 @@ Apps Script menyediakan endpoint ringkas (dilindungi `token` = `APP_PIN`):
   "TOTAL"/kosong di-skip). Cukup ubah di REAL, dashboard menyesuaikan (cache ±5 menit). Array
   `POS_BIAYA` di `00_config.gs` hanya cadangan bila gagal dibaca. **SUMBER DANA** memakai daftar
   bawaan `SUMBER_DANA` di `00_config.gs`.
-- **Tema (terang, aplikasi keuangan — [ADR-0008](docs/architecture/adr/ADR-0008-tema-terang-aplikasi-keuangan.md)):**
-  seluruh warna didefinisikan sebagai token di `:root` pada `Index.html` — latar `#F6F7F9`,
-  kartu putih, garis `#E4E7EC`, dan **satu** warna aksen indigo `#4F46E5`. Aksen sengaja
-  **bukan hijau/merah** karena keduanya dipakai sebagai makna angka (hijau = pemasukan
-  `#047857`, merah = pengeluaran `#C6303B`). Tidak ada warna literal di markup, jadi ganti
-  tema cukup di `:root`. Shell PWA & `theme_color` manifest mengikuti. Ikon PWA
-  (`docs/icon-192.png`, `docs/icon-512.png`) masih bernuansa gelap — tercatat sebagai utang D6.
+- **Tema (gelap analitik — [ADR-0009](docs/architecture/adr/ADR-0009-tema-gelap-dashboard-analitik.md)):**
+  diadaptasi dari Figma *Sales Management Dashboard*; token diambil langsung dari file itu.
+  Latar `#0E0F14`, panel `#21222D`, tile `#171821`, aksen mint `#A9DFD8` (+ amber `#FEB95A`,
+  biru `#20AEF3`, pink `#F2C8ED`), radius 10px, Inter. Menu Budget memakai **stat tile**,
+  **gauge pemakaian budget**, dan **bar proporsi + pil persen** per kategori. Semua warna
+  ada di `:root` `Index.html`; tidak ada warna literal di markup. Shell PWA & `theme_color`
+  mengikuti. Layout sidebar desktop tidak dipakai — aplikasi ini mobile-first.
 
 ---
 

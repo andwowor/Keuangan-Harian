@@ -1,6 +1,6 @@
 // Service worker: cache "app shell" (ikon/manifest/halaman) agar app cepat dibuka & bisa
 // diluncurkan offline. Konten dashboard (iframe Apps Script) selalu via jaringan.
-var CACHE = 'kh-shell-v7';
+var CACHE = 'kh-shell-v8';
 var ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', function (e) {

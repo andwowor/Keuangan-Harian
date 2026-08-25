@@ -5,213 +5,226 @@
   <meta charset="utf-8">
   <style>
     /* ============================================================
-       Tema TERANG untuk aplikasi keuangan.
-       Prinsip yang dipinjam dari referensi Furniro: latar netral hangat,
-       kartu putih, sudut membulat, bayangan lembut, spasi lega, dan
-       SATU warna aksen. Nuansa toko furnitur sengaja tidak dipakai.
+       Tema gelap, diadaptasi dari Figma "Sales Management Dashboard".
+       Token diambil langsung dari file: panel #21222d, tile #171821,
+       teks #fff / #e8e8e8 / #a0a0a0, aksen mint #a9dfd8, amber #feb95a,
+       pink #f2c8ed, biru #20aef3, radius 10px, tipografi Inter.
 
-       Warna aksen sengaja BUKAN hijau/merah, karena keduanya dipakai
-       sebagai makna angka: hijau = pemasukan/positif, merah = pengeluaran.
+       Layout sidebar desktop TIDAK dipakai - aplikasi ini mobile-first,
+       navigasi tetap tab atas. Yang diadopsi bahasa visualnya:
+       stat tile, bar proporsi + pil persen, gauge, kartu gelap.
        ============================================================ */
     :root {
-      --bg: #F6F7F9;            /* latar aplikasi, netral sedikit hangat */
-      --card: #FFFFFF;          /* permukaan kartu */
-      --card-2: #FBFBFD;        /* permukaan sekunder (baris, input) */
-      --ink: #16181D;           /* teks utama */
-      --ink-2: #454A54;         /* teks sekunder */
-      --muted: #767C88;         /* teks redup / label */
-      --line: #E4E7EC;          /* garis & batas */
-      --line-2: #EFF1F5;        /* garis sangat halus */
-      --accent: #4F46E5;        /* SATU warna aksen (indigo) */
-      --accent-d: #4338CA;      /* aksen gelap untuk teks di atas putih */
-      --accent-soft: #EEF0FE;   /* latar lembut aksen */
-      --ok: #047857;            /* pemasukan / berhasil */
-      --ok-soft: #E7F6F0;
-      --err: #C6303B;           /* pengeluaran / galat */
-      --err-soft: #FDECEC;
-      --warn: #B45309;          /* peringatan */
-      --warn-soft: #FDF3E3;
-      --ask: #0E7490;           /* info */
-      --ask-soft: #E6F4F8;
-      --shadow: 0 1px 2px rgba(16,24,40,.05), 0 8px 24px rgba(16,24,40,.06);
-      --shadow-sm: 0 1px 2px rgba(16,24,40,.06);
-      --r: 14px;                /* radius kartu */
-      --r-sm: 10px;             /* radius kontrol */
+      --bg: #0E0F14;          /* latar halaman */
+      --card: #21222D;        /* panel utama */
+      --card-2: #171821;      /* tile / permukaan dalam */
+      --ink: #FFFFFF;         /* teks utama */
+      --ink-2: #E8E8E8;       /* teks sekunder */
+      --muted: #A0A0A0;       /* label redup */
+      --line: rgba(255,255,255,.07);
+      --line-2: rgba(255,255,255,.045);
+      --accent: #A9DFD8;      /* mint - aksen utama */
+      --accent-d: #7FCFC4;
+      --accent-soft: rgba(169,223,216,.14);
+      --amber: #FEB95A;
+      --pink: #F2C8ED;
+      --blue: #20AEF3;
+      --ok: #A9DFD8;          /* pemasukan/positif = mint */
+      --err: #FF8A8A;         /* pengeluaran/negatif */
+      --warn: #FEB95A;
+      --ask: #20AEF3;
+      --r: 10px;
+      --shadow: 0 2px 10px rgba(0,0,0,.35);
     }
     * { box-sizing: border-box; }
     body { margin: 0; padding: 16px; min-height: 100vh; background: var(--bg); color: var(--ink);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
       -webkit-font-smoothing: antialiased; line-height: 1.5; }
     .wrap { max-width: 560px; margin: 0 auto; }
-    h1 { font-size: 20px; margin: 4px 0 2px; letter-spacing: -.01em; }
+    h1 { font-size: 20px; margin: 4px 0 2px; }
     .sub { color: var(--muted); font-size: 13px; margin-bottom: 12px; }
-    .target { font-size: 12px; color: var(--accent-d); background: var(--accent-soft);
-      border: 1px solid #DDE0FB; border-radius: var(--r-sm); padding: 9px 12px; margin-bottom: 14px; }
+    .target { font-size: 12px; color: var(--accent); background: var(--accent-soft);
+      border: 1px solid rgba(169,223,216,.22); border-radius: var(--r); padding: 9px 12px; margin-bottom: 14px; }
 
-    /* --- Kartu: putih, sudut membulat, bayangan lembut, spasi lega --- */
     .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r);
-      padding: 18px; margin-bottom: 16px; box-shadow: var(--shadow); }
+      padding: 16px; margin-bottom: 14px; box-shadow: var(--shadow); }
 
-    .drop { border: 1.5px dashed #CDD2DC; border-radius: 12px; padding: 26px 14px; text-align: center;
-      color: var(--muted); cursor: pointer; background: var(--card-2); transition: .15s; }
-    .drop:hover, .drop.over { border-color: var(--accent); color: var(--accent-d); background: var(--accent-soft); }
+    .drop { border: 1.5px dashed rgba(255,255,255,.16); border-radius: var(--r); padding: 26px 14px;
+      text-align: center; color: var(--muted); cursor: pointer; background: var(--card-2); transition: .15s; }
+    .drop:hover, .drop.over { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
     .drop strong { color: var(--ink); }
-    #preview { display: none; width: 100%; border-radius: 10px; margin-top: 12px; border: 1px solid var(--line); }
+    #preview { display: none; width: 100%; border-radius: var(--r); margin-top: 12px; border: 1px solid var(--line); }
 
-    /* --- Kontrol form --- */
-    label { display: block; font-size: 12px; font-weight: 600; color: var(--ink-2); margin: 14px 0 5px;
-      letter-spacing: .01em; }
+    label { display: block; font-size: 10px; font-weight: 600; color: var(--muted); margin: 14px 0 5px;
+      text-transform: uppercase; letter-spacing: .06em; }
     input, select { width: 100%; padding: 11px 12px; font-size: 15px; color: var(--ink);
-      border: 1px solid #D5D9E0; border-radius: var(--r-sm); background: #fff; }
-    input::placeholder { color: #A2A8B4; }
-    select option { background: #fff; color: var(--ink); }
+      border: 1px solid rgba(255,255,255,.10); border-radius: var(--r); background: var(--card-2); }
+    input::placeholder { color: #6B6F7A; }
+    select option { background: #171821; color: var(--ink); }
     input:focus, select:focus { outline: none; border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(79,70,229,.14); }
+      box-shadow: 0 0 0 3px rgba(169,223,216,.16); }
     .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
-    /* --- Tombol --- */
     button { width: 100%; padding: 12px; font-size: 15px; font-weight: 600; border: none;
-      border-radius: var(--r-sm); cursor: pointer; transition: .15s; }
-    .btn-primary { background: var(--accent); color: #fff; box-shadow: 0 1px 2px rgba(79,70,229,.28); }
+      border-radius: var(--r); cursor: pointer; transition: .15s; }
+    .btn-primary { background: var(--accent); color: #10231F; }
     .btn-primary:hover { background: var(--accent-d); }
-    .btn-ghost { background: #fff; color: var(--ink-2); border: 1px solid #D5D9E0; }
-    .btn-ghost:hover { background: var(--card-2); border-color: #C3C9D4; }
-    button:disabled { opacity: .55; cursor: not-allowed; }
+    .btn-ghost { background: var(--card-2); color: var(--ink-2); border: 1px solid rgba(255,255,255,.10); }
+    .btn-ghost:hover { border-color: rgba(255,255,255,.2); }
+    button:disabled { opacity: .5; cursor: not-allowed; }
     .row-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
     .hidden { display: none; }
 
-    /* --- Blok konfirmasi --- */
-    .ask-box { border: 1px solid #CFE6EE; background: var(--ask-soft); border-radius: 12px;
-      padding: 14px 14px 16px; margin-top: 16px; }
-    .ask-title { font-size: 12px; font-weight: 700; color: var(--ask); text-transform: uppercase; letter-spacing: .04em; }
+    .ask-box { border: 1px solid rgba(32,174,243,.25); background: rgba(32,174,243,.07);
+      border-radius: var(--r); padding: 14px 14px 16px; margin-top: 16px; }
+    .ask-title { font-size: 10px; font-weight: 700; color: var(--ask); text-transform: uppercase; letter-spacing: .06em; }
     .ask-hint { font-size: 12px; color: var(--muted); margin-top: 3px; }
     .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
     .chip { font-size: 13px; padding: 6px 11px; border: 1px solid var(--line); border-radius: 999px;
-      background: #fff; color: var(--ink-2); cursor: pointer; }
-    .chip:hover { border-color: var(--accent); color: var(--accent-d); background: var(--accent-soft); }
+      background: var(--card-2); color: var(--ink-2); cursor: pointer; }
+    .chip:hover { border-color: var(--accent); color: var(--accent); }
 
-    /* --- Pesan --- */
-    .msg { padding: 11px 13px; border-radius: var(--r-sm); font-size: 13px; margin-top: 12px; }
-    .msg.ok { background: var(--ok-soft); color: var(--ok); border: 1px solid #C7E9DA; }
-    .msg.err { background: var(--err-soft); color: var(--err); border: 1px solid #F5CDCD; }
-    .msg.info { background: var(--ask-soft); color: var(--ask); border: 1px solid #CFE6EE; }
+    .msg { padding: 11px 13px; border-radius: var(--r); font-size: 13px; margin-top: 12px; }
+    .msg.ok { background: var(--accent-soft); color: var(--accent); border: 1px solid rgba(169,223,216,.25); }
+    .msg.err { background: rgba(255,138,138,.10); color: var(--err); border: 1px solid rgba(255,138,138,.28); }
+    .msg.info { background: rgba(32,174,243,.10); color: var(--ask); border: 1px solid rgba(32,174,243,.28); }
     .spin { display: inline-block; width: 15px; height: 15px; border: 2px solid currentColor;
       border-top-color: transparent; border-radius: 50%; animation: sp .7s linear infinite;
       vertical-align: -2px; margin-right: 7px; }
     @keyframes sp { to { transform: rotate(360deg); } }
 
-    .pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
-    .pill.tinggi { background: var(--ok-soft); color: var(--ok); }
-    .pill.sedang { background: var(--warn-soft); color: var(--warn); }
-    .pill.rendah { background: var(--err-soft); color: var(--err); }
+    .pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 6px; }
+    .pill.tinggi { background: var(--accent-soft); color: var(--accent); border: 1px solid rgba(169,223,216,.3); }
+    .pill.sedang { background: rgba(254,185,90,.12); color: var(--amber); border: 1px solid rgba(254,185,90,.3); }
+    .pill.rendah { background: rgba(255,138,138,.12); color: var(--err); border: 1px solid rgba(255,138,138,.3); }
     .note { font-size: 12px; color: var(--warn); margin-top: 8px; }
     .note.boc { color: var(--ask); }
     .nominal-prefix { position: relative; }
     .nominal-prefix span { position: absolute; left: 12px; top: 12px; color: var(--muted); font-size: 15px; }
     .nominal-prefix input { padding-left: 32px; }
 
-    /* --- Navigasi: 5 menu (baris 1 = 3 tombol, baris 2 = 2 tombol) --- */
+    /* --- Navigasi: 5 menu (baris 1 = 3, baris 2 = 2) --- */
     .nav { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 16px; }
-    .navbtn { padding: 10px 4px; border: 1px solid var(--line); background: #fff; border-radius: var(--r-sm);
-      font-weight: 600; color: var(--ink-2); cursor: pointer; font-size: 12.5px; white-space: nowrap;
-      overflow: hidden; text-overflow: ellipsis; grid-column: span 2; box-shadow: var(--shadow-sm); }
+    .navbtn { padding: 10px 4px; border: 1px solid var(--line); background: var(--card); border-radius: var(--r);
+      font-weight: 600; color: var(--muted); cursor: pointer; font-size: 12.5px; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis; grid-column: span 2; }
     .navbtn:nth-child(4), .navbtn:nth-child(5) { grid-column: span 3; }
-    .navbtn.active { background: var(--accent); color: #fff; border-color: var(--accent);
-      box-shadow: 0 1px 2px rgba(79,70,229,.3); }
+    .navbtn.active { background: var(--accent); color: #10231F; border-color: var(--accent); }
 
-    /* --- Ringkasan & tabel --- */
+    /* --- Stat tile (adaptasi kartu "Today's Sales") --- */
+    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .stat { background: var(--card-2); border-radius: var(--r); padding: 12px; }
+    .stat-ico { width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center;
+      justify-content: center; font-size: 14px; margin-bottom: 12px; }
+    .stat-val { font-size: 17px; font-weight: 700; color: var(--ink); letter-spacing: -.01em;
+      font-variant-numeric: tabular-nums; }
+    .stat-lbl { font-size: 10px; color: var(--ink-2); margin-top: 5px; }
+    .stat-sub { font-size: 9px; margin-top: 5px; }
+    .t-mint { background: var(--accent-soft); color: var(--accent); }
+    .t-amber { background: rgba(254,185,90,.14); color: var(--amber); }
+    .t-pink { background: rgba(242,200,237,.14); color: var(--pink); }
+    .t-blue { background: rgba(32,174,243,.14); color: var(--blue); }
+    .c-mint { color: var(--accent); } .c-amber { color: var(--amber); }
+    .c-pink { color: var(--pink); }  .c-blue { color: var(--blue); }
+
+    /* --- Gauge (adaptasi meter 80% pada kartu Earnings) --- */
+    .gauge { position: relative; width: 180px; height: 92px; margin: 14px auto 4px; overflow: hidden; }
+    .gauge-c { width: 180px; height: 180px; border-radius: 50%;
+      background: conic-gradient(from 270deg, var(--accent) 0 calc(var(--p) * 1.8deg),
+        rgba(255,255,255,.07) calc(var(--p) * 1.8deg) 180deg, transparent 180deg); }
+    .gauge-hole { position: absolute; left: 28px; top: 28px; width: 124px; height: 124px; border-radius: 50%;
+      background: var(--card); display: flex; justify-content: center; padding-top: 26px; }
+    .gauge-num { font-size: 26px; font-weight: 800; color: var(--ink); letter-spacing: -.02em; }
+    .gauge-cap { text-align: center; font-size: 11px; color: var(--muted); }
+
+    /* --- Bar proporsi + pil persen (adaptasi tabel "Top Products") --- */
+    .pbar { height: 6px; border-radius: 6px; background: rgba(255,255,255,.07); overflow: hidden; margin-top: 7px; }
+    .pbar > span { display: block; height: 100%; border-radius: 6px; background: var(--accent); }
+    .ppill { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px;
+      border: 1px solid currentColor; white-space: nowrap; }
+
     .budget-sum .sumrow { display: flex; justify-content: space-between; align-items: center;
       padding: 10px 0; font-size: 15px; }
     .budget-sum .sumrow + .sumrow { border-top: 1px solid var(--line-2); }
-    .bt-title { font-weight: 700; font-size: 14px; margin-bottom: 10px; letter-spacing: -.005em; }
+    .bt-title { font-weight: 600; font-size: 15px; margin-bottom: 4px; color: var(--ink); }
     table.bt { width: 100%; border-collapse: collapse; font-size: 14px; }
-    table.bt td { padding: 9px 4px; border-bottom: 1px solid var(--line-2); }
-    table.bt td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
-    .bt-group td { font-weight: 700; color: var(--accent-d); padding-top: 16px; border-bottom: none;
-      font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+    table.bt td { padding: 9px 4px; border-bottom: 1px solid var(--line-2); color: var(--ink-2); }
+    table.bt td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--ink); }
+    .bt-group td { font-weight: 700; color: var(--accent); padding-top: 16px; border-bottom: none;
+      font-size: 10px; text-transform: uppercase; letter-spacing: .06em; }
     .bt-item td:first-child { padding-left: 14px; }
-    table.bt tr[onclick]:hover td { background: var(--accent-soft); }
-    .bt-total td { font-weight: 700; background: var(--card-2); }
+    table.bt tr[onclick]:hover td { background: rgba(255,255,255,.03); }
+    .bt-total td { font-weight: 700; background: var(--card-2); color: var(--ink); }
 
-    /* --- Layar kunci & modal --- */
     .lock { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center;
       justify-content: center; padding: 20px; z-index: 50; }
     .lockbox { max-width: 360px; width: 100%; background: var(--card); border: 1px solid var(--line);
       border-radius: var(--r); padding: 26px; text-align: center; box-shadow: var(--shadow); }
-    .lockbox input { width: 100%; box-sizing: border-box; padding: 12px; font-size: 16px; text-align: center;
-      border: 1px solid #D5D9E0; border-radius: var(--r-sm); }
+    .lockbox input { width: 100%; box-sizing: border-box; padding: 12px; font-size: 16px; text-align: center; }
 
-    /* --- Kepala halaman --- */
-    .hdr { position: relative; margin: -16px -16px 18px; padding: 26px 16px 22px; text-align: center;
+    .hdr { position: relative; margin: -16px -16px 16px; padding: 22px 16px 18px; text-align: center;
       background: var(--card); border-bottom: 1px solid var(--line); }
     .hdr::before { content: none; }
-    .hdr-title { position: relative; margin: 0; font-size: 21px; font-weight: 800; color: var(--ink);
-      letter-spacing: -.02em; }
-    .hdr-tag { position: relative; font-size: 11px; letter-spacing: .22em; text-transform: uppercase;
+    .hdr-title { position: relative; margin: 0; font-size: 20px; font-weight: 700; color: var(--ink);
+      letter-spacing: -.01em; }
+    .hdr-tag { position: relative; font-size: 10px; letter-spacing: .22em; text-transform: uppercase;
       color: var(--muted); margin-top: 5px; }
-    .hdr-line { position: relative; height: 3px; width: 44px; margin: 12px auto 0; border-radius: 3px;
+    .hdr-line { position: relative; height: 3px; width: 40px; margin: 12px auto 0; border-radius: 3px;
       background: var(--accent); }
-    .orb { width: 52px; height: 52px; margin: 0 auto 10px; border-radius: 14px;
-      background: var(--accent-soft); border: 1px solid #DDE0FB;
-      display: flex; align-items: center; justify-content: center; }
-    .orb::after { content: "Rp"; font-weight: 800; font-size: 18px; color: var(--accent-d); }
+    .orb { width: 52px; height: 52px; margin: 0 auto 10px; border-radius: 14px; background: var(--accent-soft);
+      border: 1px solid rgba(169,223,216,.25); display: flex; align-items: center; justify-content: center; }
+    .orb::after { content: "Rp"; font-weight: 800; font-size: 18px; color: var(--accent); }
 
-    /* --- Combobox POS BIAYA --- */
     .combo { position: relative; }
     .combo-list { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 30; max-height: 240px;
-      overflow: auto; background: #fff; border: 1px solid var(--line); border-radius: 12px;
-      box-shadow: 0 12px 28px rgba(16,24,40,.14); display: none; }
+      overflow: auto; background: #1B1C26; border: 1px solid rgba(255,255,255,.10); border-radius: var(--r);
+      box-shadow: 0 12px 28px rgba(0,0,0,.5); display: none; }
     .combo-list.open { display: block; }
-    .combo-item { padding: 11px 12px; font-size: 14px; cursor: pointer; border-bottom: 1px solid var(--line-2); }
+    .combo-item { padding: 11px 12px; font-size: 14px; cursor: pointer; border-bottom: 1px solid var(--line-2);
+      color: var(--ink-2); }
     .combo-item:last-child { border-bottom: 0; }
-    .combo-item:hover { background: var(--accent-soft); color: var(--accent-d); }
+    .combo-item:hover { background: var(--accent-soft); color: var(--accent); }
     .combo-empty { padding: 11px 12px; color: var(--muted); font-size: 13px; }
 
-    /* --- Antrean bukti (multi-upload) --- */
     .queue { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
     .qitem { display: flex; align-items: center; gap: 11px; padding: 10px; border: 1px solid var(--line);
-      border-radius: 12px; background: #fff; }
+      border-radius: var(--r); background: var(--card-2); }
     .qitem[onclick] { cursor: pointer; }
-    .qitem[onclick]:hover { border-color: var(--accent); background: var(--accent-soft); }
-    .qitem.q-active { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(79,70,229,.18); }
+    .qitem[onclick]:hover { border-color: var(--accent); }
+    .qitem.q-active { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(169,223,216,.18); }
     .qthumb { width: 44px; height: 44px; border-radius: 9px; object-fit: cover; border: 1px solid var(--line);
       flex: none; display: flex; align-items: center; justify-content: center; font-size: 18px;
-      color: var(--muted); background: var(--card-2); }
+      color: var(--muted); background: #12131A; }
     .qmeta { flex: 1; min-width: 0; }
     .qname { font-size: 13px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .qbadge { display: inline-block; margin-top: 3px; font-size: 11px; font-weight: 700; padding: 2px 8px;
-      border-radius: 999px; }
-    .b-wait { background: #EFF1F5; color: #5C6270; }
-    .b-read { background: var(--ask-soft); color: var(--ask); }
-    .b-ready { background: var(--warn-soft); color: var(--warn); }
-    .b-saved { background: var(--ok-soft); color: var(--ok); }
-    .b-err { background: var(--err-soft); color: var(--err); }
-    .qdel { width: 28px; height: 28px; flex: none; border-radius: 8px; background: #fff;
+    .qbadge { display: inline-block; margin-top: 4px; font-size: 11px; font-weight: 600; padding: 2px 8px;
+      border-radius: 6px; border: 1px solid currentColor; }
+    .b-wait { color: var(--muted); } .b-read { color: var(--blue); }
+    .b-ready { color: var(--amber); } .b-saved { color: var(--accent); } .b-err { color: var(--err); }
+    .qdel { width: 28px; height: 28px; flex: none; border-radius: 8px; background: transparent;
       color: var(--muted); border: 1px solid var(--line); font-size: 13px; padding: 0; cursor: pointer;
       display: flex; align-items: center; justify-content: center; }
-    .qdel:hover { color: var(--accent-d); border-color: var(--accent); }
-    .qdel-x { color: var(--err); border-color: #F2C9C9; }
-    .qdel-x:hover { background: var(--err-soft); color: var(--err); border-color: var(--err); }
-    /* Penanda "sudah dibaca otomatis" */
-    .qitem.read { border-left: 3px solid var(--ok); }
+    .qdel:hover { color: var(--accent); border-color: var(--accent); }
+    .qdel-x { color: var(--err); border-color: rgba(255,138,138,.3); }
+    .qdel-x:hover { background: rgba(255,138,138,.1); border-color: var(--err); }
+    .qitem.read { border-left: 3px solid var(--accent); }
     .qthumb-wrap { position: relative; flex: none; }
     .qthumb-check { position: absolute; right: -5px; bottom: -5px; width: 19px; height: 19px; border-radius: 50%;
-      background: var(--ok); color: #fff; font-size: 12px; font-weight: 900; line-height: 19px;
-      text-align: center; box-shadow: 0 0 0 2px #fff; }
+      background: var(--accent); color: #10231F; font-size: 12px; font-weight: 900; line-height: 19px;
+      text-align: center; box-shadow: 0 0 0 2px var(--card-2); }
 
-    /* --- Pratinjau bukti + lightbox --- */
     .review-img { margin: 12px 0 4px; }
-    .review-img img { width: 100%; max-height: 240px; object-fit: contain; border-radius: 12px;
-      border: 1px solid var(--line); background: var(--card-2); cursor: zoom-in; display: block; }
-    .imgmodal { position: fixed; inset: 0; z-index: 70; background: rgba(12,15,22,.88);
+    .review-img img { width: 100%; max-height: 240px; object-fit: contain; border-radius: var(--r);
+      border: 1px solid var(--line); background: #12131A; cursor: zoom-in; display: block; }
+    .imgmodal { position: fixed; inset: 0; z-index: 70; background: rgba(6,7,10,.94);
       display: flex; align-items: center; justify-content: center; padding: 16px; }
     .imgmodal img { max-width: 100%; max-height: 100%; border-radius: 10px; cursor: zoom-in;
-      box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+      box-shadow: 0 20px 60px rgba(0,0,0,.6); }
     .imgmodal.zoom { align-items: flex-start; justify-content: flex-start; overflow: auto; }
     .imgmodal.zoom img { max-width: none; max-height: none; width: auto; cursor: zoom-out; }
     .imgclose { position: fixed; top: 12px; right: 14px; z-index: 71; width: 40px; height: 40px; cursor: pointer;
       display: flex; align-items: center; justify-content: center; color: #fff; font-size: 20px;
-      background: rgba(255,255,255,.18); border-radius: 50%; }
+      background: rgba(255,255,255,.16); border-radius: 50%; }
   </style>
 </head>
 <body>
@@ -2015,22 +2028,41 @@
 
     function renderBudget(d) {
       var h = '';
-      // Ringkasan
-      h += '<div class="card budget-sum">';
-      h += '<div class="sumrow"><span>Total Pemasukan</span><b style="color:var(--ok)">' + rp(d.totalIncome) + '</b></div>';
-      h += '<div class="sumrow"><span>Total Pengeluaran</span><b style="color:var(--err)">' + rp(d.totalPengeluaran) + '</b></div>';
-      h += '<div class="sumrow"><span>Sisa (Saldo Real)</span><b style="color:' + (d.saldoReal < 0 ? 'var(--err)' : 'var(--ok)') + '">' + rp(d.saldoReal) + '</b></div>';
-      h += '</div>';
-      // Sisa Kantong (nilai pemasukan per kantong dari REAL)
-      h += '<div class="card"><div class="bt-title">💰 Sisa Kantong</div><table class="bt">';
-      d.pemasukan.forEach(function (o) {
-        h += '<tr><td>' + esc(o.b) + '</td><td class="num">' + rp(o.v) + '</td></tr>';
+      // --- 4 stat tile (adaptasi kartu "Today's Sales" dari Figma) ---
+      var terpakai = d.totalIncome > 0 ? Math.round(d.totalPengeluaran / d.totalIncome * 100) : 0;
+      h += '<div class="card"><div class="bt-title">' + esc(d.month || 'Ringkasan') + '</div>' +
+        '<div class="ask-hint" style="margin-bottom:12px">Ringkasan bulan berjalan</div><div class="stats">' +
+        statTile('t-mint', '↓', rp(d.totalIncome), 'Total Pemasukan', 'c-mint', 'seluruh kantong') +
+        statTile('t-amber', '↑', rp(d.totalPengeluaran), 'Total Pengeluaran', 'c-amber', terpakai + '% dari pemasukan') +
+        statTile('t-blue', '=', rp(d.saldoReal), 'Sisa (Saldo Real)', d.saldoReal < 0 ? 'c-amber' : 'c-blue',
+          d.saldoReal < 0 ? 'defisit' : 'tersedia') +
+        statTile('t-pink', '◔', (100 - terpakai) + '%', 'Sisa Budget', 'c-pink', 'belum terpakai') +
+        '</div></div>';
+
+      // --- Gauge pemakaian budget (adaptasi meter 80% kartu Earnings) ---
+      h += '<div class="card"><div class="bt-title">Pemakaian Budget</div>' +
+        '<div class="ask-hint">Pengeluaran terhadap total pemasukan</div>' +
+        '<div class="gauge"><div class="gauge-c" style="--p:' + Math.min(100, Math.max(0, terpakai)) + '"></div>' +
+        '<div class="gauge-hole"><span class="gauge-num">' + terpakai + '%</span></div></div>' +
+        '<div class="gauge-cap">' + rp(d.totalPengeluaran) + ' dari ' + rp(d.totalIncome) + '</div></div>';
+
+      // --- Sisa Kantong: nama + bar proporsi + nilai ---
+      var maksK = 0;
+      d.pemasukan.forEach(function (o) { if (o.v > maksK) maksK = o.v; });
+      h += '<div class="card"><div class="bt-title">Sisa Kantong</div>' +
+        '<div class="ask-hint" style="margin-bottom:10px">' + d.pemasukan.length + ' kantong</div><table class="bt">';
+      d.pemasukan.forEach(function (o, i) {
+        h += '<tr><td>' + esc(o.b) +
+          barProporsi(maksK ? (o.v / maksK * 100) : 0, i) +
+          '</td><td class="num">' + rp(o.v) + '</td></tr>';
       });
-      h += '<tr class="bt-total"><td>TOTAL</td><td class="num">' + rp(d.totalIncome) + '</td></tr>';
-      h += '</table></div>';
-      // Biaya per kategori
-      h += '<div class="card"><div class="bt-title">🧾 Biaya per Kategori</div><table class="bt">';
-      var lastGroup = '';
+      h += '<tr class="bt-total"><td>TOTAL</td><td class="num">' + rp(d.totalIncome) + '</td></tr></table></div>';
+
+      // --- Biaya per kategori: bar proporsi + pil persen (adaptasi "Top Products") ---
+      h += '<div class="card"><div class="bt-title">Biaya per Kategori</div>' +
+        '<div class="ask-hint" style="margin-bottom:10px">Bar & persen dihitung terhadap total pengeluaran</div>' +
+        '<table class="bt">';
+      var lastGroup = '', n = 0;
       d.biaya.forEach(function (o) {
         var aUp = o.a.toUpperCase();
         if (o.a && o.a !== '-' && aUp.indexOf('TOTAL') < 0 && o.a !== lastGroup) {
@@ -2038,12 +2070,40 @@
         }
         var isTot = (o.b.toUpperCase() === 'TOTAL' || aUp.indexOf('TOTAL') >= 0);
         var label = (aUp.indexOf('TOTAL') >= 0) ? o.a : o.b;
-        h += '<tr class="' + (isTot ? 'bt-total' : 'bt-item') + '"><td>' + esc(label) + '</td><td class="num">' + rp(o.v) + '</td></tr>';
+        if (isTot) {
+          h += '<tr class="bt-total"><td>' + esc(label) + '</td><td class="num">' + rp(o.v) + '</td></tr>';
+          return;
+        }
+        var pct = d.totalPengeluaran > 0 ? Math.round(o.v / d.totalPengeluaran * 100) : 0;
+        h += '<tr class="bt-item"><td>' + esc(label) + barProporsi(pct, n) + '</td>' +
+          '<td class="num">' + rp(o.v) + '<div style="margin-top:5px"><span class="ppill ' +
+          warnaSiklus(n) + '">' + pct + '%</span></div></td></tr>';
+        n++;
       });
       h += '<tr class="bt-total"><td>TOTAL PENGELUARAN</td><td class="num">' + rp(d.totalPengeluaran) + '</td></tr>';
       h += '</table></div>';
       document.getElementById('budgetView').innerHTML = h;
     }
+
+    /** Satu stat tile: ikon berwarna, nilai besar, label, keterangan kecil. */
+    function statTile(kelasIkon, ikon, nilai, label, kelasSub, sub) {
+      return '<div class="stat"><div class="stat-ico ' + kelasIkon + '">' + ikon + '</div>' +
+        '<div class="stat-val">' + nilai + '</div>' +
+        '<div class="stat-lbl">' + esc(label) + '</div>' +
+        '<div class="stat-sub ' + kelasSub + '">' + esc(sub) + '</div></div>';
+    }
+
+    /** Warna bergiliran mengikuti palet Figma (mint, amber, biru, pink). */
+    function warnaSiklus(i) { return ['c-mint', 'c-amber', 'c-blue', 'c-pink'][i % 4]; }
+
+    /** Bar proporsi horizontal, lebar = persen. */
+    function barProporsi(pct, i) {
+      var w = Math.max(0, Math.min(100, pct));
+      var warna = { 'c-mint': 'var(--accent)', 'c-amber': 'var(--amber)',
+        'c-blue': 'var(--blue)', 'c-pink': 'var(--pink)' }[warnaSiklus(i)];
+      return '<div class="pbar"><span style="width:' + w + '%;background:' + warna + '"></span></div>';
+    }
+
   </script>
 </body>
 </html>
