@@ -4,161 +4,214 @@
   <base target="_top">
   <meta charset="utf-8">
   <style>
+    /* ============================================================
+       Tema TERANG untuk aplikasi keuangan.
+       Prinsip yang dipinjam dari referensi Furniro: latar netral hangat,
+       kartu putih, sudut membulat, bayangan lembut, spasi lega, dan
+       SATU warna aksen. Nuansa toko furnitur sengaja tidak dipakai.
+
+       Warna aksen sengaja BUKAN hijau/merah, karena keduanya dipakai
+       sebagai makna angka: hijau = pemasukan/positif, merah = pengeluaran.
+       ============================================================ */
     :root {
-      --bg: #0a0e1c; --card: rgba(255,255,255,.05); --ink: #e7ecf6; --muted: #93a0c0;
-      --line: rgba(146,170,255,.16); --accent: #38bdf8; --accent-d: #7dd3fc; --accent2: #8b5cf6;
-      --ok: #34d399; --warn: #fbbf24; --err: #fb7185; --ask: #22d3ee;
+      --bg: #F6F7F9;            /* latar aplikasi, netral sedikit hangat */
+      --card: #FFFFFF;          /* permukaan kartu */
+      --card-2: #FBFBFD;        /* permukaan sekunder (baris, input) */
+      --ink: #16181D;           /* teks utama */
+      --ink-2: #454A54;         /* teks sekunder */
+      --muted: #767C88;         /* teks redup / label */
+      --line: #E4E7EC;          /* garis & batas */
+      --line-2: #EFF1F5;        /* garis sangat halus */
+      --accent: #4F46E5;        /* SATU warna aksen (indigo) */
+      --accent-d: #4338CA;      /* aksen gelap untuk teks di atas putih */
+      --accent-soft: #EEF0FE;   /* latar lembut aksen */
+      --ok: #047857;            /* pemasukan / berhasil */
+      --ok-soft: #E7F6F0;
+      --err: #C6303B;           /* pengeluaran / galat */
+      --err-soft: #FDECEC;
+      --warn: #B45309;          /* peringatan */
+      --warn-soft: #FDF3E3;
+      --ask: #0E7490;           /* info */
+      --ask-soft: #E6F4F8;
+      --shadow: 0 1px 2px rgba(16,24,40,.05), 0 8px 24px rgba(16,24,40,.06);
+      --shadow-sm: 0 1px 2px rgba(16,24,40,.06);
+      --r: 14px;                /* radius kartu */
+      --r-sm: 10px;             /* radius kontrol */
     }
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-      color: var(--ink); padding: 16px; min-height: 100vh; background-attachment: fixed;
-      background:
-        radial-gradient(900px 520px at 12% -8%, rgba(56,189,248,.16), transparent 60%),
-        radial-gradient(820px 520px at 112% 6%, rgba(139,92,246,.18), transparent 55%),
-        #0a0e1c; }
+    body { margin: 0; padding: 16px; min-height: 100vh; background: var(--bg); color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      -webkit-font-smoothing: antialiased; line-height: 1.5; }
     .wrap { max-width: 560px; margin: 0 auto; }
-    h1 { font-size: 20px; margin: 4px 0 2px; }
+    h1 { font-size: 20px; margin: 4px 0 2px; letter-spacing: -.01em; }
     .sub { color: var(--muted); font-size: 13px; margin-bottom: 12px; }
-    .target { font-size: 12px; color: var(--accent-d); background: rgba(56,189,248,.08);
-      border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; margin-bottom: 14px; }
-    .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px;
-      padding: 16px; margin-bottom: 16px; box-shadow: 0 8px 30px rgba(0,0,0,.35);
-      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
-    .drop { border: 2px dashed var(--line); border-radius: 12px; padding: 22px 14px;
-      text-align: center; color: var(--muted); cursor: pointer; transition: .15s; }
-    .drop:hover, .drop.over { border-color: var(--accent); color: var(--accent); background: rgba(56,189,248,.08); }
+    .target { font-size: 12px; color: var(--accent-d); background: var(--accent-soft);
+      border: 1px solid #DDE0FB; border-radius: var(--r-sm); padding: 9px 12px; margin-bottom: 14px; }
+
+    /* --- Kartu: putih, sudut membulat, bayangan lembut, spasi lega --- */
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r);
+      padding: 18px; margin-bottom: 16px; box-shadow: var(--shadow); }
+
+    .drop { border: 1.5px dashed #CDD2DC; border-radius: 12px; padding: 26px 14px; text-align: center;
+      color: var(--muted); cursor: pointer; background: var(--card-2); transition: .15s; }
+    .drop:hover, .drop.over { border-color: var(--accent); color: var(--accent-d); background: var(--accent-soft); }
     .drop strong { color: var(--ink); }
     #preview { display: none; width: 100%; border-radius: 10px; margin-top: 12px; border: 1px solid var(--line); }
-    label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin: 12px 0 4px; }
-    input, select { width: 100%; padding: 10px 11px; font-size: 15px; border: 1px solid var(--line);
-      border-radius: 9px; background: rgba(255,255,255,.05); color: var(--ink); }
-    input::placeholder { color: #6b7799; }
-    select option { background: #0e1630; color: #e7ecf6; }
-    input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(56,189,248,.18); }
-    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    /* --- Kontrol form --- */
+    label { display: block; font-size: 12px; font-weight: 600; color: var(--ink-2); margin: 14px 0 5px;
+      letter-spacing: .01em; }
+    input, select { width: 100%; padding: 11px 12px; font-size: 15px; color: var(--ink);
+      border: 1px solid #D5D9E0; border-radius: var(--r-sm); background: #fff; }
+    input::placeholder { color: #A2A8B4; }
+    select option { background: #fff; color: var(--ink); }
+    input:focus, select:focus { outline: none; border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(79,70,229,.14); }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* --- Tombol --- */
     button { width: 100%; padding: 12px; font-size: 15px; font-weight: 600; border: none;
-      border-radius: 10px; cursor: pointer; transition: .15s; }
-    .btn-primary { background: linear-gradient(135deg, #38bdf8, #6366f1); color: #06121f; }
-    .btn-primary:hover { filter: brightness(1.06); }
-    .btn-ghost { background: rgba(255,255,255,.06); color: var(--ink); border: 1px solid var(--line); }
+      border-radius: var(--r-sm); cursor: pointer; transition: .15s; }
+    .btn-primary { background: var(--accent); color: #fff; box-shadow: 0 1px 2px rgba(79,70,229,.28); }
+    .btn-primary:hover { background: var(--accent-d); }
+    .btn-ghost { background: #fff; color: var(--ink-2); border: 1px solid #D5D9E0; }
+    .btn-ghost:hover { background: var(--card-2); border-color: #C3C9D4; }
     button:disabled { opacity: .55; cursor: not-allowed; }
-    .row-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+    .row-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
     .hidden { display: none; }
-    .ask-box { border: 1px solid rgba(34,211,238,.3); background: rgba(34,211,238,.07); border-radius: 12px;
-      padding: 12px 12px 14px; margin-top: 14px; }
-    .ask-title { font-size: 12px; font-weight: 700; color: var(--ask); text-transform: uppercase; letter-spacing: .03em; }
-    .ask-hint { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    /* --- Blok konfirmasi --- */
+    .ask-box { border: 1px solid #CFE6EE; background: var(--ask-soft); border-radius: 12px;
+      padding: 14px 14px 16px; margin-top: 16px; }
+    .ask-title { font-size: 12px; font-weight: 700; color: var(--ask); text-transform: uppercase; letter-spacing: .04em; }
+    .ask-hint { font-size: 12px; color: var(--muted); margin-top: 3px; }
     .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-    .chip { font-size: 13px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px;
-      background: rgba(255,255,255,.05); color: var(--ink); cursor: pointer; }
-    .chip:hover { border-color: var(--accent); color: var(--accent); }
-    .msg { padding: 10px 12px; border-radius: 9px; font-size: 13px; margin-top: 12px; }
-    .msg.ok { background: rgba(52,211,153,.12); color: #6ee7b7; border: 1px solid rgba(52,211,153,.3); }
-    .msg.err { background: rgba(251,113,133,.12); color: #fda4af; border: 1px solid rgba(251,113,133,.3); }
-    .msg.info { background: rgba(56,189,248,.12); color: #7dd3fc; border: 1px solid rgba(56,189,248,.3); }
-    .spin { display: inline-block; width: 15px; height: 15px; border: 2px solid #fff;
+    .chip { font-size: 13px; padding: 6px 11px; border: 1px solid var(--line); border-radius: 999px;
+      background: #fff; color: var(--ink-2); cursor: pointer; }
+    .chip:hover { border-color: var(--accent); color: var(--accent-d); background: var(--accent-soft); }
+
+    /* --- Pesan --- */
+    .msg { padding: 11px 13px; border-radius: var(--r-sm); font-size: 13px; margin-top: 12px; }
+    .msg.ok { background: var(--ok-soft); color: var(--ok); border: 1px solid #C7E9DA; }
+    .msg.err { background: var(--err-soft); color: var(--err); border: 1px solid #F5CDCD; }
+    .msg.info { background: var(--ask-soft); color: var(--ask); border: 1px solid #CFE6EE; }
+    .spin { display: inline-block; width: 15px; height: 15px; border: 2px solid currentColor;
       border-top-color: transparent; border-radius: 50%; animation: sp .7s linear infinite;
       vertical-align: -2px; margin-right: 7px; }
     @keyframes sp { to { transform: rotate(360deg); } }
-    .pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
-    .pill.tinggi { background: rgba(52,211,153,.15); color: #6ee7b7; }
-    .pill.sedang { background: rgba(251,191,36,.15); color: #fcd34d; }
-    .pill.rendah { background: rgba(251,113,133,.15); color: #fda4af; }
+
+    .pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+    .pill.tinggi { background: var(--ok-soft); color: var(--ok); }
+    .pill.sedang { background: var(--warn-soft); color: var(--warn); }
+    .pill.rendah { background: var(--err-soft); color: var(--err); }
     .note { font-size: 12px; color: var(--warn); margin-top: 8px; }
     .note.boc { color: var(--ask); }
     .nominal-prefix { position: relative; }
-    .nominal-prefix span { position: absolute; left: 11px; top: 11px; color: var(--muted); font-size: 15px; }
-    .nominal-prefix input { padding-left: 30px; }
-    /* 5 menu: baris 1 = 3 tombol, baris 2 = 2 tombol (tetap penuh selebar layar). */
-    .nav { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-bottom: 14px; }
-    .navbtn { padding: 9px 4px; border: 1px solid var(--line); background: rgba(255,255,255,.05); border-radius: 10px;
-      font-weight: 600; color: var(--muted); cursor: pointer; font-size: 12.5px; white-space: nowrap;
-      overflow: hidden; text-overflow: ellipsis; grid-column: span 2; }
+    .nominal-prefix span { position: absolute; left: 12px; top: 12px; color: var(--muted); font-size: 15px; }
+    .nominal-prefix input { padding-left: 32px; }
+
+    /* --- Navigasi: 5 menu (baris 1 = 3 tombol, baris 2 = 2 tombol) --- */
+    .nav { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 16px; }
+    .navbtn { padding: 10px 4px; border: 1px solid var(--line); background: #fff; border-radius: var(--r-sm);
+      font-weight: 600; color: var(--ink-2); cursor: pointer; font-size: 12.5px; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis; grid-column: span 2; box-shadow: var(--shadow-sm); }
     .navbtn:nth-child(4), .navbtn:nth-child(5) { grid-column: span 3; }
-    .navbtn.active { background: linear-gradient(135deg, rgba(56,189,248,.9), rgba(99,102,241,.9)); color: #06121f; border-color: transparent; }
-    .budget-sum .sumrow { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; font-size: 15px; }
-    .budget-sum .sumrow + .sumrow { border-top: 1px solid var(--line); }
-    .bt-title { font-weight: 700; font-size: 14px; margin-bottom: 8px; }
+    .navbtn.active { background: var(--accent); color: #fff; border-color: var(--accent);
+      box-shadow: 0 1px 2px rgba(79,70,229,.3); }
+
+    /* --- Ringkasan & tabel --- */
+    .budget-sum .sumrow { display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 0; font-size: 15px; }
+    .budget-sum .sumrow + .sumrow { border-top: 1px solid var(--line-2); }
+    .bt-title { font-weight: 700; font-size: 14px; margin-bottom: 10px; letter-spacing: -.005em; }
     table.bt { width: 100%; border-collapse: collapse; font-size: 14px; }
-    table.bt td { padding: 6px 4px; border-bottom: 1px solid var(--line); }
-    table.bt td.num { text-align: right; white-space: nowrap; }
-    .bt-group td { font-weight: 700; color: var(--accent-d); padding-top: 12px; border-bottom: none; }
+    table.bt td { padding: 9px 4px; border-bottom: 1px solid var(--line-2); }
+    table.bt td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .bt-group td { font-weight: 700; color: var(--accent-d); padding-top: 16px; border-bottom: none;
+      font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
     .bt-item td:first-child { padding-left: 14px; }
-    table.bt tr[onclick]:hover td { background: rgba(56,189,248,.07); }
-    .bt-total td { font-weight: 700; background: #f8fafc; }
-    .lock { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
-    .lockbox { max-width: 340px; width: 100%; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 24px; text-align: center; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
-    .lockbox input { width: 100%; box-sizing: border-box; padding: 11px; font-size: 16px; text-align: center; border: 1px solid var(--line); border-radius: 9px; }
-    /* --- Tema futuristik --- */
-    .hdr { position: relative; margin: -16px -16px 16px; padding: 26px 16px 26px; text-align: center; overflow: hidden;
-      background: linear-gradient(135deg, rgba(56,189,248,.16), rgba(139,92,246,.16)); border-bottom: 1px solid var(--line); }
-    .hdr::before { content: ""; position: absolute; inset: 0;
-      background-image: linear-gradient(rgba(146,170,255,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(146,170,255,.06) 1px, transparent 1px);
-      background-size: 24px 24px;
-      -webkit-mask: radial-gradient(circle at 50% 18%, #000, transparent 72%); mask: radial-gradient(circle at 50% 18%, #000, transparent 72%); }
-    .hdr-title { position: relative; margin: 0; font-size: 21px; font-weight: 800; letter-spacing: .01em;
-      background: linear-gradient(90deg, #67e8f9, #a78bfa); -webkit-background-clip: text; background-clip: text; color: transparent; }
-    .hdr-tag { position: relative; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
-    .hdr-line { position: relative; height: 2px; width: 76px; margin: 11px auto 0; border-radius: 2px;
-      background: linear-gradient(90deg, #38bdf8, #8b5cf6); box-shadow: 0 0 14px rgba(56,189,248,.6); }
-    .orb { width: 60px; height: 60px; margin: 0 auto 8px; border-radius: 50%;
-      background: radial-gradient(circle at 50% 38%, #67e8f9, #6366f1 72%);
-      box-shadow: 0 0 32px rgba(56,189,248,.55), inset 0 0 18px rgba(255,255,255,.25); }
-    .card { box-shadow: 0 10px 34px rgba(0,0,0,.4); }
-    .btn-primary { box-shadow: 0 10px 26px rgba(56,189,248,.28); }
-    .bt-total td { background: rgba(255,255,255,.06); }
-    .lock { background: radial-gradient(760px 420px at 50% -5%, rgba(56,189,248,.18), transparent 60%), #0a0e1c; }
+    table.bt tr[onclick]:hover td { background: var(--accent-soft); }
+    .bt-total td { font-weight: 700; background: var(--card-2); }
+
+    /* --- Layar kunci & modal --- */
+    .lock { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center;
+      justify-content: center; padding: 20px; z-index: 50; }
+    .lockbox { max-width: 360px; width: 100%; background: var(--card); border: 1px solid var(--line);
+      border-radius: var(--r); padding: 26px; text-align: center; box-shadow: var(--shadow); }
+    .lockbox input { width: 100%; box-sizing: border-box; padding: 12px; font-size: 16px; text-align: center;
+      border: 1px solid #D5D9E0; border-radius: var(--r-sm); }
+
+    /* --- Kepala halaman --- */
+    .hdr { position: relative; margin: -16px -16px 18px; padding: 26px 16px 22px; text-align: center;
+      background: var(--card); border-bottom: 1px solid var(--line); }
+    .hdr::before { content: none; }
+    .hdr-title { position: relative; margin: 0; font-size: 21px; font-weight: 800; color: var(--ink);
+      letter-spacing: -.02em; }
+    .hdr-tag { position: relative; font-size: 11px; letter-spacing: .22em; text-transform: uppercase;
+      color: var(--muted); margin-top: 5px; }
+    .hdr-line { position: relative; height: 3px; width: 44px; margin: 12px auto 0; border-radius: 3px;
+      background: var(--accent); }
+    .orb { width: 52px; height: 52px; margin: 0 auto 10px; border-radius: 14px;
+      background: var(--accent-soft); border: 1px solid #DDE0FB;
+      display: flex; align-items: center; justify-content: center; }
+    .orb::after { content: "Rp"; font-weight: 800; font-size: 18px; color: var(--accent-d); }
+
+    /* --- Combobox POS BIAYA --- */
     .combo { position: relative; }
-    .combo-list { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 30; max-height: 230px;
-      overflow: auto; background: #0e1630; border: 1px solid var(--line); border-radius: 10px;
-      box-shadow: 0 14px 34px rgba(0,0,0,.55); display: none; }
+    .combo-list { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 30; max-height: 240px;
+      overflow: auto; background: #fff; border: 1px solid var(--line); border-radius: 12px;
+      box-shadow: 0 12px 28px rgba(16,24,40,.14); display: none; }
     .combo-list.open { display: block; }
-    .combo-item { padding: 10px 11px; font-size: 14px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,.05); }
+    .combo-item { padding: 11px 12px; font-size: 14px; cursor: pointer; border-bottom: 1px solid var(--line-2); }
     .combo-item:last-child { border-bottom: 0; }
-    .combo-item:hover { background: rgba(56,189,248,.16); }
-    .combo-empty { padding: 10px 11px; color: var(--muted); font-size: 13px; }
+    .combo-item:hover { background: var(--accent-soft); color: var(--accent-d); }
+    .combo-empty { padding: 11px 12px; color: var(--muted); font-size: 13px; }
+
     /* --- Antrean bukti (multi-upload) --- */
     .queue { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
-    .qitem { display: flex; align-items: center; gap: 10px; padding: 8px; border: 1px solid var(--line);
-      border-radius: 10px; background: rgba(255,255,255,.04); }
+    .qitem { display: flex; align-items: center; gap: 11px; padding: 10px; border: 1px solid var(--line);
+      border-radius: 12px; background: #fff; }
     .qitem[onclick] { cursor: pointer; }
-    .qitem[onclick]:hover { border-color: var(--accent); }
-    .qitem.q-active { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(56,189,248,.25); }
-    .qthumb { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; border: 1px solid var(--line);
-      flex: none; display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--muted);
-      background: rgba(255,255,255,.05); }
+    .qitem[onclick]:hover { border-color: var(--accent); background: var(--accent-soft); }
+    .qitem.q-active { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(79,70,229,.18); }
+    .qthumb { width: 44px; height: 44px; border-radius: 9px; object-fit: cover; border: 1px solid var(--line);
+      flex: none; display: flex; align-items: center; justify-content: center; font-size: 18px;
+      color: var(--muted); background: var(--card-2); }
     .qmeta { flex: 1; min-width: 0; }
     .qname { font-size: 13px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .qbadge { display: inline-block; margin-top: 3px; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
-    .b-wait { background: rgba(148,163,184,.18); color: #cbd5e1; }
-    .b-read { background: rgba(56,189,248,.16); color: #7dd3fc; }
-    .b-ready { background: rgba(251,191,36,.16); color: #fcd34d; }
-    .b-saved { background: rgba(52,211,153,.16); color: #6ee7b7; }
-    .b-err { background: rgba(251,113,133,.16); color: #fda4af; }
-    .qdel { width: 28px; height: 28px; flex: none; border-radius: 8px; background: rgba(255,255,255,.06);
-      color: var(--muted); border: 1px solid var(--line); font-size: 13px; padding: 0; cursor: pointer; }
-    .qdel:hover { color: var(--err); border-color: var(--err); }
-    .qdel-x { color: var(--err); border-color: rgba(251,113,133,.35); }
-    .qdel-x:hover { background: rgba(251,113,133,.14); }
+    .qbadge { display: inline-block; margin-top: 3px; font-size: 11px; font-weight: 700; padding: 2px 8px;
+      border-radius: 999px; }
+    .b-wait { background: #EFF1F5; color: #5C6270; }
+    .b-read { background: var(--ask-soft); color: var(--ask); }
+    .b-ready { background: var(--warn-soft); color: var(--warn); }
+    .b-saved { background: var(--ok-soft); color: var(--ok); }
+    .b-err { background: var(--err-soft); color: var(--err); }
+    .qdel { width: 28px; height: 28px; flex: none; border-radius: 8px; background: #fff;
+      color: var(--muted); border: 1px solid var(--line); font-size: 13px; padding: 0; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; }
+    .qdel:hover { color: var(--accent-d); border-color: var(--accent); }
+    .qdel-x { color: var(--err); border-color: #F2C9C9; }
+    .qdel-x:hover { background: var(--err-soft); color: var(--err); border-color: var(--err); }
     /* Penanda "sudah dibaca otomatis" */
     .qitem.read { border-left: 3px solid var(--ok); }
     .qthumb-wrap { position: relative; flex: none; }
     .qthumb-check { position: absolute; right: -5px; bottom: -5px; width: 19px; height: 19px; border-radius: 50%;
-      background: var(--ok); color: #06121f; font-size: 12px; font-weight: 900; line-height: 19px; text-align: center;
-      box-shadow: 0 0 0 2px #0e1630; }
-    /* --- Pratinjau bukti di form tinjau + lightbox --- */
-    .review-img { margin: 10px 0 4px; }
-    .review-img img { width: 100%; max-height: 240px; object-fit: contain; border-radius: 10px;
-      border: 1px solid var(--line); background: rgba(0,0,0,.28); cursor: zoom-in; display: block; }
-    .imgmodal { position: fixed; inset: 0; z-index: 70; background: rgba(3,6,15,.93);
+      background: var(--ok); color: #fff; font-size: 12px; font-weight: 900; line-height: 19px;
+      text-align: center; box-shadow: 0 0 0 2px #fff; }
+
+    /* --- Pratinjau bukti + lightbox --- */
+    .review-img { margin: 12px 0 4px; }
+    .review-img img { width: 100%; max-height: 240px; object-fit: contain; border-radius: 12px;
+      border: 1px solid var(--line); background: var(--card-2); cursor: zoom-in; display: block; }
+    .imgmodal { position: fixed; inset: 0; z-index: 70; background: rgba(12,15,22,.88);
       display: flex; align-items: center; justify-content: center; padding: 16px; }
-    .imgmodal img { max-width: 100%; max-height: 100%; border-radius: 8px; cursor: zoom-in;
-      box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+    .imgmodal img { max-width: 100%; max-height: 100%; border-radius: 10px; cursor: zoom-in;
+      box-shadow: 0 20px 60px rgba(0,0,0,.5); }
     .imgmodal.zoom { align-items: flex-start; justify-content: flex-start; overflow: auto; }
     .imgmodal.zoom img { max-width: none; max-height: none; width: auto; cursor: zoom-out; }
     .imgclose { position: fixed; top: 12px; right: 14px; z-index: 71; width: 40px; height: 40px; cursor: pointer;
       display: flex; align-items: center; justify-content: center; color: #fff; font-size: 20px;
-      background: rgba(255,255,255,.14); border-radius: 50%; }
+      background: rgba(255,255,255,.18); border-radius: 50%; }
   </style>
 </head>
 <body>
@@ -1471,7 +1524,7 @@
       var map = { done: ['✓ terbaca', 'b-saved'], reading: ['⏳ dibaca', 'b-read'],
         pending: ['… antre baca', 'b-wait'], error: ['⚠️ gagal baca', 'b-err'] };
       var m = map[state] || map.pending;
-      return '<span class="qbadge ' + m[1] + '" style="margin-top:0;margin-left:6px">' + m[0] + '</span>';
+      return '<span class="qbadge ' + m[1] + '">' + m[0] + '</span>';
     }
 
     // --- Baca otomatis di latar belakang (trigger) ---
@@ -1529,8 +1582,9 @@
           (it.thumb ? ('<img class="qthumb" src="' + it.thumb + '" alt="">') : '<div class="qthumb">🧾</div>') +
           (read ? '<span class="qthumb-check" title="Sudah dibaca otomatis">✓</span>' : '') +
           '</div>' +
-          '<div class="qmeta"><div class="qname">' + esc(it.name) + aiBadge(it.aiState) + '</div>' +
-          '<div class="ask-hint">' + esc(it.date) + ' · ' + ibSize(it.size) + '</div></div>' +
+          '<div class="qmeta"><div class="qname">' + esc(it.name) + '</div>' +
+          '<div class="ask-hint">' + esc(it.date) + ' · ' + ibSize(it.size) + '</div>' +
+          aiBadge(it.aiState) + '</div>' +
           '<span class="qdel" title="Lihat penuh" onclick="event.stopPropagation();ibViewImage(\'' + it.id + '\')">⤢</span>' +
           '<span class="qdel qdel-x" title="Hapus bukti ini" onclick="event.stopPropagation();ibDeleteOne(\'' + it.id + '\')">🗑</span></div>';
       });
