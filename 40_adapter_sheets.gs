@@ -277,3 +277,19 @@ function sheetsBacaMemori_() {
     return sh.getDataRange().getValues();
   } catch (e) { return []; }
 }
+
+/**
+ * Blok BUDGET dari sheet REKAP pada kolom bulan yang sama dengan REAL.
+ * Tata letak REKAP sejajar REAL (baris POS & kolom bulan sama), jadi pemanggil
+ * memakai nomor baris + kolom yang sama. Mengembalikan [] bila sheet tidak ada,
+ * supaya menu Budget tetap tampil (tanpa angka budget) alih-alih gagal total.
+ */
+function sheetsBacaRekap_(barisAwal, jumlahBaris, kolomNilai) {
+  try {
+    var sh = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(REKAP_SHEET);
+    if (!sh || !barisAwal || !jumlahBaris || !kolomNilai) return [];
+    var nBaris = Math.min(jumlahBaris, Math.max(0, sh.getLastRow() - barisAwal + 1));
+    if (nBaris <= 0 || kolomNilai > sh.getLastColumn()) return [];
+    return sh.getRange(barisAwal, kolomNilai, nBaris, 1).getValues();
+  } catch (e) { return []; }
+}

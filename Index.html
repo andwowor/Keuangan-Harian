@@ -171,9 +171,9 @@
       color: var(--muted); margin-top: 5px; }
     .hdr-line { position: relative; height: 3px; width: 40px; margin: 12px auto 0; border-radius: 3px;
       background: var(--accent); }
-    .orb { width: 52px; height: 52px; margin: 0 auto 10px; border-radius: 14px; background: var(--accent-soft);
-      border: 1px solid rgba(169,223,216,.25); display: flex; align-items: center; justify-content: center; }
-    .orb::after { content: "Rp"; font-weight: 800; font-size: 18px; color: var(--accent); }
+    /* Logo: panel gelap + batang naik + koin Rp (selaras ikon PWA) */
+    .logo { width: 56px; height: 56px; display: block; margin: 0 auto 10px; }
+    .logo-hdr { width: 40px; height: 40px; margin: 0 auto 8px; }
 
     .combo { position: relative; }
     .combo-list { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 30; max-height: 240px;
@@ -230,7 +230,7 @@
 <body>
   <div id="lock" class="lock">
     <div class="lockbox">
-      <div class="orb"></div>
+      <svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect x="1.5" y="1.5" width="61" height="61" rx="17" fill="#21222D" stroke="rgba(169,223,216,.28)"/><rect x="14" y="36" width="9" height="15" rx="4.5" fill="#20AEF3"/><rect x="27.5" y="28" width="9" height="23" rx="4.5" fill="#7FCFC4"/><rect x="41" y="24" width="9" height="27" rx="4.5" fill="#A9DFD8"/><circle cx="45.5" cy="17" r="10.5" fill="#A9DFD8"/><text x="45.5" y="21.2" text-anchor="middle" font-size="11" font-weight="800" fill="#10231F" font-family="Inter,Arial,sans-serif">Rp</text></svg>
       <h2 style="margin:6px 0 2px;font-size:18px;color:var(--ink)">Keuangan Harian</h2>
       <div style="color:var(--muted);font-size:13px;margin-bottom:12px">Masukkan PIN untuk masuk</div>
       <input id="pin" type="password" inputmode="numeric" placeholder="PIN" onkeydown="if(event.key==='Enter')unlock()">
@@ -240,6 +240,7 @@
   </div>
   <div class="wrap">
     <header class="hdr">
+      <svg class="logo logo-hdr" viewBox="0 0 64 64" aria-hidden="true"><rect x="1.5" y="1.5" width="61" height="61" rx="17" fill="#21222D" stroke="rgba(169,223,216,.28)"/><rect x="14" y="36" width="9" height="15" rx="4.5" fill="#20AEF3"/><rect x="27.5" y="28" width="9" height="23" rx="4.5" fill="#7FCFC4"/><rect x="41" y="24" width="9" height="27" rx="4.5" fill="#A9DFD8"/><circle cx="45.5" cy="17" r="10.5" fill="#A9DFD8"/><text x="45.5" y="21.2" text-anchor="middle" font-size="11" font-weight="800" fill="#10231F" font-family="Inter,Arial,sans-serif">Rp</text></svg>
       <h1 class="hdr-title">Keuangan Harian</h1>
       <div class="hdr-tag">Dashboard Biaya</div>
       <div class="hdr-line"></div>
@@ -2028,62 +2029,82 @@
 
     function renderBudget(d) {
       var h = '';
-      // --- 4 stat tile (adaptasi kartu "Today's Sales" dari Figma) ---
-      var terpakai = d.totalIncome > 0 ? Math.round(d.totalPengeluaran / d.totalIncome * 100) : 0;
+      var adaB = d.adaBudget;                 // apakah angka budget dari REKAP tersedia
+      var pct = adaB ? d.pctTerpakai : -1;
+
+      // --- Stat tile ---
       h += '<div class="card"><div class="bt-title">' + esc(d.month || 'Ringkasan') + '</div>' +
-        '<div class="ask-hint" style="margin-bottom:12px">Ringkasan bulan berjalan</div><div class="stats">' +
-        statTile('t-mint', '↓', rp(d.totalIncome), 'Total Pemasukan', 'c-mint', 'seluruh kantong') +
-        statTile('t-amber', '↑', rp(d.totalPengeluaran), 'Total Pengeluaran', 'c-amber', terpakai + '% dari pemasukan') +
-        statTile('t-blue', '=', rp(d.saldoReal), 'Sisa (Saldo Real)', d.saldoReal < 0 ? 'c-amber' : 'c-blue',
-          d.saldoReal < 0 ? 'defisit' : 'tersedia') +
-        statTile('t-pink', '◔', (100 - terpakai) + '%', 'Sisa Budget', 'c-pink', 'belum terpakai') +
+        '<div class="ask-hint" style="margin-bottom:12px">Budget dari sheet REKAP · sisa dari sheet REAL</div>' +
+        '<div class="stats">' +
+        statTile('t-mint', '◆', adaB ? rp(d.totalBudget) : '—', 'Total Budget', 'c-mint',
+          adaB ? 'alokasi bulan ini' : 'REKAP tidak terbaca') +
+        statTile('t-amber', '↑', adaB ? rp(d.totalTerpakai) : '—', 'Terpakai', 'c-amber',
+          adaB ? pct + '% dari budget' : '—') +
+        statTile('t-blue', '◇', adaB ? rp(d.totalSisaBudget) : '—', 'Sisa Budget', 'c-blue',
+          adaB ? (100 - pct) + '% belum terpakai' : '—') +
+        statTile('t-pink', '=', rp(d.saldoReal), 'Saldo Real', d.saldoReal < 0 ? 'c-amber' : 'c-pink',
+          'pemasukan ' + rp(d.totalIncome)) +
         '</div></div>';
 
-      // --- Gauge pemakaian budget (adaptasi meter 80% kartu Earnings) ---
-      h += '<div class="card"><div class="bt-title">Pemakaian Budget</div>' +
-        '<div class="ask-hint">Pengeluaran terhadap total pemasukan</div>' +
-        '<div class="gauge"><div class="gauge-c" style="--p:' + Math.min(100, Math.max(0, terpakai)) + '"></div>' +
-        '<div class="gauge-hole"><span class="gauge-num">' + terpakai + '%</span></div></div>' +
-        '<div class="gauge-cap">' + rp(d.totalPengeluaran) + ' dari ' + rp(d.totalIncome) + '</div></div>';
+      // --- Gauge pemakaian budget ---
+      h += '<div class="card"><div class="bt-title">Pemakaian Budget</div>';
+      if (adaB) {
+        h += '<div class="ask-hint">Terpakai terhadap budget REKAP</div>' +
+          '<div class="gauge"><div class="gauge-c" style="--p:' + pct + '"></div>' +
+          '<div class="gauge-hole"><span class="gauge-num">' + pct + '%</span></div></div>' +
+          '<div class="gauge-cap">' + rp(d.totalTerpakai) + ' dari ' + rp(d.totalBudget) + '</div>';
+      } else {
+        h += '<div class="msg err">Angka budget tidak terbaca dari sheet <b>REKAP</b>. ' +
+          'Jalankan <b>cekBudgetRekap</b> di editor Apps Script untuk memeriksa strukturnya.</div>';
+      }
+      h += '</div>';
 
-      // --- Sisa Kantong: nama + bar proporsi + nilai ---
+      // --- Sisa Kantong ---
       var maksK = 0;
       d.pemasukan.forEach(function (o) { if (o.v > maksK) maksK = o.v; });
       h += '<div class="card"><div class="bt-title">Sisa Kantong</div>' +
         '<div class="ask-hint" style="margin-bottom:10px">' + d.pemasukan.length + ' kantong</div><table class="bt">';
       d.pemasukan.forEach(function (o, i) {
-        h += '<tr><td>' + esc(o.b) +
-          barProporsi(maksK ? (o.v / maksK * 100) : 0, i) +
+        h += '<tr><td>' + esc(o.b) + barProporsi(maksK ? (o.v / maksK * 100) : 0, i) +
           '</td><td class="num">' + rp(o.v) + '</td></tr>';
       });
       h += '<tr class="bt-total"><td>TOTAL</td><td class="num">' + rp(d.totalIncome) + '</td></tr></table></div>';
 
-      // --- Biaya per kategori: bar proporsi + pil persen (adaptasi "Top Products") ---
+      // --- Biaya per kategori: bar & persen = TERPAKAI terhadap BUDGET (REKAP) ---
       h += '<div class="card"><div class="bt-title">Biaya per Kategori</div>' +
-        '<div class="ask-hint" style="margin-bottom:10px">Bar & persen dihitung terhadap total pengeluaran</div>' +
-        '<table class="bt">';
+        '<div class="ask-hint" style="margin-bottom:10px">' +
+        (adaB ? 'Bar &amp; persen = terpakai terhadap budget REKAP. Nilai kanan = sisa budget.'
+              : 'Budget REKAP tidak terbaca — hanya sisa budget yang ditampilkan.') +
+        '</div><table class="bt">';
       var lastGroup = '', n = 0;
       d.biaya.forEach(function (o) {
         var aUp = o.a.toUpperCase();
         if (o.a && o.a !== '-' && aUp.indexOf('TOTAL') < 0 && o.a !== lastGroup) {
           lastGroup = o.a; h += '<tr class="bt-group"><td colspan="2">' + esc(o.a) + '</td></tr>';
         }
-        var isTot = (o.b.toUpperCase() === 'TOTAL' || aUp.indexOf('TOTAL') >= 0);
-        var label = (aUp.indexOf('TOTAL') >= 0) ? o.a : o.b;
-        if (isTot) {
+        if (o.isTotal) {
+          var label = (aUp.indexOf('TOTAL') >= 0) ? o.a : o.b;
           h += '<tr class="bt-total"><td>' + esc(label) + '</td><td class="num">' + rp(o.v) + '</td></tr>';
           return;
         }
-        var pct = d.totalPengeluaran > 0 ? Math.round(o.v / d.totalPengeluaran * 100) : 0;
-        h += '<tr class="bt-item"><td>' + esc(label) + barProporsi(pct, n) + '</td>' +
-          '<td class="num">' + rp(o.v) + '<div style="margin-top:5px"><span class="ppill ' +
-          warnaSiklus(n) + '">' + pct + '%</span></div></td></tr>';
+        var habis = o.adaBudget && o.sisa <= 0;
+        h += '<tr class="bt-item"><td>' + esc(o.b) +
+          (habis ? ' <span class="ppill c-amber">habis</span>' : '') +
+          (o.adaBudget ? barProporsi(o.pct, n) : '') +
+          (o.adaBudget ? '<div class="ask-hint" style="margin-top:4px">terpakai ' + rp(o.terpakai) +
+            ' / budget ' + rp(o.budget) + '</div>' : '') +
+          '</td><td class="num">' + rp(o.sisa) +
+          (o.adaBudget ? '<div style="margin-top:5px"><span class="ppill ' + warnaSiklus(n) + '">' +
+            o.pct + '%</span></div>' : '') + '</td></tr>';
         n++;
       });
-      h += '<tr class="bt-total"><td>TOTAL PENGELUARAN</td><td class="num">' + rp(d.totalPengeluaran) + '</td></tr>';
+      if (adaB) {
+        h += '<tr class="bt-total"><td>TOTAL SISA BUDGET</td><td class="num">' + rp(d.totalSisaBudget) + '</td></tr>';
+      }
       h += '</table></div>';
       document.getElementById('budgetView').innerHTML = h;
     }
+
 
     /** Satu stat tile: ikon berwarna, nilai besar, label, keterangan kecil. */
     function statTile(kelasIkon, ikon, nilai, label, kelasSub, sub) {

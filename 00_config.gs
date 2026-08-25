@@ -133,6 +133,10 @@ var POS_SOURCE_ROWS = [[3, 13], [17, 20], [23, 24], [28, 42], [46, 46], [49, 50]
 
 var REAL_SHEET = 'REAL';
 
+// Sheet REKAP = BUDGET per pos biaya. Sheet REAL = SISA budget (0 = habis terpakai).
+// Terpakai = budget (REKAP) - sisa (REAL). Tata letak baris & kolom REKAP sejajar REAL.
+var REKAP_SHEET = 'REKAP';
+
 // ============ PENYIMPANAN SEMENTARA BUKTI (FOLDER GOOGLE DRIVE) ============
 
 // Folder Drive penampung screenshot/bukti transfer yang belum sempat diproses.

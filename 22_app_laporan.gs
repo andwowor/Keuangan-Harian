@@ -30,13 +30,16 @@ function getBudget(monthLabel) {
   // Baca blok REAL sekali, lalu susun memakai aturan domain (15_domain_budget).
   var awal = BUDGET_BARIS_BIAYA[0];
   var blok = sheetsBacaReal_(awal, BUDGET_BARIS_AKHIR - awal + 1, col);
+  // BUDGET per pos dari sheet REKAP, kolom & baris yang sama dengan REAL.
+  var bud = sheetsBacaRekap_(awal, BUDGET_BARIS_AKHIR - awal + 1, col);
   var baris = [];
   for (var k = 0; k < blok.labels.length; k++) {
     baris.push({
       n: awal + k,
       a: blok.labels[k][0],
       b: blok.labels[k][1],
-      v: toNum_(blok.values[k][0])
+      v: toNum_(blok.values[k][0]),                       // REAL = SISA budget
+      budget: bud[k] ? toNum_(bud[k][0]) : 0              // REKAP = BUDGET
     });
   }
   var d = susunBudget_(baris);

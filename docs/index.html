@@ -19,10 +19,7 @@
     .setup { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 20; }
     .box { max-width: 440px; width: 100%; background: #21222D; border: 1px solid rgba(255,255,255,.07);
       border-radius: 10px; padding: 26px 22px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,.35); }
-    .orb { width: 52px; height: 52px; margin: 0 auto 12px; border-radius: 14px;
-      background: rgba(169,223,216,.14); border: 1px solid rgba(169,223,216,.25);
-      display: flex; align-items: center; justify-content: center; }
-    .orb::after { content: "Rp"; font-weight: 800; font-size: 18px; color: #A9DFD8; }
+    .logo { width: 56px; height: 56px; display: block; margin: 0 auto 12px; }
     h1 { font-size: 19px; margin: 0 0 10px; font-weight: 700; color: #FFFFFF; }
     p { color: #A0A0A0; font-size: 13px; line-height: 1.55; text-align: left; }
     code { background: rgba(169,223,216,.14); padding: 1px 5px; border-radius: 5px; font-size: 12px; color: #A9DFD8; }
@@ -42,7 +39,7 @@
 <body>
   <div id="setup" class="setup" style="display:none">
     <div class="box">
-      <div class="orb"></div>
+      <svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect x="1.5" y="1.5" width="61" height="61" rx="17" fill="#21222D" stroke="rgba(169,223,216,.28)"/><rect x="14" y="36" width="9" height="15" rx="4.5" fill="#20AEF3"/><rect x="27.5" y="28" width="9" height="23" rx="4.5" fill="#7FCFC4"/><rect x="41" y="24" width="9" height="27" rx="4.5" fill="#A9DFD8"/><circle cx="45.5" cy="17" r="10.5" fill="#A9DFD8"/><text x="45.5" y="21.2" text-anchor="middle" font-size="11" font-weight="800" fill="#10231F" font-family="Inter,Arial,sans-serif">Rp</text></svg>
       <h1>Keuangan Harian</h1>
       <p>Tempel <b>Web app URL</b> Apps Script Anda (yang berakhiran <code>/exec</code>).</p><p style="font-size:12px">Lupa URL-nya? Buka editor Apps Script → <b>Deploy</b> → <b>Manage deployments</b> → salin <b>Web app URL</b>.</p>
       <input id="url" type="url" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec">
@@ -53,7 +50,7 @@
 
   <div id="gagal" class="setup" style="display:none">
     <div class="box">
-      <div class="orb"></div>
+      <svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect x="1.5" y="1.5" width="61" height="61" rx="17" fill="#21222D" stroke="rgba(169,223,216,.28)"/><rect x="14" y="36" width="9" height="15" rx="4.5" fill="#20AEF3"/><rect x="27.5" y="28" width="9" height="23" rx="4.5" fill="#7FCFC4"/><rect x="41" y="24" width="9" height="27" rx="4.5" fill="#A9DFD8"/><circle cx="45.5" cy="17" r="10.5" fill="#A9DFD8"/><text x="45.5" y="21.2" text-anchor="middle" font-size="11" font-weight="800" fill="#10231F" font-family="Inter,Arial,sans-serif">Rp</text></svg>
       <h1>Dashboard tidak termuat</h1>
       <p>Halaman Apps Script tidak merespon dalam 10 detik. Penyebab tersering:</p>
       <p style="font-size:12px">

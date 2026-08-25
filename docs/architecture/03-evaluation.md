@@ -40,7 +40,7 @@ Tanggal evaluasi: 2026-08-11 · Standar §2 Langkah 7, §5.9
 | D2 | Belum ada test *integration* untuk adapter | Butuh sheet uji terpisah agar tidak mengotori data nyata | Buat spreadsheet fixture + `tests/integration` |
 | D3 | `ScriptApp.getOAuthToken()` dipakai di `41_adapter_drive.gs` | Token dipakai untuk mengambil thumbnail Drive resolusi besar — masih dalam domain adapter Drive | Biarkan; tercatat sebagai pengecualian sadar |
 | D4 | Belum ada CI (SonarCloud/Actions) untuk mengukur kompleksitas otomatis | Proyek satu orang | Aktifkan GitHub Actions + SonarCloud (§6 tooling) |
-| D6 | Ikon PWA (HUD ring lama) belum selaras dengan palet mint ADR-0009 | Kosmetik, tidak memengaruhi fungsi | Regenerasi ikon + opsional `prefers-color-scheme` |
+| ~~D6~~ | ~~Ikon PWA belum selaras~~ **SELESAI** — ikon & logo dalam aplikasi didesain ulang (batang naik + koin Rp, palet mint) | Kosmetik, tidak memengaruhi fungsi | Regenerasi ikon + opsional `prefers-color-scheme` |
 | D5 | `Index.html` masih satu berkas besar (UI + logika presentasi) | Apps Script menyajikan satu HTML; pemecahan butuh `include()` bertingkat | Pecah per tab memakai `include()` bila makin besar |
 
 ## Kesimpulan

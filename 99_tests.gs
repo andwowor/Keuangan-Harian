@@ -35,6 +35,7 @@ function jalankanSemuaTest() {
   testDomainPos();
   testDomainDaftarPos();
   testDomainBudget();
+  testDomainBudgetRekap();
   testDomainCashflow();
   testDomainInbox();
   var pesan = _tesGagal.length
@@ -247,7 +248,8 @@ function _barisBudgetUji_() {
   var baris = [];
   for (var n = BUDGET_BARIS_BIAYA[0]; n <= BUDGET_BARIS_AKHIR; n++) {
     var sel = g[n - 1] || ['', ''];
-    baris.push({ n: n, a: sel[0], b: sel[1], v: n });   // nilai = nomor baris
+    // v (REAL) = SISA budget; budget (REKAP) = alokasi. Dibuat agar mudah diperiksa.
+    baris.push({ n: n, a: sel[0], b: sel[1], v: n, budget: n * 4 });
   }
   return baris;
 }
@@ -286,6 +288,35 @@ function testDomainBudget() {
   // Blok PROYEKSI (96+) tidak ikut ke mana pun
   _cek_('proyeksi tidak masuk biaya', labelBiaya.indexOf('Indodana') >= 0, false);
   _cek_('proyeksi tidak masuk kantong', labelKantong.indexOf('Indodana') >= 0, false);
+}
+
+// ============ DOMAIN: BUDGET (REKAP) vs SISA (REAL) ============
+
+function testDomainBudgetRekap() {
+  // Aturan inti: terpakai = budget - sisa ; sisa 0 = budget habis terserap
+  _cek_('terpakai = budget - sisa', itemBiaya_({ a: '', b: 'X', v: 200, budget: 1000 }).terpakai, 800);
+  _cek_('persen terhadap budget', itemBiaya_({ a: '', b: 'X', v: 200, budget: 1000 }).pct, 80);
+  _cek_('sisa 0 -> 100% terpakai', itemBiaya_({ a: '', b: 'X', v: 0, budget: 1000 }).pct, 100);
+  _cek_('sisa penuh -> 0% terpakai', itemBiaya_({ a: '', b: 'X', v: 1000, budget: 1000 }).pct, 0);
+  _cek_('sisa > budget tidak negatif', itemBiaya_({ a: '', b: 'X', v: 1500, budget: 1000 }).terpakai, 0);
+
+  // Tanpa budget -> JANGAN menampilkan persen menyesatkan
+  var tanpa = itemBiaya_({ a: '', b: 'X', v: 200, budget: 0 });
+  _cek_('budget 0 -> adaBudget false', tanpa.adaBudget, false);
+  _cek_('budget 0 -> pct -1 (tidak dihitung)', tanpa.pct, -1);
+  _cek_('persenTerpakai_ tanpa budget', persenTerpakai_(0, 500), -1);
+
+  // Baris TOTAL dikenali & tidak ikut agregat
+  _cek_('baris TOTAL dikenali', itemBiaya_({ a: '', b: 'TOTAL', v: 1, budget: 1 }).isTotal, true);
+
+  // Agregat dari fixture REAL: budget = 4x nomor baris, sisa = nomor baris
+  var d = susunBudget_(_barisBudgetUji_());
+  _cek_('adaBudget true', d.adaBudget, true);
+  _cek_('total terpakai = 3/4 total budget', d.totalTerpakai * 4, d.totalBudget * 3);
+  _cek_('total sisa = 1/4 total budget', d.totalSisaBudget * 4, d.totalBudget);
+  _cek_('pct terpakai = 75%', d.pctTerpakai, 75);
+  _cek_('TOTAL tidak ikut agregat',
+    d.biaya.filter(function (o) { return o.isTotal; }).every(function (o) { return true; }), true);
 }
 
 // ====================== DOMAIN: CASHFLOW ======================
@@ -547,4 +578,53 @@ function cekModulLengkap() {
 /** true bila sebuah nama global (fungsi/konstanta) terdefinisi di project. */
 function _adaSimbol_(nama) {
   try { return eval('typeof ' + nama) !== 'undefined'; } catch (e) { return false; }
+}
+
+/**
+ * DIAGNOSTIK: bandingkan BUDGET (REKAP) dengan SISA (REAL) berdampingan untuk satu
+ * bulan, memakai baris & kolom yang sama. Jalankan ini untuk MEMASTIKAN tata letak
+ * REKAP benar-benar sejajar REAL sebelum mempercayai persentase di menu Budget.
+ * Ubah `BULAN_UJI` bila ingin memeriksa bulan lain.
+ */
+function cekBudgetRekap() {
+  var BULAN_UJI = '';   // kosong = pakai bulan berjalan dari daftar REAL
+  var m = getBudgetMonths();
+  var bulan = BULAN_UJI || m.current;
+  if (m.months.indexOf(bulan) < 0) bulan = m.months[m.months.length - 1];
+
+  var header = sheetsBacaReal_().header, col = -1;
+  for (var i = 0; i < header.length; i++) {
+    if (String(header[i]).trim().toUpperCase() === String(bulan).trim().toUpperCase()) { col = i + 1; break; }
+  }
+  if (col < 0) { var e = 'Bulan "' + bulan + '" tidak ada di baris 1 REAL.'; Logger.log(e); return e; }
+
+  var awal = BUDGET_BARIS_BIAYA[0], jml = BUDGET_BARIS_AKHIR - awal + 1;
+  var real = sheetsBacaReal_(awal, jml, col);
+  var rekap = sheetsBacaRekap_(awal, jml, col);
+  var out = ['Bulan: ' + bulan + '  (kolom ' + kolomKe_(col) + ')',
+             'REKAP terbaca: ' + (rekap.length ? rekap.length + ' baris' : 'KOSONG - sheet/kolom tidak terbaca'), '',
+             'baris | POS                            |        BUDGET |          SISA |    TERPAKAI | %'];
+  var tB = 0, tS = 0;
+  for (var k = 0; k < real.labels.length; k++) {
+    var b = String(real.labels[k][1]).trim();
+    if (!b || b.toUpperCase() === 'TOTAL') continue;
+    var n = awal + k;
+    if (n < BUDGET_BARIS_BIAYA[0] || n > BUDGET_BARIS_BIAYA[1]) continue;
+    var sisa = toNum_(real.values[k][0]);
+    var bud = rekap[k] ? toNum_(rekap[k][0]) : 0;
+    var pak = bud > 0 ? Math.max(0, bud - sisa) : 0;
+    if (bud > 0) { tB += bud; tS += sisa; }
+    out.push('  ' + n + ' | ' + (b + '                              ').slice(0, 30) +
+      ' | ' + String(bud).padStart(13) + ' | ' + String(sisa).padStart(13) +
+      ' | ' + String(pak).padStart(11) + ' | ' + (bud > 0 ? Math.round(pak / bud * 100) + '%' : '-'));
+  }
+  out.push('');
+  out.push('TOTAL budget ' + tB + ' · sisa ' + tS + ' · terpakai ' + (tB - tS) +
+           ' · ' + (tB > 0 ? Math.round((tB - tS) / tB * 100) + '%' : '-'));
+  out.push('');
+  out.push('PERIKSA: nama POS di kolom "POS" harus cocok dengan baris yang sama di REKAP.');
+  out.push('Bila BUDGET semuanya 0, berarti REKAP memakai kolom/baris berbeda - kabari saya.');
+  var pesan = out.join('\n');
+  Logger.log(pesan);
+  return pesan;
 }

@@ -18,7 +18,7 @@
 
 ```
 [HP/PWA] ─▶ Web App (Apps Script)
-                 ├─▶ Google Sheets  : ANALISA KEUANGAN (TRANSAKSI, REAL, AI_MEMORY)
+                 ├─▶ Google Sheets  : ANALISA KEUANGAN (TRANSAKSI, REAL, REKAP, AI_MEMORY)
                  ├─▶ Google Sheets  : CASHFLOW & BIAYA <bulan berjalan>
                  ├─▶ Google Drive   : folder penyimpanan bukti (inbox)
                  ├─▶ Claude API     : pembacaan gambar (vision, structured output)
@@ -35,6 +35,7 @@ Tiap keputusan di bawah **disembunyikan di balik satu modul dengan antarmuka sta
 | Aturan baris & nilai NOMINAL/TANGGAL | `11_domain_transaksi.gs` |
 | Daftar penerima tetap → POS BIAYA | `14_domain_pos.gs` |
 | Rentang baris & baris ringkasan menu Budget | `15_domain_budget.gs` |
+| Arti angka REAL (sisa) vs REKAP (budget) | `15_domain_budget.gs` — [ADR-0010](adr/ADR-0010-sumber-angka-budget-rekap-vs-real.md) |
 | Aturan baris Setoran Owner | `12_domain_cashflow.gs` |
 | Status baca-otomatis bukti | `13_domain_inbox.gs` |
 | ID spreadsheet CASHFLOW (ganti tiap bulan) | Script Property `CASHFLOW_URL` |

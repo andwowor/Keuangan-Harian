@@ -64,7 +64,7 @@ Di editor Apps Script, pilih fungsi lalu **Run** (hasil di *Execution log*):
 
 | Fungsi | Cakupan |
 |---|---|
-| `jalankanSemuaTest` | **110 test unit domain** — murni, tidak menyentuh data nyata |
+| `jalankanSemuaTest` | **124 test unit domain** — murni, tidak menyentuh data nyata |
 | `cekFolderPenyimpanan` | Integrasi: izin Drive & folder inbox |
 | `cekDeteksiRekening` | Aturan sumber dana pada contoh bukti nyata |
 

@@ -1,0 +1,50 @@
+# ADR-0010: REKAP = budget, REAL = sisa budget
+Tanggal   : 2026-08-25
+Status    : Accepted
+
+## Konteks
+Menu Budget semula memperlakukan angka pada sheet **REAL** sebagai **pengeluaran**, lalu
+menghitung persentase tiap kategori terhadap total pengeluaran. Pemilik mengoreksi:
+
+> "Angka 0 pada setiap biaya pada sheet REAL artinya seluruh budget pada masing-masing biaya
+> sudah terserap atau sudah terpakai semua. Budget per masing-masing pos biaya ada pada sheet REKAP."
+
+Artinya angka REAL adalah **SISA budget**, bukan pengeluaran — dan pembanding persentase
+yang benar adalah **budget pada sheet REKAP**, bukan total pengeluaran.
+
+## Keputusan
+- **REKAP** = alokasi **budget** per pos biaya.
+- **REAL** = **sisa** budget per pos (0 = habis terserap).
+- **terpakai = budget − sisa** (dijepit minimal 0 bila sisa melebihi budget).
+- **% terpakai = terpakai / budget**, dipakai untuk gauge pemakaian budget maupun bar/pil
+  persen pada Biaya per Kategori.
+- Total pada ringkasan **dihitung dari baris item**, bukan diambil dari baris `TOTAL` sheet —
+  label baris total peninggalan lama tidak dapat diandalkan setelah makna kolom berubah.
+- Tata letak REKAP diasumsikan **sejajar REAL** (baris POS & kolom bulan sama), sehingga
+  pembacaan memakai baris + kolom yang sama.
+
+## Penanganan bila budget tidak tersedia
+Bila REKAP tidak terbaca atau budget sebuah pos bernilai 0, sistem **tidak menampilkan
+persentase apa pun** (`pct = -1`, `adaBudget = false`) dan menampilkan tanda `—` atau pesan
+"Angka budget tidak terbaca dari sheet REKAP". Ini disengaja: pada aplikasi keuangan,
+persentase yang salah lebih berbahaya daripada persentase yang tidak ditampilkan.
+
+## Alternatif yang ditolak
+- **Memakai baris `TOTAL PENGELUARAN` REAL sebagai pembagi**: labelnya tidak lagi mencerminkan
+  isi setelah makna kolom dipahami sebagai sisa.
+- **Menebak kolom REKAP dari nama bulan sendiri**: header REKAP memakai dua baris
+  (tahun + singkatan bulan), berbeda dari REAL. Memakai kolom REAL yang sudah terbukti
+  lebih aman.
+- **Menampilkan persentase dengan asumsi budget = pengeluaran bila REKAP kosong**: ditolak,
+  menghasilkan angka menyesatkan.
+
+## Verifikasi
+`cekBudgetRekap()` di `99_tests.gs` mencetak perbandingan berdampingan
+(baris · POS · budget · sisa · terpakai · %) untuk satu bulan, agar keselarasan baris/kolom
+REKAP↔REAL dapat dipastikan sebelum angkanya dipercaya. 14 test domain menutup aturan ini.
+
+## Konsekuensi
++ Persentase akhirnya bermakna: "berapa persen budget pos ini sudah terpakai".
++ Pos yang budgetnya habis ditandai eksplisit (`habis`).
+− Menu Budget kini bergantung pada satu sheet tambahan (REKAP); bila tata letaknya berubah,
+  angka budget hilang (ditangani dengan tampilan `—`, bukan angka salah).
