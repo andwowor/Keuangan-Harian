@@ -118,3 +118,47 @@ function persenTerpakai_(budget, terpakai) {
 function rentangBudget_(rg) {
   return function (n) { return n >= rg[0] && n <= rg[1]; };
 }
+
+// ============ PERINGATAN SALDO REAL MINUS DI MASA DEPAN ============
+// Keputusan yang disembunyikan: bulan mana saja yang perlu dipantau, dan kapan
+// sebuah bulan dianggap "akan minus". Murni - tidak menyentuh sheet.
+
+/**
+ * Daftar bulan yang dipantau: mulai bulan SETELAH bulan berjalan sampai
+ * DESEMBER TAHUN DEPAN. Contoh: berjalan Agustus 2026 -> September 2026 s/d Desember 2027.
+ * bulanIdx: 0-11 (Januari = 0).
+ */
+function bulanPantauSaldo_(bulanIdx, tahun) {
+  var out = [];
+  var b = Number(bulanIdx) + 1, t = Number(tahun);
+  if (b > 11) { b = 0; t++; }
+  var akhir = Number(tahun) + 1;                 // sampai Desember tahun depan
+  while (t <= akhir) {
+    out.push({ bulan: BULAN_UPPER[b], tahun: t, label: BULAN_UPPER[b] + ' ' + t });
+    b++;
+    if (b > 11) { b = 0; t++; }
+  }
+  return out;
+}
+
+/**
+ * Saring bulan yang saldonya MINUS. `daftar` = [{ label, nilai, ada }].
+ * Bulan yang kolomnya tidak ada di sheet (ada=false) diabaikan - bukan berarti aman,
+ * hanya belum tersedia datanya.
+ */
+function saldoMinus_(daftar) {
+  var out = [];
+  for (var i = 0; i < (daftar || []).length; i++) {
+    var d = daftar[i];
+    if (d && d.ada && Number(d.nilai) < 0) out.push({ label: d.label, nilai: Number(d.nilai) });
+  }
+  return out;
+}
+
+/** Ringkasan peringatan: jumlah bulan minus + bulan pertama & saldo terparah. */
+function ringkasPeringatan_(minus) {
+  if (!minus || !minus.length) return { ada: false, jumlah: 0 };
+  var terparah = minus[0];
+  for (var i = 1; i < minus.length; i++) if (minus[i].nilai < terparah.nilai) terparah = minus[i];
+  return { ada: true, jumlah: minus.length, pertama: minus[0], terparah: terparah };
+}

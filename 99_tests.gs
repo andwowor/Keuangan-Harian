@@ -36,6 +36,7 @@ function jalankanSemuaTest() {
   testDomainDaftarPos();
   testDomainBudget();
   testDomainBudgetRekap();
+  testDomainPeringatanSaldo();
   testDomainCashflow();
   testDomainInbox();
   var pesan = _tesGagal.length
@@ -329,6 +330,52 @@ function testDomainBudgetRekap() {
   _cek_('sisa 150 dari 1000 -> waspada', itemBiaya_({ a: '', b: 'X', v: 150, budget: 1000 }).status, 'waspada');
   _cek_('sisa 500 dari 1000 -> aman', itemBiaya_({ a: '', b: 'X', v: 500, budget: 1000 }).status, 'aman');
   _cek_('tanpa budget -> status kosong', itemBiaya_({ a: '', b: 'X', v: 5, budget: 0 }).status, '');
+}
+
+// ============ DOMAIN: PERINGATAN SALDO MINUS DI MASA DEPAN ============
+
+function testDomainPeringatanSaldo() {
+  // Contoh pemilik: berjalan AGUSTUS 2026 -> pantau SEPTEMBER 2026 s/d DESEMBER 2027
+  var p = bulanPantauSaldo_(7, 2026);                 // 7 = Agustus
+  _cek_('mulai bulan berikutnya', p[0].label, 'SEPTEMBER 2026');
+  _cek_('berakhir Desember tahun depan', p[p.length - 1].label, 'DESEMBER 2027');
+  _cek_('jumlah bulan dipantau = 16', p.length, 16);
+  _cek_('bulan berjalan TIDAK ikut',
+    p.filter(function (x) { return x.label === 'AGUSTUS 2026'; }).length, 0);
+
+  // Desember: langsung lompat ke tahun depan
+  var d = bulanPantauSaldo_(11, 2026);
+  _cek_('Desember -> mulai Januari', d[0].label, 'JANUARI 2027');
+  _cek_('Desember -> 12 bulan', d.length, 12);
+  _cek_('Desember -> akhir Desember 2027', d[d.length - 1].label, 'DESEMBER 2027');
+
+  // Januari: pantau Feb tahun ini s/d Des tahun depan = 23 bulan
+  var j = bulanPantauSaldo_(0, 2026);
+  _cek_('Januari -> mulai Februari', j[0].label, 'FEBRUARI 2026');
+  _cek_('Januari -> 23 bulan', j.length, 23);
+
+  // Penyaringan minus
+  var daftar = [
+    { label: 'SEPTEMBER 2026', ada: true, nilai: 1500000 },
+    { label: 'OKTOBER 2026', ada: true, nilai: -250000 },
+    { label: 'NOVEMBER 2026', ada: true, nilai: 0 },
+    { label: 'DESEMBER 2026', ada: false, nilai: -900000 },   // kolom tidak ada -> abaikan
+    { label: 'JANUARI 2027', ada: true, nilai: -1750000 }
+  ];
+  var m = saldoMinus_(daftar);
+  _cek_('hanya yang minus & ada datanya', m.length, 2);
+  _cek_('urutan mengikuti waktu', m[0].label, 'OKTOBER 2026');
+  _cek_('saldo 0 bukan minus', m.filter(function (x) { return x.label === 'NOVEMBER 2026'; }).length, 0);
+  _cek_('kolom tidak ada diabaikan',
+    m.filter(function (x) { return x.label === 'DESEMBER 2026'; }).length, 0);
+
+  // Ringkasan
+  var r = ringkasPeringatan_(m);
+  _cek_('ada peringatan', r.ada, true);
+  _cek_('jumlah bulan minus', r.jumlah, 2);
+  _cek_('bulan minus pertama', r.pertama.label, 'OKTOBER 2026');
+  _cek_('bulan terparah', r.terparah.label, 'JANUARI 2027');
+  _cek_('tanpa minus -> tidak ada peringatan', ringkasPeringatan_([]).ada, false);
 }
 
 // ====================== DOMAIN: CASHFLOW ======================

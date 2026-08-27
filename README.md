@@ -64,7 +64,7 @@ Di editor Apps Script, pilih fungsi lalu **Run** (hasil di *Execution log*):
 
 | Fungsi | Cakupan |
 |---|---|
-| `jalankanSemuaTest` | **135 test unit domain** — murni, tidak menyentuh data nyata |
+| `jalankanSemuaTest` | **153 test unit domain** — murni, tidak menyentuh data nyata |
 | `cekFolderPenyimpanan` | Integrasi: izin Drive & folder inbox |
 | `cekDeteksiRekening` | Aturan sumber dana pada contoh bukti nyata |
 
@@ -234,6 +234,11 @@ sheet **REAL**:
 - **Ringkasan**: Total Pemasukan, Total Pengeluaran, dan Sisa (Saldo Real).
 - **Sisa Kantong** — nilai per kantong (**baris 71–89** REAL — semua kantong, termasuk yang 0).
 - **Biaya per kategori** (**baris 3–68** REAL, dengan subtotal per grup).
+- **⚠️ Peringatan saldo minus:** saat menu Budget dibuka, dashboard memeriksa baris
+  **SALDO REAL** sheet REAL untuk bulan **setelah bulan berjalan s/d Desember tahun depan**
+  (mis. berjalan Agustus 2026 → September 2026 s/d Desember 2027). Bila ada yang minus,
+  muncul **pop-up peringatan** sekali per sesi + **banner menetap** di atas menu Budget,
+  berisi daftar bulan, nominalnya, dan bulan terparah.
 
 Baris **TOTAL PENGELUARAN / TOTAL INCOME / SALDO / SALDO BULAN SEBELUMNYA / SALDO REAL**
 dicari lewat **label**, bukan nomor baris — jadi tetap benar walau baris disisipkan/dihapus.

@@ -142,6 +142,10 @@ var REKAP_SHEET = 'REKAP';
 var AMBANG_WASPADA = 80;   // >= 80% -> kuning
 var AMBANG_HABIS = 100;    // >= 100% -> merah
 
+// Peringatan saldo minus di masa depan (baris SALDO REAL sheet REAL).
+// Baris dicari lewat LABEL; angka di bawah hanya cadangan bila label tak ditemukan.
+var BARIS_SALDO_REAL_CADANGAN = 92;
+
 // ============ PENYIMPANAN SEMENTARA BUKTI (FOLDER GOOGLE DRIVE) ============
 
 // Folder Drive penampung screenshot/bukti transfer yang belum sempat diproses.

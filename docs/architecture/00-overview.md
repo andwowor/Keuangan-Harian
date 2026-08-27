@@ -36,6 +36,7 @@ Tiap keputusan di bawah **disembunyikan di balik satu modul dengan antarmuka sta
 | Daftar penerima tetap → POS BIAYA | `14_domain_pos.gs` |
 | Rentang baris & baris ringkasan menu Budget | `15_domain_budget.gs` |
 | Arti angka REAL (sisa) vs REKAP (budget) | `15_domain_budget.gs` — [ADR-0010](adr/ADR-0010-sumber-angka-budget-rekap-vs-real.md) |
+| Rentang pantau & ambang peringatan saldo minus | `15_domain_budget.gs` |
 | Aturan baris Setoran Owner | `12_domain_cashflow.gs` |
 | Status baca-otomatis bukti | `13_domain_inbox.gs` |
 | ID spreadsheet CASHFLOW (ganti tiap bulan) | Script Property `CASHFLOW_URL` |

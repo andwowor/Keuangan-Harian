@@ -221,6 +221,16 @@
       background: var(--accent); color: #10231F; font-size: 12px; font-weight: 900; line-height: 19px;
       text-align: center; box-shadow: 0 0 0 2px var(--card-2); }
 
+    /* --- Peringatan saldo minus di masa depan --- */
+    .warn-card { background: rgba(255,107,107,.08); border: 1px solid rgba(255,107,107,.32);
+      border-radius: var(--r); padding: 14px 16px; margin-bottom: 14px; }
+    .warn-head { display: flex; align-items: center; gap: 9px; font-weight: 700; color: var(--merah);
+      font-size: 14px; }
+    .warn-list { margin-top: 10px; }
+    .warn-row { display: flex; justify-content: space-between; gap: 10px; font-size: 13px;
+      padding: 6px 0; border-top: 1px solid rgba(255,107,107,.16); }
+    .warn-row b { color: var(--merah); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
     /* --- Panel progres saat menyimpan (modal pratinjau) --- */
     .prog { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
     .prog-row { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--ink); }
@@ -455,6 +465,7 @@
         <label>Bulan</label>
         <select id="budgetMonth" onchange="loadBudget()"></select>
       </div>
+      <div id="peringatanView"></div>
       <div id="budgetView"></div>
     </div>
 
@@ -2069,8 +2080,59 @@
       }).backfillCashflowSetoran(bulan, tahun, window._pin);
     }
 
+    var _peringatanTampil = false;   // pop-up hanya sekali per sesi
+
+    /** Ambil & tampilkan peringatan saldo minus untuk bulan-bulan ke depan. */
+    function muatPeringatanSaldo() {
+      google.script.run.withSuccessHandler(function (w) {
+        window._peringatan = w;
+        gambarPeringatan(w);
+        if (w && w.ada && !_peringatanTampil) { _peringatanTampil = true; popupPeringatan(w); }
+      }).withFailureHandler(function () {}).getPeringatanSaldo(window._pin);
+    }
+
+    /** Banner menetap di atas menu Budget (tetap terlihat setelah pop-up ditutup). */
+    function gambarPeringatan(w) {
+      var box = document.getElementById('peringatanView');
+      if (!box) return;
+      if (!w || !w.ada) { box.innerHTML = ''; return; }
+      var h = '<div class="warn-card"><div class="warn-head">⚠️ Saldo akan minus di ' +
+        w.jumlah + ' bulan</div>' +
+        '<div class="ask-hint" style="margin-top:4px">Pantauan ' + esc(w.rentang) + '</div>' +
+        '<div class="warn-list">';
+      w.minus.slice(0, 6).forEach(function (m) {
+        h += '<div class="warn-row"><span>' + esc(m.label) + '</span><b>' + rp(m.nilai) + '</b></div>';
+      });
+      if (w.minus.length > 6) {
+        h += '<div class="ask-hint" style="margin-top:6px">… +' + (w.minus.length - 6) + ' bulan lagi</div>';
+      }
+      h += '</div></div>';
+      box.innerHTML = h;
+    }
+
+    /** Pop-up peringatan saat menu Budget pertama kali dibuka. */
+    function popupPeringatan(w) {
+      var h = '<div style="color:var(--merah);font-weight:600">Saldo Real diproyeksikan MINUS pada ' +
+        w.jumlah + ' bulan ke depan.</div>' +
+        '<div class="ask-hint" style="margin-top:4px">Bulan berjalan ' + esc(w.bulanBerjalan) +
+        ' · dipantau ' + esc(w.rentang) + '</div>' +
+        '<div class="card" style="padding:10px;margin:12px 0">';
+      w.minus.slice(0, 8).forEach(function (m) {
+        h += '<div class="warn-row" style="border-top:1px solid var(--line-2)"><span>' +
+          esc(m.label) + '</span><b>' + rp(m.nilai) + '</b></div>';
+      });
+      if (w.minus.length > 8) {
+        h += '<div class="ask-hint" style="margin-top:6px">… +' + (w.minus.length - 8) + ' bulan lagi</div>';
+      }
+      h += '</div><div class="ask-hint">Paling parah: <b>' + esc(w.terparah.label) + '</b> ' +
+        rp(w.terparah.nilai) + '. Pertimbangkan menahan pengeluaran atau menambah pemasukan ' +
+        'sebelum <b>' + esc(w.pertama.label) + '</b>.</div>';
+      ibShowModal('⚠️ Peringatan posisi keuangan', h, 'Mengerti', 'Tutup', null);
+    }
+
     function initBudget() {
       document.getElementById('budgetView').innerHTML = '<div class="ask-hint">Memuat daftar bulan…</div>';
+      muatPeringatanSaldo();
       google.script.run.withSuccessHandler(function (res) {
         var sel = document.getElementById('budgetMonth'); sel.innerHTML = '';
         (res.months || []).forEach(function (m) {

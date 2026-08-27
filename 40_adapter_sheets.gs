@@ -293,3 +293,24 @@ function sheetsBacaRekap_(barisAwal, jumlahBaris, kolomNilai) {
     return sh.getRange(barisAwal, kolomNilai, nBaris, 1).getValues();
   } catch (e) { return []; }
 }
+
+/** Satu baris penuh sheet REAL (seluruh kolom) sebagai data biasa. */
+function sheetsBacaBarisReal_(baris) {
+  var sh = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(REAL_SHEET);
+  if (!sh || baris < 1 || baris > sh.getLastRow()) return [];
+  return sh.getRange(baris, 1, 1, sh.getLastColumn()).getValues()[0];
+}
+
+/** Nomor baris pertama pada sheet REAL yang kolom B-nya sama persis dengan `label`. -1 bila tak ada. */
+function sheetsCariBarisReal_(label, sampaiBaris) {
+  var sh = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(REAL_SHEET);
+  if (!sh) return -1;
+  var n = Math.min(sampaiBaris || 120, sh.getLastRow());
+  if (n < 1) return -1;
+  var kol = sh.getRange(1, 2, n, 1).getValues();
+  var cari = String(label || '').trim().toUpperCase();
+  for (var i = 0; i < kol.length; i++) {
+    if (String(kol[i][0]).trim().toUpperCase() === cari) return i + 1;
+  }
+  return -1;
+}

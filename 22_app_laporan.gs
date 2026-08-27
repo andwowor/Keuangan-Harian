@@ -47,6 +47,47 @@ function getBudget(monthLabel) {
   return d;
 }
 
+/**
+ * PERINGATAN DINI: bulan-bulan ke depan yang SALDO REAL-nya minus.
+ * Rentang pantau = bulan setelah bulan berjalan s/d Desember tahun depan
+ * (mis. berjalan Agustus 2026 -> September 2026 s/d Desember 2027).
+ * Nilai dibaca dari baris SALDO REAL sheet REAL, kolom bulan masing-masing.
+ */
+function getPeringatanSaldo(pin) {
+  verifyPin_(pin);
+  var barisSaldo = sheetsCariBarisReal_(LABEL_SALDO_REAL, BUDGET_BARIS_AKHIR);
+  if (barisSaldo < 0) barisSaldo = BARIS_SALDO_REAL_CADANGAN;      // cadangan bila label berubah
+  var nilaiBaris = sheetsBacaBarisReal_(barisSaldo);
+  var header = sheetsBacaReal_().header;
+
+  var now = new Date();
+  var bulanIdx = Number(Utilities.formatDate(now, TIMEZONE, 'MM')) - 1;
+  var tahun = Number(Utilities.formatDate(now, TIMEZONE, 'yyyy'));
+
+  // Petakan label bulan -> nilai saldo pada kolom yang sama.
+  var pantau = bulanPantauSaldo_(bulanIdx, tahun);                 // aturan domain
+  var daftar = [];
+  for (var i = 0; i < pantau.length; i++) {
+    var col = -1;
+    for (var c = 0; c < header.length; c++) {
+      if (String(header[c]).trim().toUpperCase() === pantau[i].label) { col = c; break; }
+    }
+    daftar.push({
+      label: pantau[i].label,
+      ada: col >= 0 && col < nilaiBaris.length,
+      nilai: col >= 0 ? toNum_(nilaiBaris[col]) : 0
+    });
+  }
+  var minus = saldoMinus_(daftar);                                 // aturan domain
+  var ring = ringkasPeringatan_(minus);
+  ring.minus = minus;
+  ring.bulanBerjalan = BULAN_UPPER[bulanIdx] + ' ' + tahun;
+  ring.rentang = pantau.length ? (pantau[0].label + ' s/d ' + pantau[pantau.length - 1].label) : '';
+  ring.baris = barisSaldo;
+  ring.diperiksa = daftar.filter(function (d) { return d.ada; }).length;
+  return ring;
+}
+
 // ====================== DAFTAR BIAYA (sheet TRANSAKSI) ======================
 
 /** Opsi filter: bulan (tetap) + daftar tahun yang ada di kolom TAHUN BIAYA + default berjalan. */
