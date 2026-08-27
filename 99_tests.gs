@@ -39,9 +39,12 @@ function jalankanSemuaTest() {
   testDomainPeringatanSaldo();
   testDomainCashflow();
   testDomainInbox();
+  // Penanda versi ikut dicetak: bila jumlah test tidak cocok dengan yang tertulis di
+  // README, berarti ada file yang belum tersalin ke editor Apps Script.
+  var cap = 'versi ' + (typeof VERSI_APP === 'string' ? VERSI_APP : '?? (00_config belum tersalin)');
   var pesan = _tesGagal.length
-    ? ('GAGAL ' + _tesGagal.length + '/' + _tesJumlah + ':\n  - ' + _tesGagal.join('\n  - '))
-    : ('LULUS semua ' + _tesJumlah + ' test domain.');
+    ? ('GAGAL ' + _tesGagal.length + '/' + _tesJumlah + ' [' + cap + ']:\n  - ' + _tesGagal.join('\n  - '))
+    : ('LULUS semua ' + _tesJumlah + ' test domain  ·  ' + cap + '.');
   Logger.log(pesan);
   return pesan;
 }

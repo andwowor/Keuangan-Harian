@@ -7,6 +7,13 @@
  */
 
 /**
+ * PENANDA VERSI SALINAN. Dinaikkan setiap kali ada perubahan yang WAJIB disalin ulang
+ * ke editor Apps Script. Dicetak oleh jalankanSemuaTest agar ketahuan bila ada file
+ * yang belum tersalin - gejalanya: jumlah test tidak sesuai, atau fungsi baru "not defined".
+ */
+var VERSI_APP = '2026.08.27-c';
+
+/**
  * Dashboard Pengisian Biaya Harian — Keuangan Harian
  * --------------------------------------------------
  * Alur: upload screenshot / bukti transfer  ->  dibaca otomatis oleh Claude Vision
