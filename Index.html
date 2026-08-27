@@ -241,6 +241,12 @@
     .warn-sub { color: var(--muted); font-weight: 400; }
 
     /* --- Review penggunaan biaya --- */
+    .rv-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      width: 100%; padding: 0; background: none; border: none; text-align: left; color: inherit; }
+    .rv-kepala { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .rv-chev { color: var(--muted); font-size: 15px; line-height: 1; transition: transform .18s; }
+    .rv-toggle[aria-expanded="true"] .rv-chev { transform: rotate(180deg); }
+    .rv-body { margin-top: 14px; }
     .rv-ring { font-size: 14px; line-height: 1.55; color: var(--ink); margin-bottom: 14px; }
     .rv-item { border-left: 3px solid var(--line-2); background: var(--card-2); border-radius: 10px;
       padding: 11px 13px; margin-bottom: 9px; }
@@ -2333,6 +2339,8 @@
 
     // ---------------- Review penggunaan biaya (bulan berjalan) ----------------
 
+    var _reviewBuka = false;   // review tertutup saat pertama dibuka - isinya panjang
+
     /**
      * Ambil review untuk bulan yang sedang ditampilkan. Backend menolak bulan selain
      * bulan berjalan, tetapi kita cegah dari sini juga supaya tidak ada panggilan sia-sia.
@@ -2341,8 +2349,8 @@
       var box = document.getElementById('reviewView');
       if (!box) return;
       if (!bulan || !window._bulanBerjalan || bulan !== window._bulanBerjalan) { box.innerHTML = ''; return; }
-      box.innerHTML = '<div class="card"><div class="bt-title">Review penggunaan biaya</div>' +
-        '<div class="ask-hint"><span class="spin"></span> Menganalisa transaksi bulan ini…</div></div>';
+      box.innerHTML = '<div class="card rv-card"><span class="bt-title">Review penggunaan biaya</span>' +
+        '<div class="ask-hint" style="margin-top:4px"><span class="spin"></span> Menganalisa transaksi bulan ini…</div></div>';
       google.script.run.withSuccessHandler(function (r) { gambarReview(r, bulan); })
         .withFailureHandler(function (e) {
           box.innerHTML = '<div class="card"><div class="bt-title">Review penggunaan biaya</div>' +
@@ -2358,10 +2366,27 @@
       if (!r || !r.berlaku) { box.innerHTML = ''; return; }
       var a = r.analisa || {}, f = r.fakta || {};
 
-      var h = '<div class="card"><div class="bt-title">Review penggunaan biaya</div>' +
-        '<div class="ask-hint">' + esc(f.bulan || bulan) +
-        ' · hari ke-' + f.hari + ' dari ' + f.hariTotal + ' (' + f.porsiBulan + '% bulan berjalan) · ' +
-        f.jumlahTransaksi + ' transaksi</div>' +
+      // KEPALA yang selalu terlihat. Isinya sengaja bukan sekadar judul: jumlah temuan dan
+      // tanda "basi" harus terbaca TANPA membuka dropdown, karena justru itu yang menentukan
+      // perlu-tidaknya dibuka.
+      var nSorot = (a.sorotan || []).length, nLewat = (a.terlewat || []).length;
+      var ringkas = [];
+      if (nSorot) ringkas.push(nSorot + ' sorotan');
+      if (nLewat) ringkas.push(nLewat + ' pos belum dianggarkan');
+      if (!ringkas.length) ringkas.push('tidak ada temuan');
+
+      var h = '<div class="card rv-card">' +
+        '<button class="rv-toggle" aria-expanded="' + (_reviewBuka ? 'true' : 'false') +
+        '" onclick="toggleReview()">' +
+        '<span class="rv-kepala">' +
+          '<span class="bt-title" style="margin:0">Review penggunaan biaya</span>' +
+          '<span class="ask-hint">' + esc(f.bulan || bulan) + ' · ' + ringkas.join(' · ') +
+          (r.basi ? ' · <b class="c-waspada">ada transaksi baru</b>' : '') + '</span>' +
+        '</span><span class="rv-chev">▾</span></button>' +
+        '<div id="rvBody" class="rv-body' + (_reviewBuka ? '' : ' hidden') + '">';
+
+      h += '<div class="ask-hint">hari ke-' + f.hari + ' dari ' + f.hariTotal +
+        ' (' + f.porsiBulan + '% bulan berjalan) · ' + f.jumlahTransaksi + ' transaksi</div>' +
         '<div class="ask-hint" style="margin-bottom:12px">' +
         (r.dibuat ? 'Analisa dibuat ' + esc(r.dibuat) : 'Analisa baru dibuat') +
         ' · <span id="rvJadwal">memeriksa jadwal…</span></div>';
@@ -2405,9 +2430,26 @@
       h += '<div class="rv-kaki"><span class="ask-hint">Angka dihitung dari sheet TRANSAKSI &amp; REKAP; ' +
         'narasi &amp; saran dibuat AI — periksa sebelum diikuti.</span>' +
         '<button class="btn-ghost rv-btn" onclick="muatReview(\'' + esc(bulan) + '\', true)">Analisa ulang</button></div>';
-      h += '</div>';
+      h += '</div></div>';
       box.innerHTML = h;
-      muatJadwalReview();
+      if (_reviewBuka) muatJadwalReview();      // jadwal baru diperiksa saat isinya dibuka
+    }
+
+    /**
+     * Buka/tutup isi review. Pilihan pemilik diingat selama sesi supaya tidak menutup
+     * sendiri setiap kali menu Budget dimuat ulang.
+     */
+    function toggleReview() {
+      _reviewBuka = !_reviewBuka;
+      var body = document.getElementById('rvBody');
+      var tombol = document.querySelector('#reviewView .rv-toggle');
+      if (!body || !tombol) return;
+      body.classList.toggle('hidden', !_reviewBuka);
+      tombol.setAttribute('aria-expanded', _reviewBuka ? 'true' : 'false');
+      if (_reviewBuka && document.getElementById('rvJadwal') &&
+          document.getElementById('rvJadwal').textContent.indexOf('memeriksa') === 0) {
+        muatJadwalReview();
+      }
     }
 
     /**

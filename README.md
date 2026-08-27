@@ -64,7 +64,7 @@ Di editor Apps Script, pilih fungsi lalu **Run** (hasil di *Execution log*):
 
 | Fungsi | Cakupan |
 |---|---|
-| `jalankanSemuaTest` | **215 test unit domain** — murni, tidak menyentuh data nyata. Hasilnya mencetak **penanda versi** (`VERSI_APP`, saat ini `2026.08.27-f`); bila jumlah test atau versinya tidak cocok dengan baris ini, ada file yang belum tersalin ke Apps Script. |
+| `jalankanSemuaTest` | **215 test unit domain** — murni, tidak menyentuh data nyata. Hasilnya mencetak **penanda versi** (`VERSI_APP`, saat ini `2026.08.27-g`); bila jumlah test atau versinya tidak cocok dengan baris ini, ada file yang belum tersalin ke Apps Script. |
 | `cekFolderPenyimpanan` | Integrasi: izin Drive & folder inbox |
 | `cekDeteksiRekening` | Aturan sumber dana pada contoh bukti nyata |
 
@@ -255,6 +255,9 @@ sheet **REAL**:
   dan memberi saran — tidak pernah menghitung ([ADR-0011](docs/architecture/adr/ADR-0011-review-biaya-angka-deterministik.md)).
   Narasi diperbarui **sekali sehari pukul 23.59 WITA** lewat trigger; analisa pertama dibuat
   langsung saat menu dibuka. Tombol **Analisa ulang** memaksa pembaruan kapan saja.
+  Kartunya **tertutup secara default** (isinya panjang) — kepalanya tetap menampilkan jumlah
+  sorotan, jumlah pos yang belum dianggarkan, dan tanda bila ada transaksi baru sejak analisa
+  terakhir, sehingga perlu-tidaknya dibuka bisa dinilai tanpa membukanya.
 
 Baris **TOTAL PENGELUARAN / TOTAL INCOME / SALDO / SALDO BULAN SEBELUMNYA / SALDO REAL /
 CASH BUFFER**
