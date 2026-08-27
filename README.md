@@ -64,7 +64,7 @@ Di editor Apps Script, pilih fungsi lalu **Run** (hasil di *Execution log*):
 
 | Fungsi | Cakupan |
 |---|---|
-| `jalankanSemuaTest` | **158 test unit domain** — murni, tidak menyentuh data nyata |
+| `jalankanSemuaTest` | **172 test unit domain** — murni, tidak menyentuh data nyata |
 | `cekFolderPenyimpanan` | Integrasi: izin Drive & folder inbox |
 | `cekDeteksiRekening` | Aturan sumber dana pada contoh bukti nyata |
 
@@ -239,8 +239,13 @@ sheet **REAL**:
   (mis. berjalan Agustus 2026 → September 2026 s/d Desember 2027). Bila ada yang minus,
   muncul **pop-up peringatan** sekali per sesi + **banner menetap** di atas menu Budget,
   berisi daftar bulan, nominalnya, dan bulan terparah.
+- **⚠️ Peringatan cash buffer (kuning):** pada rentang yang sama, bulan yang **SALDO REAL**-nya
+  masih **positif tetapi di bawah CASH BUFFER** ditampilkan sebagai peringatan **kuning** di
+  bawah peringatan merah — lengkap dengan saldo, target buffer, dan bulan dengan kekurangan
+  terbesar. Bulan yang sudah minus **tidak diulang** di sini karena sudah tampil di merah.
 
-Baris **TOTAL PENGELUARAN / TOTAL INCOME / SALDO / SALDO BULAN SEBELUMNYA / SALDO REAL**
+Baris **TOTAL PENGELUARAN / TOTAL INCOME / SALDO / SALDO BULAN SEBELUMNYA / SALDO REAL /
+CASH BUFFER**
 dicari lewat **label**, bukan nomor baris — jadi tetap benar walau baris disisipkan/dihapus.
 
 Data dibaca langsung dari REAL (yang sudah terisi formula dari TRANSAKSI), jadi angkanya

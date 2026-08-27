@@ -146,6 +146,9 @@ var AMBANG_HABIS = 100;    // >= 100% -> merah
 // Baris dicari lewat LABEL; angka di bawah hanya cadangan bila label tak ditemukan.
 var BARIS_SALDO_REAL_CADANGAN = 92;
 
+/** Baris CASH BUFFER pada sheet REAL - CADANGAN bila label 'CASH BUFFER' tidak ditemukan. */
+var BARIS_CASH_BUFFER_CADANGAN = 93;
+
 // ============ PENYIMPANAN SEMENTARA BUKTI (FOLDER GOOGLE DRIVE) ============
 
 // Folder Drive penampung screenshot/bukti transfer yang belum sempat diproses.

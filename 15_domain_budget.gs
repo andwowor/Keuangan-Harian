@@ -15,6 +15,7 @@ var LABEL_TOTAL_INCOME = 'TOTAL INCOME';
 var LABEL_SALDO = 'SALDO';
 var LABEL_SALDO_SEBELUM = 'SALDO BULAN SEBELUMNYA';
 var LABEL_SALDO_REAL = 'SALDO REAL';
+var LABEL_CASH_BUFFER = 'CASH BUFFER';
 
 /** true bila baris ini adalah TOTAL PENGELUARAN (grand total blok biaya). */
 function barisTotalPengeluaran_(a) {
@@ -167,4 +168,33 @@ function ringkasPeringatan_(minus) {
   var terparah = minus[0];
   for (var i = 1; i < minus.length; i++) if (minus[i].nilai < terparah.nilai) terparah = minus[i];
   return { ada: true, jumlah: minus.length, pertama: minus[0], terparah: terparah };
+}
+
+/**
+ * PERINGATAN KUNING - saldo masih positif tetapi BELUM mencapai CASH BUFFER.
+ * `daftar` = [{ label, ada, nilai, bufferAda, buffer }].
+ *
+ * Bulan yang saldonya sudah MINUS sengaja TIDAK diulang di sini: kondisi itu lebih berat
+ * dan sudah tampil pada peringatan merah, mengulangnya hanya melemahkan sinyal.
+ * Bulan yang salah satu angkanya tidak tersedia diabaikan (tidak tersedia != aman).
+ * Buffer <= 0 berarti belum ada target cadangan, jadi tidak ada yang bisa dilanggar.
+ */
+function saldoDiBawahBuffer_(daftar) {
+  var out = [];
+  for (var i = 0; i < (daftar || []).length; i++) {
+    var d = daftar[i];
+    if (!d || !d.ada || !d.bufferAda) continue;
+    var saldo = Number(d.nilai), buffer = Number(d.buffer);
+    if (!(buffer > 0) || saldo < 0 || saldo >= buffer) continue;
+    out.push({ label: d.label, saldo: saldo, buffer: buffer, kurang: buffer - saldo });
+  }
+  return out;
+}
+
+/** Ringkasan peringatan kuning: bulan pertama + KEKURANGAN terbesar terhadap buffer. */
+function ringkasBuffer_(bawah) {
+  if (!bawah || !bawah.length) return { ada: false, jumlah: 0 };
+  var terparah = bawah[0];
+  for (var i = 1; i < bawah.length; i++) if (bawah[i].kurang > terparah.kurang) terparah = bawah[i];
+  return { ada: true, jumlah: bawah.length, pertama: bawah[0], terparah: terparah };
 }

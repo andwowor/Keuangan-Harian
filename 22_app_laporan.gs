@@ -57,7 +57,10 @@ function getPeringatanSaldo(pin) {
   verifyPin_(pin);
   var barisSaldo = sheetsCariBarisReal_(LABEL_SALDO_REAL, BUDGET_BARIS_AKHIR);
   if (barisSaldo < 0) barisSaldo = BARIS_SALDO_REAL_CADANGAN;      // cadangan bila label berubah
+  var barisBuffer = sheetsCariBarisReal_(LABEL_CASH_BUFFER, BUDGET_BARIS_AKHIR);
+  if (barisBuffer < 0) barisBuffer = BARIS_CASH_BUFFER_CADANGAN;
   var nilaiBaris = sheetsBacaBarisReal_(barisSaldo);
+  var nilaiBuffer = sheetsBacaBarisReal_(barisBuffer);
   var header = sheetsBacaReal_().header;
 
   var now = new Date();
@@ -75,16 +78,26 @@ function getPeringatanSaldo(pin) {
     daftar.push({
       label: pantau[i].label,
       ada: col >= 0 && col < nilaiBaris.length,
-      nilai: col >= 0 ? toNum_(nilaiBaris[col]) : 0
+      nilai: col >= 0 ? toNum_(nilaiBaris[col]) : 0,
+      bufferAda: col >= 0 && col < nilaiBuffer.length,
+      buffer: col >= 0 && col < nilaiBuffer.length ? toNum_(nilaiBuffer[col]) : 0
     });
   }
-  var minus = saldoMinus_(daftar);                                 // aturan domain
+  var minus = saldoMinus_(daftar);                                 // aturan domain (merah)
   var ring = ringkasPeringatan_(minus);
   ring.minus = minus;
   ring.bulanBerjalan = BULAN_UPPER[bulanIdx] + ' ' + tahun;
   ring.rentang = pantau.length ? (pantau[0].label + ' s/d ' + pantau[pantau.length - 1].label) : '';
   ring.baris = barisSaldo;
   ring.diperiksa = daftar.filter(function (d) { return d.ada; }).length;
+
+  // Peringatan KUNING: saldo masih positif tetapi di bawah CASH BUFFER (aturan domain).
+  var bawah = saldoDiBawahBuffer_(daftar);
+  var kuning = ringkasBuffer_(bawah);
+  kuning.bawah = bawah;
+  kuning.baris = barisBuffer;
+  ring.kuning = kuning;
+  ring.adaApaPun = !!(ring.ada || kuning.ada);
   return ring;
 }
 

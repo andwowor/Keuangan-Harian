@@ -230,6 +230,11 @@
     .warn-row { display: flex; justify-content: space-between; gap: 10px; font-size: 13px;
       padding: 6px 0; border-top: 1px solid rgba(255,107,107,.16); }
     .warn-row b { color: var(--merah); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .warn-card.kuning { background: rgba(254,185,90,.08); border-color: rgba(254,185,90,.34); }
+    .warn-card.kuning .warn-head { color: var(--kuning); }
+    .warn-card.kuning .warn-row { border-top-color: rgba(254,185,90,.18); }
+    .warn-card.kuning .warn-row b { color: var(--kuning); }
+    .warn-sub { color: var(--muted); font-weight: 400; }
 
     /* --- Panel progres saat menyimpan (modal pratinjau) --- */
     .prog { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
@@ -2087,15 +2092,27 @@
       google.script.run.withSuccessHandler(function (w) {
         window._peringatan = w;
         gambarPeringatan(w);
-        if (w && w.ada && !_peringatanTampil) { _peringatanTampil = true; popupPeringatan(w); }
+        var perlu = w && (w.ada || (w.kuning && w.kuning.ada));
+        if (perlu && !_peringatanTampil) { _peringatanTampil = true; popupPeringatan(w); }
       }).withFailureHandler(function () {}).getPeringatanSaldo(window._pin);
     }
 
-    /** Banner menetap di atas menu Budget (tetap terlihat setelah pop-up ditutup). */
+    /**
+     * Banner menetap di atas menu Budget (tetap terlihat setelah pop-up ditutup).
+     * Urutan sengaja: MERAH (saldo minus) dulu, lalu KUNING (saldo di bawah cash buffer) —
+     * dari kondisi paling berat ke yang lebih ringan.
+     */
     function gambarPeringatan(w) {
       var box = document.getElementById('peringatanView');
       if (!box) return;
-      if (!w || !w.ada) { box.innerHTML = ''; return; }
+      var h = '';
+      if (w && w.ada) h += kartuMinus(w);
+      if (w && w.kuning && w.kuning.ada) h += kartuBuffer(w);
+      box.innerHTML = h;
+    }
+
+    /** Kartu MERAH: saldo real diproyeksikan minus. */
+    function kartuMinus(w) {
       var h = '<div class="warn-card"><div class="warn-head">⚠️ Saldo akan minus di ' +
         w.jumlah + ' bulan</div>' +
         '<div class="ask-hint" style="margin-top:4px">Pantauan ' + esc(w.rentang) + '</div>' +
@@ -2106,17 +2123,39 @@
       if (w.minus.length > 6) {
         h += '<div class="ask-hint" style="margin-top:6px">… +' + (w.minus.length - 6) + ' bulan lagi</div>';
       }
-      h += '</div></div>';
-      box.innerHTML = h;
+      return h + '</div></div>';
     }
 
-    /** Pop-up peringatan saat menu Budget pertama kali dibuka. */
+    /** Kartu KUNING: saldo masih positif tetapi belum mencapai cash buffer. */
+    function kartuBuffer(w) {
+      var k = w.kuning;
+      var h = '<div class="warn-card kuning"><div class="warn-head">⚠️ Saldo di bawah cash buffer di ' +
+        k.jumlah + ' bulan</div>' +
+        '<div class="ask-hint" style="margin-top:4px">SALDO REAL vs CASH BUFFER · ' + esc(w.rentang) +
+        '</div><div class="warn-list">';
+      k.bawah.slice(0, 6).forEach(function (m) {
+        h += '<div class="warn-row"><span>' + esc(m.label) + '</span><b>' + rp(m.saldo) +
+          ' <span class="warn-sub">/ ' + rp(m.buffer) + '</span></b></div>';
+      });
+      if (k.bawah.length > 6) {
+        h += '<div class="ask-hint" style="margin-top:6px">… +' + (k.bawah.length - 6) + ' bulan lagi</div>';
+      }
+      return h + '</div></div>';
+    }
+
+    /** Pop-up peringatan saat menu Budget pertama kali dibuka (merah dulu, lalu kuning). */
     function popupPeringatan(w) {
-      var h = '<div style="color:var(--merah);font-weight:600">Saldo Real diproyeksikan MINUS pada ' +
-        w.jumlah + ' bulan ke depan.</div>' +
-        '<div class="ask-hint" style="margin-top:4px">Bulan berjalan ' + esc(w.bulanBerjalan) +
-        ' · dipantau ' + esc(w.rentang) + '</div>' +
-        '<div class="card" style="padding:10px;margin:12px 0">';
+      var h = '<div class="ask-hint">Bulan berjalan ' + esc(w.bulanBerjalan) +
+        ' · dipantau ' + esc(w.rentang) + '</div>';
+      if (w.ada) h += bagianMinus(w);
+      if (w.kuning && w.kuning.ada) h += bagianBuffer(w);
+      ibShowModal('⚠️ Peringatan posisi keuangan', h, 'Mengerti', 'Tutup', null);
+    }
+
+    /** Bagian MERAH pada pop-up. */
+    function bagianMinus(w) {
+      var h = '<div style="color:var(--merah);font-weight:600;margin-top:12px">Saldo Real diproyeksikan MINUS pada ' +
+        w.jumlah + ' bulan ke depan.</div><div class="card" style="padding:10px;margin:8px 0 0">';
       w.minus.slice(0, 8).forEach(function (m) {
         h += '<div class="warn-row" style="border-top:1px solid var(--line-2)"><span>' +
           esc(m.label) + '</span><b>' + rp(m.nilai) + '</b></div>';
@@ -2124,10 +2163,28 @@
       if (w.minus.length > 8) {
         h += '<div class="ask-hint" style="margin-top:6px">… +' + (w.minus.length - 8) + ' bulan lagi</div>';
       }
-      h += '</div><div class="ask-hint">Paling parah: <b>' + esc(w.terparah.label) + '</b> ' +
-        rp(w.terparah.nilai) + '. Pertimbangkan menahan pengeluaran atau menambah pemasukan ' +
-        'sebelum <b>' + esc(w.pertama.label) + '</b>.</div>';
-      ibShowModal('⚠️ Peringatan posisi keuangan', h, 'Mengerti', 'Tutup', null);
+      return h + '</div><div class="ask-hint" style="margin-top:8px">Paling parah: <b>' +
+        esc(w.terparah.label) + '</b> ' + rp(w.terparah.nilai) +
+        '. Pertimbangkan menahan pengeluaran atau menambah pemasukan sebelum <b>' +
+        esc(w.pertama.label) + '</b>.</div>';
+    }
+
+    /** Bagian KUNING pada pop-up: saldo positif tetapi belum mencapai cash buffer. */
+    function bagianBuffer(w) {
+      var k = w.kuning;
+      var h = '<div style="color:var(--kuning);font-weight:600;margin-top:16px">Saldo Real di bawah CASH BUFFER pada ' +
+        k.jumlah + ' bulan.</div><div class="card kuning" style="padding:10px;margin:8px 0 0">';
+      k.bawah.slice(0, 8).forEach(function (m) {
+        h += '<div class="warn-row" style="border-top:1px solid var(--line-2)"><span>' +
+          esc(m.label) + '</span><b style="color:var(--kuning)">' + rp(m.saldo) +
+          ' <span class="warn-sub">/ ' + rp(m.buffer) + '</span></b></div>';
+      });
+      if (k.bawah.length > 8) {
+        h += '<div class="ask-hint" style="margin-top:6px">… +' + (k.bawah.length - 8) + ' bulan lagi</div>';
+      }
+      return h + '</div><div class="ask-hint" style="margin-top:8px">Kekurangan terbesar: <b>' +
+        esc(k.terparah.label) + '</b> kurang ' + rp(k.terparah.kurang) +
+        ' dari buffer. Bulan yang sudah minus tidak diulang di sini.</div>';
     }
 
     function initBudget() {

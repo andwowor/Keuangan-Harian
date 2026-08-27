@@ -385,6 +385,40 @@ function testDomainPeringatanSaldo() {
   _cek_('bulan minus pertama', r.pertama.label, 'OKTOBER 2026');
   _cek_('bulan terparah', r.terparah.label, 'JANUARI 2027');
   _cek_('tanpa minus -> tidak ada peringatan', ringkasPeringatan_([]).ada, false);
+
+  // --- PERINGATAN KUNING: saldo positif tetapi di bawah CASH BUFFER ---
+  var db = [
+    { label: 'SEPTEMBER 2026', ada: true, nilai: 9000000, bufferAda: true, buffer: 5000000 },  // aman
+    { label: 'OKTOBER 2026', ada: true, nilai: 3000000, bufferAda: true, buffer: 5000000 },    // kurang 2jt
+    { label: 'NOVEMBER 2026', ada: true, nilai: 5000000, bufferAda: true, buffer: 5000000 },   // pas = aman
+    { label: 'DESEMBER 2026', ada: true, nilai: -400000, bufferAda: true, buffer: 5000000 },   // minus -> merah
+    { label: 'JANUARI 2027', ada: true, nilai: 1000000, bufferAda: true, buffer: 6000000 },    // kurang 5jt
+    { label: 'FEBRUARI 2027', ada: false, nilai: 0, bufferAda: true, buffer: 5000000 },        // kolom tak ada
+    { label: 'MARET 2027', ada: true, nilai: 100000, bufferAda: false, buffer: 0 },            // buffer tak ada
+    { label: 'APRIL 2027', ada: true, nilai: 100000, bufferAda: true, buffer: 0 }              // buffer 0
+  ];
+  var bw = saldoDiBawahBuffer_(db);
+  _cek_('hanya yang di bawah buffer', bw.length, 2);
+  _cek_('urutan mengikuti waktu (buffer)', bw[0].label, 'OKTOBER 2026');
+  _cek_('kekurangan dihitung benar', bw[0].kurang, 2000000);
+  _cek_('saldo = buffer dianggap aman',
+    bw.filter(function (x) { return x.label === 'NOVEMBER 2026'; }).length, 0);
+  _cek_('bulan minus tidak diulang di kuning',
+    bw.filter(function (x) { return x.label === 'DESEMBER 2026'; }).length, 0);
+  _cek_('kolom tidak ada diabaikan (buffer)',
+    bw.filter(function (x) { return x.label === 'FEBRUARI 2027'; }).length, 0);
+  _cek_('buffer tidak terbaca diabaikan',
+    bw.filter(function (x) { return x.label === 'MARET 2027'; }).length, 0);
+  _cek_('buffer 0 bukan pelanggaran',
+    bw.filter(function (x) { return x.label === 'APRIL 2027'; }).length, 0);
+
+  var rb = ringkasBuffer_(bw);
+  _cek_('ada peringatan buffer', rb.ada, true);
+  _cek_('jumlah bulan di bawah buffer', rb.jumlah, 2);
+  _cek_('bulan pertama di bawah buffer', rb.pertama.label, 'OKTOBER 2026');
+  _cek_('kekurangan terbesar', rb.terparah.label, 'JANUARI 2027');
+  _cek_('kekurangan terbesar nilainya', rb.terparah.kurang, 5000000);
+  _cek_('tanpa pelanggaran buffer -> tidak ada peringatan', ringkasBuffer_([]).ada, false);
 }
 
 // ====================== DOMAIN: CASHFLOW ======================
