@@ -27,6 +27,9 @@
       --accent-d: #7FCFC4;
       --accent-soft: rgba(169,223,216,.14);
       --amber: #FEB95A;
+      --hijau: #5FD68A;       /* < 80% budget terpakai  */
+      --kuning: #FEB95A;      /* >= 80% budget terpakai */
+      --merah: #FF6B6B;       /* >= 100% budget terpakai */
       --pink: #F2C8ED;
       --blue: #20AEF3;
       --ok: #A9DFD8;          /* pemasukan/positif = mint */
@@ -126,6 +129,11 @@
     .t-blue { background: rgba(32,174,243,.14); color: var(--blue); }
     .c-mint { color: var(--accent); } .c-amber { color: var(--amber); }
     .c-pink { color: var(--pink); }  .c-blue { color: var(--blue); }
+    /* Warna status pemakaian budget (ADR-0010): <80% hijau, >=80% kuning, >=100% merah */
+    .c-aman { color: var(--hijau); } .c-waspada { color: var(--kuning); } .c-habis { color: var(--merah); }
+    .ppill.c-habis { background: rgba(255,107,107,.14); }
+    .ppill.c-waspada { background: rgba(254,185,90,.12); }
+    .ppill.c-aman { background: rgba(95,214,138,.12); }
 
     /* --- Gauge (adaptasi meter 80% pada kartu Earnings) --- */
     .gauge { position: relative; width: 180px; height: 92px; margin: 14px auto 4px; overflow: hidden; }
@@ -2152,14 +2160,14 @@
           h += '<tr class="bt-total"><td>' + esc(label) + '</td><td class="num">' + rp(o.v) + '</td></tr>';
           return;
         }
-        var habis = o.adaBudget && o.sisa <= 0;
+        var kelas = kelasStatus(o.status);
         h += '<tr class="bt-item"><td>' + esc(o.b) +
-          (habis ? ' <span class="ppill c-amber">habis</span>' : '') +
-          (o.adaBudget ? barProporsi(o.pct, n) : '') +
+          (o.status === 'habis' ? ' <span class="ppill c-habis">habis</span>' : '') +
+          (o.adaBudget ? barStatus(o.pct, o.status) : '') +
           (o.adaBudget ? '<div class="ask-hint" style="margin-top:4px">terpakai ' + rp(o.terpakai) +
             ' / budget ' + rp(o.budget) + '</div>' : '') +
           '</td><td class="num">' + rp(o.sisa) +
-          (o.adaBudget ? '<div style="margin-top:5px"><span class="ppill ' + warnaSiklus(n) + '">' +
+          (o.adaBudget ? '<div style="margin-top:5px"><span class="ppill ' + kelas + '">' +
             o.pct + '%</span></div>' : '') + '</td></tr>';
         n++;
       });
@@ -2179,8 +2187,21 @@
         '<div class="stat-sub ' + kelasSub + '">' + esc(sub) + '</div></div>';
     }
 
-    /** Warna bergiliran mengikuti palet Figma (mint, amber, biru, pink). */
+    /** Warna bergiliran mengikuti palet Figma (mint, amber, biru, pink) - untuk Sisa Kantong. */
     function warnaSiklus(i) { return ['c-mint', 'c-amber', 'c-blue', 'c-pink'][i % 4]; }
+
+    /** Kelas warna dari status budget domain: aman=hijau, waspada=kuning, habis=merah. */
+    function kelasStatus(status) {
+      return { aman: 'c-aman', waspada: 'c-waspada', habis: 'c-habis' }[status] || 'c-mint';
+    }
+
+    /** Bar proporsi berwarna sesuai status pemakaian budget. */
+    function barStatus(pct, status) {
+      var w = Math.max(0, Math.min(100, pct));
+      var warna = { aman: 'var(--hijau)', waspada: 'var(--kuning)', habis: 'var(--merah)' }[status]
+        || 'var(--accent)';
+      return '<div class="pbar"><span style="width:' + w + '%;background:' + warna + '"></span></div>';
+    }
 
     /** Bar proporsi horizontal, lebar = persen. */
     function barProporsi(pct, i) {

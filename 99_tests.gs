@@ -317,6 +317,18 @@ function testDomainBudgetRekap() {
   _cek_('pct terpakai = 75%', d.pctTerpakai, 75);
   _cek_('TOTAL tidak ikut agregat',
     d.biaya.filter(function (o) { return o.isTotal; }).every(function (o) { return true; }), true);
+  // --- Ambang warna: <80% aman(hijau), >=80% waspada(kuning), >=100% habis(merah) ---
+  _cek_('0% -> aman', statusBudget_(0), 'aman');
+  _cek_('45% -> aman', statusBudget_(45), 'aman');
+  _cek_('79% -> aman', statusBudget_(79), 'aman');
+  _cek_('tepat 80% -> waspada', statusBudget_(80), 'waspada');
+  _cek_('99% -> waspada', statusBudget_(99), 'waspada');
+  _cek_('tepat 100% -> habis', statusBudget_(100), 'habis');
+  _cek_('budget tak diketahui -> tanpa status', statusBudget_(-1), '');
+  _cek_('sisa 0 -> status habis', itemBiaya_({ a: '', b: 'X', v: 0, budget: 1000 }).status, 'habis');
+  _cek_('sisa 150 dari 1000 -> waspada', itemBiaya_({ a: '', b: 'X', v: 150, budget: 1000 }).status, 'waspada');
+  _cek_('sisa 500 dari 1000 -> aman', itemBiaya_({ a: '', b: 'X', v: 500, budget: 1000 }).status, 'aman');
+  _cek_('tanpa budget -> status kosong', itemBiaya_({ a: '', b: 'X', v: 5, budget: 0 }).status, '');
 }
 
 // ====================== DOMAIN: CASHFLOW ======================

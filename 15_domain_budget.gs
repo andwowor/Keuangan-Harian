@@ -84,11 +84,27 @@ function itemBiaya_(r) {
   var budget = Number(r.budget) || 0;
   var adaBudget = budget > 0;
   var terpakai = adaBudget ? Math.max(0, budget - sisa) : 0;
+  var pct = persenTerpakai_(budget, terpakai);
   return {
     a: a, b: b, v: sisa, sisa: sisa, budget: budget,
     terpakai: terpakai, isTotal: isTotal, adaBudget: adaBudget,
-    pct: persenTerpakai_(budget, terpakai)
+    pct: pct, status: statusBudget_(pct)
   };
+}
+
+/**
+ * Status pemakaian budget sebuah pos, dari persen terpakai:
+ *   habis   : >= 100%  (budget sudah terserap penuh)
+ *   waspada : >= 80%   (mendekati batas)
+ *   aman    : < 80%
+ *   ''      : budget tidak diketahui (pct < 0)
+ * Catatan: tepat 80% dihitung WASPADA - ambang peringatan bersifat inklusif.
+ */
+function statusBudget_(pct) {
+  if (!(pct >= 0)) return '';
+  if (pct >= AMBANG_HABIS) return 'habis';
+  if (pct >= AMBANG_WASPADA) return 'waspada';
+  return 'aman';
 }
 
 /** Persen terpakai terhadap budget; -1 bila budget tidak diketahui. */

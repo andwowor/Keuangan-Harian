@@ -38,6 +38,19 @@ persentase yang salah lebih berbahaya daripada persentase yang tidak ditampilkan
 - **Menampilkan persentase dengan asumsi budget = pengeluaran bila REKAP kosong**: ditolak,
   menghasilkan angka menyesatkan.
 
+## Ambang status (warna di menu Budget)
+
+| Persen terpakai | Status | Warna |
+|---|---|---|
+| `< 80%` | `aman` | hijau `#5FD68A` |
+| `>= 80%` | `waspada` | kuning `#FEB95A` |
+| `>= 100%` | `habis` | merah `#FF6B6B` |
+
+Tepat **80% dihitung waspada** — ambang peringatan bersifat inklusif, sehingga tidak ada
+nilai yang jatuh di celah antara "di bawah 80%" dan "di atas 80%". Ambang disimpan sebagai
+`AMBANG_WASPADA` / `AMBANG_HABIS` di `00_config.gs`; klasifikasinya adalah aturan domain
+(`statusBudget_`), UI hanya memetakan status ke warna.
+
 ## Verifikasi
 `cekBudgetRekap()` di `99_tests.gs` mencetak perbandingan berdampingan
 (baris · POS · budget · sisa · terpakai · %) untuk satu bulan, agar keselarasan baris/kolom

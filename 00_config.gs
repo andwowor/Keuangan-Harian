@@ -137,6 +137,11 @@ var REAL_SHEET = 'REAL';
 // Terpakai = budget (REKAP) - sisa (REAL). Tata letak baris & kolom REKAP sejajar REAL.
 var REKAP_SHEET = 'REKAP';
 
+// Ambang status pemakaian budget per pos (dipakai untuk warna di menu Budget).
+// Tepat 80% dihitung WASPADA - ambang peringatan bersifat inklusif.
+var AMBANG_WASPADA = 80;   // >= 80% -> kuning
+var AMBANG_HABIS = 100;    // >= 100% -> merah
+
 // ============ PENYIMPANAN SEMENTARA BUKTI (FOLDER GOOGLE DRIVE) ============
 
 // Folder Drive penampung screenshot/bukti transfer yang belum sempat diproses.
