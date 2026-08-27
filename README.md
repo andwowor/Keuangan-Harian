@@ -283,7 +283,10 @@ terbawah, dengan aturan:
 | STATUS LAPOR APLIKASI SMARTLINK | `BELUM INPUT` |
 | SUMBER DANA | mengikuti **Rekening** TRANSAKSI (Mandiri/BNI/BRI/BCA → uppercase; kosong → `KAS TUNAI MAUMBI`) |
 
-**Selalu muncul pratinjau** (isi ke TRANSAKSI **dan** ke CASHFLOW) sebelum disubmit. Untuk
+**Selalu muncul pratinjau** (isi ke TRANSAKSI **dan** ke CASHFLOW) sebelum disubmit.
+Saat **Konfirmasi & Simpan** ditekan, modal menampilkan **animasi progres** berisi daftar
+spreadsheet yang sedang ditulis + penghitung detik; kedua tombol dikunci sehingga klik ganda
+tidak dapat membuat baris dobel. Untuk
 sumber dana selain Pendapatan Usaha, perilaku tetap seperti biasa (tanpa CASHFLOW).
 
 ### 🔁 Periksa & lengkapi "Setoran Owner" CASHFLOW
