@@ -11,7 +11,7 @@
  * ke editor Apps Script. Dicetak oleh jalankanSemuaTest agar ketahuan bila ada file
  * yang belum tersalin - gejalanya: jumlah test tidak sesuai, atau fungsi baru "not defined".
  */
-var VERSI_APP = '2026.08.27-e';
+var VERSI_APP = '2026.08.27-f';
 
 /**
  * Dashboard Pengisian Biaya Harian — Keuangan Harian

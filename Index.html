@@ -163,6 +163,10 @@
     .bt-item td:first-child { padding-left: 14px; }
     table.bt tr[onclick]:hover td { background: rgba(255,255,255,.03); }
     .bt-total td { font-weight: 700; background: var(--card-2); color: var(--ink); }
+    /* Pos tanpa budget di REKAP: diredupkan agar tidak tertukar dengan pos yang terpantau,
+       tetapi tetap memakai --muted (#A0A0A0, kontras ~7:1) supaya jelas terbaca. */
+    table.bt tr.bt-nobudget td,
+    table.bt tr.bt-nobudget td.num { color: var(--muted); }
 
     .lock { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center;
       justify-content: center; padding: 20px; z-index: 50; }
@@ -2309,7 +2313,7 @@
           return;
         }
         var kelas = kelasStatus(o.status);
-        h += '<tr class="bt-item"><td>' + esc(o.b) +
+        h += '<tr class="bt-item' + (o.adaBudget ? '' : ' bt-nobudget') + '"><td>' + esc(o.b) +
           (o.status === 'habis' ? ' <span class="ppill c-habis">' + (o.pct > 100 ? 'lebih' : 'habis') + '</span>' : '') +
           (o.adaBudget ? barStatus(o.pct, o.status) : '') +
           (o.adaBudget ? '<div class="ask-hint" style="margin-top:4px">terpakai ' + rp(o.terpakai) +
