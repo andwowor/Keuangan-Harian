@@ -107,10 +107,16 @@ function statusBudget_(pct) {
   return 'aman';
 }
 
-/** Persen terpakai terhadap budget; -1 bila budget tidak diketahui. */
+/**
+ * Persen terpakai terhadap budget; -1 bila budget tidak diketahui.
+ * TIDAK dibatasi 100: pos yang KELEBIHAN pakai harus terlihat apa adanya, mis. budget
+ * 13.254.558 dengan sisa -442.220 -> 103%. Membulatkan ke 100 akan menyembunyikan
+ * pemborosan justru pada pos yang paling perlu diperhatikan. Pembatasan LEBAR BAR
+ * (agar tidak meluber) urusan UI, bukan urusan angka.
+ */
 function persenTerpakai_(budget, terpakai) {
   if (!(budget > 0)) return -1;
-  return Math.max(0, Math.min(100, Math.round(terpakai / budget * 100)));
+  return Math.max(0, Math.round(terpakai / budget * 100));
 }
 
 

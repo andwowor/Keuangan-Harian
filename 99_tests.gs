@@ -307,6 +307,15 @@ function testDomainBudgetRekap() {
   _cek_('budget 0 -> pct -1 (tidak dihitung)', tanpa.pct, -1);
   _cek_('persenTerpakai_ tanpa budget', persenTerpakai_(0, 500), -1);
 
+  // KELEBIHAN pakai: sisa MINUS berarti budget terlampaui -> persen harus > 100,
+  // bukan dibulatkan ke 100 (angka nyata dari sheet: DAILY DRIVER Agustus 2026).
+  var lebih = itemBiaya_({ a: '', b: 'DAILY DRIVER', v: -442220, budget: 13254558 });
+  _cek_('sisa minus -> terpakai > budget', lebih.terpakai, 13696778);
+  _cek_('sisa minus -> pct 103 (tidak dipangkas)', lebih.pct, 103);
+  _cek_('sisa minus -> status habis', lebih.status, 'habis');
+  _cek_('persenTerpakai_ tidak dipangkas di 100', persenTerpakai_(1000, 1300), 130);
+  _cek_('persenTerpakai_ tepat 100 tetap 100', persenTerpakai_(1000, 1000), 100);
+
   // Baris TOTAL dikenali & tidak ikut agregat
   _cek_('baris TOTAL dikenali', itemBiaya_({ a: '', b: 'TOTAL', v: 1, budget: 1 }).isTotal, true);
 

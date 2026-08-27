@@ -51,10 +51,18 @@ nilai yang jatuh di celah antara "di bawah 80%" dan "di atas 80%". Ambang disimp
 `AMBANG_WASPADA` / `AMBANG_HABIS` di `00_config.gs`; klasifikasinya adalah aturan domain
 (`statusBudget_`), UI hanya memetakan status ke warna.
 
+Persentase **tidak dipangkas di 100**: pos yang sisanya minus berarti budget terlampaui dan
+harus terlihat apa adanya (mis. `DAILY DRIVER` Agustus 2026 = 103%, sisa −Rp442.220). Yang
+dibatasi hanya **lebar bar** dan cincin gauge, karena itu urusan tata letak. Pos di atas
+100% diberi pil `lebih` untuk membedakannya dari pos yang pas terserap (`habis`).
+
 ## Verifikasi
 `cekBudgetRekap()` di `99_tests.gs` mencetak perbandingan berdampingan
 (baris · POS · budget · sisa · terpakai · %) untuk satu bulan, agar keselarasan baris/kolom
-REKAP↔REAL dapat dipastikan sebelum angkanya dipercaya. 14 test domain menutup aturan ini.
+REKAP↔REAL dapat dipastikan sebelum angkanya dipercaya. 19 test domain menutup aturan ini.
+
+Keselarasan baris/kolom sudah **diverifikasi pada data nyata** (Agustus 2026, kolom AK):
+budget per pos terbaca dan nama POS di REAL sejajar dengan baris yang sama di REKAP.
 
 ## Konsekuensi
 + Persentase akhirnya bermakna: "berapa persen budget pos ini sudah terpakai".

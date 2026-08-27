@@ -2176,7 +2176,7 @@
         statTile('t-amber', '↑', adaB ? rp(d.totalTerpakai) : '—', 'Terpakai', 'c-amber',
           adaB ? pct + '% dari budget' : '—') +
         statTile('t-blue', '◇', adaB ? rp(d.totalSisaBudget) : '—', 'Sisa Budget', 'c-blue',
-          adaB ? (100 - pct) + '% belum terpakai' : '—') +
+          adaB ? (pct > 100 ? (pct - 100) + '% melebihi budget' : (100 - pct) + '% belum terpakai') : '—') +
         statTile('t-pink', '=', rp(d.saldoReal), 'Saldo Real', d.saldoReal < 0 ? 'c-amber' : 'c-pink',
           'pemasukan ' + rp(d.totalIncome)) +
         '</div></div>';
@@ -2185,7 +2185,7 @@
       h += '<div class="card"><div class="bt-title">Pemakaian Budget</div>';
       if (adaB) {
         h += '<div class="ask-hint">Terpakai terhadap budget REKAP</div>' +
-          '<div class="gauge"><div class="gauge-c" style="--p:' + pct + '"></div>' +
+          '<div class="gauge"><div class="gauge-c" style="--p:' + Math.min(100, pct) + '"></div>' +
           '<div class="gauge-hole"><span class="gauge-num">' + pct + '%</span></div></div>' +
           '<div class="gauge-cap">' + rp(d.totalTerpakai) + ' dari ' + rp(d.totalBudget) + '</div>';
       } else {
@@ -2224,7 +2224,7 @@
         }
         var kelas = kelasStatus(o.status);
         h += '<tr class="bt-item"><td>' + esc(o.b) +
-          (o.status === 'habis' ? ' <span class="ppill c-habis">habis</span>' : '') +
+          (o.status === 'habis' ? ' <span class="ppill c-habis">' + (o.pct > 100 ? 'lebih' : 'habis') + '</span>' : '') +
           (o.adaBudget ? barStatus(o.pct, o.status) : '') +
           (o.adaBudget ? '<div class="ask-hint" style="margin-top:4px">terpakai ' + rp(o.terpakai) +
             ' / budget ' + rp(o.budget) + '</div>' : '') +
