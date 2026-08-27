@@ -64,7 +64,7 @@ Di editor Apps Script, pilih fungsi lalu **Run** (hasil di *Execution log*):
 
 | Fungsi | Cakupan |
 |---|---|
-| `jalankanSemuaTest` | **172 test unit domain** — murni, tidak menyentuh data nyata. Hasilnya mencetak **penanda versi** (`VERSI_APP`, saat ini `2026.08.27-c`); bila jumlah test atau versinya tidak cocok dengan baris ini, ada file yang belum tersalin ke Apps Script. |
+| `jalankanSemuaTest` | **215 test unit domain** — murni, tidak menyentuh data nyata. Hasilnya mencetak **penanda versi** (`VERSI_APP`, saat ini `2026.08.27-e`); bila jumlah test atau versinya tidak cocok dengan baris ini, ada file yang belum tersalin ke Apps Script. |
 | `cekFolderPenyimpanan` | Integrasi: izin Drive & folder inbox |
 | `cekDeteksiRekening` | Aturan sumber dana pada contoh bukti nyata |
 
@@ -243,6 +243,16 @@ sheet **REAL**:
   masih **positif tetapi di bawah CASH BUFFER** ditampilkan sebagai peringatan **kuning** di
   bawah peringatan merah — lengkap dengan saldo, target buffer, dan bulan dengan kekurangan
   terbesar. Bulan yang sudah minus **tidak diulang** di sini karena sudah tampil di merah.
+
+- **Review penggunaan biaya (bulan berjalan saja):** di bawah ringkasan muncul evaluasi
+  pemakaian biaya — pos yang **melewati budget**, yang **lajunya mendahului kalender**
+  (mis. budget terpakai 70% padahal bulan baru jalan 40%), yang **naik tajam** dibanding
+  rerata bulan sebelumnya, serta pos yang **belum dianggarkan di sheet REKAP** padahal ada
+  pengeluarannya atau rutin muncul di history. Setiap temuan disertai saran tindakan.
+  **Semua angka dihitung deterministik** dari sheet TRANSAKSI/REKAP; AI hanya menarasikan
+  dan memberi saran — tidak pernah menghitung ([ADR-0011](docs/architecture/adr/ADR-0011-review-biaya-angka-deterministik.md)).
+  Narasi diperbarui **sekali sehari pukul 23.59 WITA** lewat trigger; analisa pertama dibuat
+  langsung saat menu dibuka. Tombol **Analisa ulang** memaksa pembaruan kapan saja.
 
 Baris **TOTAL PENGELUARAN / TOTAL INCOME / SALDO / SALDO BULAN SEBELUMNYA / SALDO REAL /
 CASH BUFFER**

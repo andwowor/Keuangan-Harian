@@ -101,6 +101,96 @@ function getPeringatanSaldo(pin) {
   return ring;
 }
 
+/**
+ * REVIEW PENGGUNAAN BIAYA - hanya untuk BULAN BERJALAN.
+ *
+ * Angka SELALU dihitung ulang setiap kali dibuka (murah, dari sheet), tetapi NARASI &
+ * SARAN diperbarui hanya SEKALI SEHARI pukul 23.59 WITA lewat trigger (lihat 90_triggers).
+ * Analisa tersimpan di Script Property agar bertahan antar-sesi.
+ *
+ * - Belum pernah ada analisa  -> dibuat sekarang juga (analisa pertama tidak menunggu jadwal).
+ * - Sudah ada                 -> dipakai apa adanya, disertai waktu pembuatannya.
+ * - `paksa` = true            -> analisa ulang sekarang (tombol "Analisa ulang").
+ *
+ * `basi` = true bila angka sudah berubah sejak analisa terakhir dibuat, sehingga pemilik
+ * tahu narasi yang dibacanya belum memuat transaksi terbaru.
+ */
+function getReviewBiaya(monthLabel, paksa, pin) {
+  verifyPin_(pin);
+  var bulanKini = getBudgetMonths().current;
+  var diminta = String(monthLabel || '').trim().toUpperCase();
+  if (diminta !== String(bulanKini).trim().toUpperCase()) {
+    return { berlaku: false, alasan: 'Review hanya tersedia untuk bulan berjalan (' + bulanKini + ').' };
+  }
+
+  var fakta = faktaReviewBulanIni_(bulanKini);
+  if (!fakta.adaTemuan) {
+    return { berlaku: true, fakta: fakta, kosong: true,
+      analisa: { ringkasan: 'Tidak ada pos yang melewati batas, melaju terlalu cepat, ' +
+        'atau terlewat dianggarkan pada bulan ini.', sorotan: [], terlewat: [], langkah: [] } };
+  }
+
+  var simpan = propAmbilJson_(PROP_REVIEW_HARIAN);      // adapter Properties
+  if (!paksa && simpan && simpan.bulan === bulanKini && simpan.analisa) {
+    return { berlaku: true, fakta: fakta, analisa: simpan.analisa,
+      dibuat: simpan.dibuat, jadwal: true,
+      basi: simpan.sidik !== sidikFakta_(fakta) };
+  }
+  var hasil = simpanAnalisaReview_(bulanKini, fakta);
+  return { berlaku: true, fakta: fakta, analisa: hasil.analisa, dibuat: hasil.dibuat, baru: true };
+}
+
+/** Susun FAKTA review bulan berjalan dari sheet REAL/REKAP + TRANSAKSI (tanpa memanggil model). */
+function faktaReviewBulanIni_(bulanKini) {
+  var d = getBudget(bulanKini);                        // biaya + budget REKAP + saldo
+  var pecah = String(bulanKini).split(/\s+/);
+  var namaBulan = pecah[0], tahun = pecah[1];
+  var bulanIdx = BULAN_UPPER.indexOf(namaBulan.toUpperCase());
+  var now = new Date();
+  var rows = sheetsBacaTransaksi_(7).rows;             // adapter Sheets (A..G)
+  return susunFaktaReview_({
+    bulan: bulanKini,
+    hari: Number(Utilities.formatDate(now, TIMEZONE, 'dd')),
+    hariTotal: jumlahHariBulan_(bulanIdx, tahun),
+    biaya: d.biaya,
+    agregat: agregatPerPos_(rows, namaBulan, tahun),
+    riwayat: riwayatPerPos_(rows, namaBulan, tahun),
+    totalBudget: d.totalBudget, totalTerpakai: d.totalTerpakai,
+    totalSisaBudget: d.totalSisaBudget, pctTerpakai: d.pctTerpakai,
+    saldoReal: d.saldoReal
+  });
+}
+
+/** Panggil model, simpan hasilnya beserta waktu & sidik jari angka. */
+function simpanAnalisaReview_(bulanKini, fakta) {
+  var analisa = analisaBiaya_(fakta);                  // adapter Claude
+  var rec = {
+    bulan: bulanKini,
+    dibuat: Utilities.formatDate(new Date(), TIMEZONE, "d MMMM yyyy HH:mm"),
+    sidik: sidikFakta_(fakta),
+    analisa: analisa
+  };
+  propSimpanJson_(PROP_REVIEW_HARIAN, rec);            // adapter Properties
+  return rec;
+}
+
+/**
+ * Dipanggil TRIGGER harian pukul 23.59 WITA. Tidak memakai PIN karena berjalan sebagai
+ * pemilik script, bukan lewat permintaan web. Galat ditelan agar satu kegagalan jaringan
+ * tidak mematikan trigger.
+ */
+function perbaruiReviewHarian_() {
+  try {
+    var bulanKini = getBudgetMonths().current;
+    var fakta = faktaReviewBulanIni_(bulanKini);
+    if (!fakta.adaTemuan) { propHapus_(PROP_REVIEW_HARIAN); return 'tanpa temuan'; }
+    simpanAnalisaReview_(bulanKini, fakta);
+    return 'analisa diperbarui ' + bulanKini;
+  } catch (e) {
+    return 'gagal: ' + (e && e.message ? e.message : e);
+  }
+}
+
 // ====================== DAFTAR BIAYA (sheet TRANSAKSI) ======================
 
 /** Opsi filter: bulan (tetap) + daftar tahun yang ada di kolom TAHUN BIAYA + default berjalan. */

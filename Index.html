@@ -236,6 +236,31 @@
     .warn-card.kuning .warn-row b { color: var(--kuning); }
     .warn-sub { color: var(--muted); font-weight: 400; }
 
+    /* --- Review penggunaan biaya --- */
+    .rv-ring { font-size: 14px; line-height: 1.55; color: var(--ink); margin-bottom: 14px; }
+    .rv-item { border-left: 3px solid var(--line-2); background: var(--card-2); border-radius: 10px;
+      padding: 11px 13px; margin-bottom: 9px; }
+    .rv-item.merah { border-left-color: var(--merah); }
+    .rv-item.kuning { border-left-color: var(--kuning); }
+    .rv-item.hijau { border-left-color: var(--hijau); }
+    .rv-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 5px; }
+    .rv-pos { font-weight: 700; font-size: 13px; }
+    .rv-txt { font-size: 13px; line-height: 1.5; color: var(--ink); }
+    .rv-saran { font-size: 13px; line-height: 1.5; color: var(--ink-2); margin-top: 5px; }
+    .rv-sub { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--muted); margin: 16px 0 8px; }
+    .rv-langkah { margin: 0 0 4px; padding-left: 20px; }
+    .rv-langkah li { font-size: 13px; line-height: 1.55; margin-bottom: 6px; }
+    .rv-kaki { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+    .rv-kaki .ask-hint { flex: 1 1 200px; }
+    .rv-btn { width: auto; padding: 9px 16px; font-size: 13px; }
+    .rv-link { width: auto; padding: 0; margin: 0; background: none; border: none;
+      color: var(--accent); font-size: inherit; font-weight: 600; text-decoration: underline; }
+    .rv-basi { background: rgba(254,185,90,.08); border: 1px solid rgba(254,185,90,.28);
+      border-radius: 10px; padding: 9px 12px; font-size: 12.5px; line-height: 1.5;
+      color: var(--ink-2); margin-bottom: 12px; }
+
     /* --- Panel progres saat menyimpan (modal pratinjau) --- */
     .prog { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
     .prog-row { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--ink); }
@@ -2195,6 +2220,7 @@
         (res.months || []).forEach(function (m) {
           var o = document.createElement('option'); o.value = m; o.textContent = m; sel.appendChild(o);
         });
+        window._bulanBerjalan = res.current || '';
         if (res.current && res.months.indexOf(res.current) >= 0) sel.value = res.current;
         else if (res.months.length) sel.value = res.months[res.months.length - 1];
         loadBudget();
@@ -2237,6 +2263,9 @@
         statTile('t-pink', '=', rp(d.saldoReal), 'Saldo Real', d.saldoReal < 0 ? 'c-amber' : 'c-pink',
           'pemasukan ' + rp(d.totalIncome)) +
         '</div></div>';
+
+      // --- Review penggunaan biaya (hanya bulan berjalan) ---
+      h += '<div id="reviewView"></div>';
 
       // --- Gauge pemakaian budget ---
       h += '<div class="card"><div class="bt-title">Pemakaian Budget</div>';
@@ -2295,7 +2324,118 @@
       }
       h += '</table></div>';
       document.getElementById('budgetView').innerHTML = h;
+      muatReview(d.month, false);
     }
+
+    // ---------------- Review penggunaan biaya (bulan berjalan) ----------------
+
+    /**
+     * Ambil review untuk bulan yang sedang ditampilkan. Backend menolak bulan selain
+     * bulan berjalan, tetapi kita cegah dari sini juga supaya tidak ada panggilan sia-sia.
+     */
+    function muatReview(bulan, paksa) {
+      var box = document.getElementById('reviewView');
+      if (!box) return;
+      if (!bulan || !window._bulanBerjalan || bulan !== window._bulanBerjalan) { box.innerHTML = ''; return; }
+      box.innerHTML = '<div class="card"><div class="bt-title">Review penggunaan biaya</div>' +
+        '<div class="ask-hint"><span class="spin"></span> Menganalisa transaksi bulan ini…</div></div>';
+      google.script.run.withSuccessHandler(function (r) { gambarReview(r, bulan); })
+        .withFailureHandler(function (e) {
+          box.innerHTML = '<div class="card"><div class="bt-title">Review penggunaan biaya</div>' +
+            '<div class="msg err">' + esc(e.message || e) + '</div>' +
+            '<button class="btn-ghost rv-btn" style="margin-top:10px" onclick="muatReview(\'' +
+            esc(bulan) + '\', true)">Coba lagi</button></div>';
+        }).getReviewBiaya(bulan, !!paksa, window._pin);
+    }
+
+    function gambarReview(r, bulan) {
+      var box = document.getElementById('reviewView');
+      if (!box) return;
+      if (!r || !r.berlaku) { box.innerHTML = ''; return; }
+      var a = r.analisa || {}, f = r.fakta || {};
+
+      var h = '<div class="card"><div class="bt-title">Review penggunaan biaya</div>' +
+        '<div class="ask-hint">' + esc(f.bulan || bulan) +
+        ' · hari ke-' + f.hari + ' dari ' + f.hariTotal + ' (' + f.porsiBulan + '% bulan berjalan) · ' +
+        f.jumlahTransaksi + ' transaksi</div>' +
+        '<div class="ask-hint" style="margin-bottom:12px">' +
+        (r.dibuat ? 'Analisa dibuat ' + esc(r.dibuat) : 'Analisa baru dibuat') +
+        ' · <span id="rvJadwal">memeriksa jadwal…</span></div>';
+
+      // Angka di kepala kartu selalu terkini, sedangkan narasi dibuat semalam - beri tahu
+      // bila keduanya sudah tidak sejalan, jangan biarkan pemilik mengira narasi ini terbaru.
+      if (r.basi) {
+        h += '<div class="rv-basi">Ada transaksi baru sejak analisa ini dibuat. ' +
+          'Angka di atas sudah terkini, narasinya belum — tekan <b>Analisa ulang</b> bila perlu.</div>';
+      }
+
+      if (a.ringkasan) h += '<div class="rv-ring">' + esc(a.ringkasan) + '</div>';
+
+      // Sorotan pos bermasalah
+      (a.sorotan || []).forEach(function (o) {
+        h += '<div class="rv-item ' + rvKelas(o.tingkat) + '">' +
+          '<div class="rv-head"><span class="rv-pos">' + esc(o.pos) + '</span>' +
+          '<span class="ppill ' + rvPil(o.tingkat) + '">' + esc(o.tingkat) + '</span></div>' +
+          '<div class="rv-txt">' + esc(o.temuan) + '</div>' +
+          '<div class="rv-saran">→ ' + esc(o.saran) + '</div></div>';
+      });
+
+      // Pos yang belum dianggarkan di REKAP
+      if ((a.terlewat || []).length) {
+        h += '<div class="rv-sub">Belum dianggarkan di sheet REKAP</div>';
+        a.terlewat.forEach(function (o) {
+          h += '<div class="rv-item kuning"><div class="rv-head">' +
+            '<span class="rv-pos">' + esc(o.pos) + '</span>' +
+            '<span class="ppill c-waspada">usul ' + rp(o.usulanBudget) + '</span></div>' +
+            '<div class="rv-txt">' + esc(o.alasan) + '</div></div>';
+        });
+      }
+
+      // Langkah konkret
+      if ((a.langkah || []).length) {
+        h += '<div class="rv-sub">Langkah untuk sisa bulan ini</div><ol class="rv-langkah">';
+        a.langkah.forEach(function (t) { h += '<li>' + esc(t) + '</li>'; });
+        h += '</ol>';
+      }
+
+      h += '<div class="rv-kaki"><span class="ask-hint">Angka dihitung dari sheet TRANSAKSI &amp; REKAP; ' +
+        'narasi &amp; saran dibuat AI — periksa sebelum diikuti.</span>' +
+        '<button class="btn-ghost rv-btn" onclick="muatReview(\'' + esc(bulan) + '\', true)">Analisa ulang</button></div>';
+      h += '</div>';
+      box.innerHTML = h;
+      muatJadwalReview();
+    }
+
+    /**
+     * Status jadwal harian + tombol pasang/lepas. Ditampilkan di dalam kartu review karena
+     * di situlah jadwal ini terasa akibatnya.
+     */
+    function muatJadwalReview() {
+      var el = document.getElementById('rvJadwal');
+      if (!el) return;
+      google.script.run.withSuccessHandler(function (s) {
+        window._jadwalReview = !!(s && s.aktif);
+        el.innerHTML = (s && s.aktif)
+          ? 'diperbarui otomatis tiap ' + esc(s.jam) + ' WITA ' +
+            '<button class="rv-link" onclick="toggleJadwalReview()">matikan</button>'
+          : 'jadwal harian <b>belum aktif</b> ' +
+            '<button class="rv-link" onclick="toggleJadwalReview()">aktifkan</button>';
+      }).withFailureHandler(function () { el.textContent = 'jadwal tidak terbaca'; })
+        .reviewHarianStatus(window._pin);
+    }
+
+    function toggleJadwalReview() {
+      var el = document.getElementById('rvJadwal');
+      if (el) el.textContent = 'menyimpan…';
+      var nyalakan = !window._jadwalReview;
+      google.script.run.withSuccessHandler(function () { muatJadwalReview(); })
+        .withFailureHandler(function (e) {
+          if (el) el.textContent = 'gagal: ' + (e.message || e);
+        })[nyalakan ? 'setupReviewHarian' : 'disableReviewHarian'](window._pin);
+    }
+
+    function rvKelas(t) { return { tinggi: 'merah', sedang: 'kuning', rendah: 'hijau' }[t] || 'kuning'; }
+    function rvPil(t) { return { tinggi: 'c-habis', sedang: 'c-waspada', rendah: 'c-aman' }[t] || 'c-waspada'; }
 
 
     /** Satu stat tile: ikon berwarna, nilai besar, label, keterangan kecil. */

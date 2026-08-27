@@ -38,6 +38,7 @@ Tiap keputusan di bawah **disembunyikan di balik satu modul dengan antarmuka sta
 | Arti angka REAL (sisa) vs REKAP (budget) | `15_domain_budget.gs` — [ADR-0010](adr/ADR-0010-sumber-angka-budget-rekap-vs-real.md) |
 | Rentang pantau & ambang peringatan saldo minus | `15_domain_budget.gs` |
 | Kapan saldo dianggap di bawah CASH BUFFER (peringatan kuning) | `15_domain_budget.gs` |
+| Kapan biaya disebut berlebihan / terlewat dianggarkan | `16_domain_review.gs` — [ADR-0011](adr/ADR-0011-review-biaya-angka-deterministik.md) |
 | Aturan baris Setoran Owner | `12_domain_cashflow.gs` |
 | Status baca-otomatis bukti | `13_domain_inbox.gs` |
 | ID spreadsheet CASHFLOW (ganti tiap bulan) | Script Property `CASHFLOW_URL` |

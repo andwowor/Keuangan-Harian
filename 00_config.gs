@@ -11,7 +11,7 @@
  * ke editor Apps Script. Dicetak oleh jalankanSemuaTest agar ketahuan bila ada file
  * yang belum tersalin - gejalanya: jumlah test tidak sesuai, atau fungsi baru "not defined".
  */
-var VERSI_APP = '2026.08.27-c';
+var VERSI_APP = '2026.08.27-e';
 
 /**
  * Dashboard Pengisian Biaya Harian — Keuangan Harian
@@ -155,6 +155,30 @@ var BARIS_SALDO_REAL_CADANGAN = 92;
 
 /** Baris CASH BUFFER pada sheet REAL - CADANGAN bila label 'CASH BUFFER' tidak ditemukan. */
 var BARIS_CASH_BUFFER_CADANGAN = 93;
+
+// ---------------------------------------------------------------------------
+// REVIEW PENGGUNAAN BIAYA (menu Budget, khusus bulan berjalan)
+// ---------------------------------------------------------------------------
+// Sebuah pos disebut RUTIN bila muncul minimal sekian BULAN berbeda di history.
+// 3 bulan dipilih agar pengeluaran musiman/sekali-dua-kali tidak ikut diusulkan
+// sebagai budget tetap.
+var REVIEW_MIN_BULAN_RUTIN = 3;
+// Pos disebut BOROS DI AWAL bila persen pemakaian budget mendahului persen hari
+// yang sudah berlalu sebanyak ini (poin persen).
+var REVIEW_AMBANG_LAJU = 15;
+// Pos disebut NAIK TAJAM bila pemakaian bulan ini melebihi rerata bulan sebelumnya
+// sebesar ini (persen).
+var REVIEW_AMBANG_NAIK = 50;
+// Batas jumlah temuan per kategori yang dikirim ke model (menjaga prompt tetap ringkas).
+var REVIEW_MAKS_TEMUAN = 8;
+// Hasil analisa DISIMPAN PERMANEN di Script Property (bukan cache) karena jadwalnya harian
+// dan cache Apps Script paling lama hanya 6 jam.
+var PROP_REVIEW_HARIAN = 'REVIEW_HARIAN';
+// Jadwal pembaruan analisa: sekali sehari pukul 23.59 waktu TIMEZONE (WITA).
+// Catatan: trigger harian Apps Script berjalan dalam jendela +-15 menit dari jam ini.
+var REVIEW_HANDLER = 'reviewHarianJalan';
+var REVIEW_JAM = 23;
+var REVIEW_MENIT = 59;
 
 // ============ PENYIMPANAN SEMENTARA BUKTI (FOLDER GOOGLE DRIVE) ============
 

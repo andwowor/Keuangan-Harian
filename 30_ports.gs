@@ -67,6 +67,17 @@
  */
 
 /**
+ * PORT: SpendingAnalyst (penasihat biaya)  -> diimplementasikan 42_adapter_claude.gs
+ *
+ *   analisaBiaya_(fakta)  : { ringkasan, sorotan:[{pos,tingkat,temuan,saran}],
+ *                             terlewat:[{pos,alasan,usulanBudget}], langkah:[string] }
+ *
+ * Kontrak: `fakta` sudah berisi SELURUH angka hasil hitungan domain (16_domain_review.gs).
+ * Adapter TIDAK boleh menghitung ulang, dan model diinstruksikan hanya memakai angka yang
+ * ada pada fakta - lihat ADR-0011.
+ */
+
+/**
  * PORT: ExchangeRateProvider  -> diimplementasikan 43_adapter_kurs.gs
  *
  *   getFxRate_(currency, isoDate)  : { rate:number, date:string }
@@ -78,8 +89,11 @@
 /**
  * PORT: SecretStore & Auth  -> diimplementasikan 44_adapter_properties.gs
  *
- *   checkPin(pin)    : boolean  true bila PIN cocok / APP_PIN belum diset
- *   verifyPin_(pin)  : void     melempar galat bila PIN salah
+ *   checkPin(pin)              : boolean  true bila PIN cocok / APP_PIN belum diset
+ *   verifyPin_(pin)            : void     melempar galat bila PIN salah
+ *   propAmbilJson_(kunci)      : Object|null  hasil tersimpan lintas sesi
+ *   propSimpanJson_(kunci, v)  : void
+ *   propHapus_(kunci)          : void
  *
  * Kontrak: SETIAP fungsi backend yang membaca atau menulis data pengguna wajib
  * memanggil verifyPin_ di baris pertama (QAS-06).
@@ -91,5 +105,9 @@
  *   setupAutoRead(pin)     : { aktif:boolean }  pasang trigger ±5 menit
  *   disableAutoRead(pin)   : { aktif:boolean }  lepas trigger
  *   autoReadStatus(pin)    : { aktif:boolean }
- *   autoReadInbox()        : number  jumlah bukti yang dibaca pada satu putaran
+ *   autoReadInbox()          : number  jumlah bukti yang dibaca pada satu putaran
+ *   setupReviewHarian(pin)   : { aktif, jam, zona }  pasang trigger 23.59 WITA
+ *   disableReviewHarian(pin) : { aktif, jam, zona }
+ *   reviewHarianStatus(pin)  : { aktif, jam, zona }
+ *   reviewHarianJalan()      : string  ringkasan hasil satu putaran analisa harian
  */

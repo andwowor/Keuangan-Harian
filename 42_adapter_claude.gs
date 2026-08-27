@@ -184,3 +184,122 @@ function analyzeImg_(img) {
   data.nominalFormatted = formatRupiah_(data.nominal);
   return data;
 }
+
+// ====================== REVIEW PENGGUNAAN BIAYA (CLAUDE) ======================
+
+/**
+ * Menarasikan FAKTA review biaya yang sudah dihitung 16_domain_review.gs.
+ *
+ * Batas peran yang disengaja: model TIDAK menghitung apa pun. Semua angka sudah jadi
+ * dan dikirim apa adanya; tugas model hanya menjelaskan artinya dan memberi saran yang
+ * bisa ditindaklanjuti. Ini menutup satu-satunya cara analisa keuangan bisa salah
+ * secara berbahaya, yaitu angka yang dikarang.
+ *
+ * fakta: hasil susunFaktaReview_. Mengembalikan
+ *   { ringkasan, sorotan:[{pos,tingkat,temuan,saran}], terlewat:[{pos,alasan,usulanBudget}],
+ *     langkah:[string] }
+ */
+function analisaBiaya_(fakta) {
+  var apiKey = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY belum diset. Buka Project Settings > Script Properties.');
+
+  var systemPrompt =
+    'Anda penasihat keuangan pribadi untuk seorang pemilik usaha di Indonesia. Anda menerima ' +
+    'RINGKASAN ANGKA yang sudah dihitung dari spreadsheet miliknya untuk BULAN BERJALAN. ' +
+    'Tugas Anda: menilai penggunaan biaya dan memberi rekomendasi yang bisa langsung dikerjakan.\n\n' +
+    'ATURAN MUTLAK:\n' +
+    '- JANGAN menghitung, menjumlah, atau menaksir angka baru. Pakai HANYA angka yang ada pada data. ' +
+    'Bila sebuah angka tidak ada, jangan sebut angka - jelaskan dengan kata-kata.\n' +
+    '- Jangan mengarang pos biaya yang tidak ada pada data.\n' +
+    '- Ingat bulan belum tentu selesai: "porsiBulan" adalah persen hari yang sudah berlalu. ' +
+    'Pos yang pemakaiannya jauh mendahului porsiBulan patut disorot walau belum 100%.\n' +
+    '- Angka pada "lajuCepat" bukan pemborosan pasti, melainkan laju yang perlu diperhatikan. ' +
+    'Bedakan nadanya dari "berlebihan" yang memang sudah melewati budget.\n' +
+    '- Pos pada "tanpaBudget" ADA pengeluarannya bulan ini tetapi budgetnya 0 di sheet REKAP. ' +
+    'Pos pada "rutinTerlewat" rutin di bulan-bulan sebelumnya tetapi tidak dianggarkan bulan ini. ' +
+    'Keduanya kandidat "lupa diproyeksikan" - usulkan angka budget yang masuk akal ' +
+    'BERDASARKAN angka yang tersedia (rerata atau pemakaian bulan ini), bukan tebakan bebas.\n' +
+    '- Cicilan, tagihan, dan pajak umumnya tidak bisa dipangkas; sarannya bukan "kurangi" ' +
+    'melainkan penjadwalan, pelunasan lebih cepat, atau penyesuaian budget. Sebaliknya pos ' +
+    'konsumtif harian memang bisa direm.\n' +
+    '- Bahasa Indonesia, langsung, tanpa basa-basi, tanpa menggurui. Sapa dengan "Anda".\n\n' +
+    'ISI KELUARAN:\n' +
+    '- ringkasan: 2-3 kalimat tentang posisi biaya bulan ini secara keseluruhan.\n' +
+    '- sorotan: maksimal 5 pos yang paling perlu diperhatikan. "temuan" = apa yang terjadi ' +
+    '(boleh menyebut angka dari data), "saran" = tindakan konkret. Urutkan dari paling mendesak.\n' +
+    '- terlewat: pos yang sebaiknya ditambahkan/diisi budgetnya di sheet REKAP, dengan alasannya ' +
+    'dan usulan angkanya. Kosongkan array bila memang tidak ada.\n' +
+    '- langkah: maksimal 4 tindakan paling berdampak untuk sisa bulan ini, kalimat perintah singkat.';
+
+  var schema = {
+    type: 'object',
+    properties: {
+      ringkasan: { type: 'string' },
+      sorotan: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            pos: { type: 'string' },
+            tingkat: { type: 'string', enum: ['tinggi', 'sedang', 'rendah'] },
+            temuan: { type: 'string' },
+            saran: { type: 'string' }
+          },
+          required: ['pos', 'tingkat', 'temuan', 'saran'],
+          additionalProperties: false
+        }
+      },
+      terlewat: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            pos: { type: 'string' },
+            alasan: { type: 'string' },
+            usulanBudget: { type: 'number' }
+          },
+          required: ['pos', 'alasan', 'usulanBudget'],
+          additionalProperties: false
+        }
+      },
+      langkah: { type: 'array', items: { type: 'string' } }
+    },
+    required: ['ringkasan', 'sorotan', 'terlewat', 'langkah'],
+    additionalProperties: false
+  };
+
+  var body = {
+    model: CLAUDE_MODEL,
+    max_tokens: 2048,
+    system: systemPrompt,
+    output_config: { format: { type: 'json_schema', schema: schema } },
+    messages: [{
+      role: 'user',
+      content: [{ type: 'text',
+        text: 'Data bulan berjalan (angka sudah final, jangan dihitung ulang):\n\n' +
+          JSON.stringify(fakta, null, 1) }]
+    }]
+  };
+
+  var resp = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+    method: 'post',
+    contentType: 'application/json',
+    headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+    payload: JSON.stringify(body),
+    muteHttpExceptions: true
+  });
+
+  var code = resp.getResponseCode();
+  var text = resp.getContentText();
+  if (code !== 200) throw new Error('Claude API error ' + code + ': ' + text);
+
+  var json = JSON.parse(text);
+  if (json.stop_reason === 'refusal') throw new Error('Permintaan ditolak oleh model (refusal).');
+
+  var raw = '';
+  for (var i = 0; i < json.content.length; i++) {
+    if (json.content[i].type === 'text') raw += json.content[i].text;
+  }
+  try { return JSON.parse(raw); }
+  catch (e) { throw new Error('Gagal membaca hasil analisa dari model: ' + raw); }
+}

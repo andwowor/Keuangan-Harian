@@ -37,6 +37,7 @@ function jalankanSemuaTest() {
   testDomainBudget();
   testDomainBudgetRekap();
   testDomainPeringatanSaldo();
+  testDomainReview();
   testDomainCashflow();
   testDomainInbox();
   // Penanda versi ikut dicetak: bila jumlah test tidak cocok dengan yang tertulis di
@@ -424,6 +425,139 @@ function testDomainPeringatanSaldo() {
   _cek_('tanpa pelanggaran buffer -> tidak ada peringatan', ringkasBuffer_([]).ada, false);
 }
 
+// ============ DOMAIN: REVIEW PENGGUNAAN BIAYA ============
+
+/** Baris TRANSAKSI uji: [pos, ket, nominal, tgl, biayaBulan, tahunBiaya, sumber]. */
+function _trxUji_() {
+  return [
+    ['DAILY DRIVER', 'Kopi', 150000, '', 'AGUSTUS', 2026, 'UANG SAKU'],
+    ['DAILY DRIVER', 'Makan siang', 400000, '', 'AGUSTUS', 2026, 'UANG SAKU'],
+    ['Parkir', 'Parkir mall', 25000, '', 'AGUSTUS', 2026, 'UANG SAKU'],
+    ['Retribusi Sampah', 'Iuran', 40000, '', 'AGUSTUS', 2026, 'UANG SAKU'],
+    ['Isi Bensin', 'Bensin', 600000, '', 'AGUSTUS', 2026, 'PENDAPATAN USAHA'],
+    // Riwayat bulan sebelumnya
+    ['DAILY DRIVER', 'Kopi', 300000, '', 'JULI', 2026, 'UANG SAKU'],
+    ['Parkir', 'Parkir', 30000, '', 'JULI', 2026, 'UANG SAKU'],
+    ['Parkir', 'Parkir', 20000, '', 'JUNI', 2026, 'UANG SAKU'],
+    ['Parkir', 'Parkir', 10000, '', 'MEI', 2026, 'UANG SAKU'],
+    ['Air Galon', 'Refill', 60000, '', 'JULI', 2026, 'UANG SAKU'],
+    ['Air Galon', 'Refill', 60000, '', 'JUNI', 2026, 'UANG SAKU'],
+    ['Air Galon', 'Refill', 60000, '', 'MEI', 2026, 'UANG SAKU'],
+    ['Liburan', 'Tiket', 3000000, '', 'JUNI', 2026, 'UANG SAKU'],  // sekali saja -> bukan rutin
+    ['Isi Bensin', 'Bensin', 400000, '', 'JULI', 2026, 'PENDAPATAN USAHA'],
+    ['Isi Bensin', 'Bensin', 400000, '', 'JUNI', 2026, 'PENDAPATAN USAHA'],
+    ['Isi Bensin', 'Bensin', 400000, '', 'MEI', 2026, 'PENDAPATAN USAHA']
+  ];
+}
+
+function testDomainReview() {
+  var rows = _trxUji_();
+
+  // --- Agregat periode berjalan ---
+  var ag = agregatPerPos_(rows, 'AGUSTUS', 2026);
+  _cek_('agregat: total per pos', ag['DAILY DRIVER'].total, 550000);
+  _cek_('agregat: jumlah transaksi', ag['DAILY DRIVER'].jumlah, 2);
+  _cek_('agregat: transaksi terbesar', ag['DAILY DRIVER'].terbesar.ket, 'Makan siang');
+  _cek_('agregat: bulan lain tidak ikut', ag['Air Galon'], undefined);
+  _cek_('agregat: cocok walau tahun bertipe teks',
+    Object.keys(agregatPerPos_(rows, 'agustus', '2026')).length, 4);
+
+  // --- Riwayat di luar periode berjalan ---
+  var rw = riwayatPerPos_(rows, 'AGUSTUS', 2026);
+  _cek_('riwayat: jumlah bulan berbeda', rw['Parkir'].nBulan, 3);
+  _cek_('riwayat: rerata per bulan terisi', rw['Parkir'].rerata, 20000);
+  _cek_('riwayat: bulan berjalan dikecualikan', rw['DAILY DRIVER'].nBulan, 1);
+  _cek_('riwayat: rerata tidak diencerkan bulan kosong', rw['Air Galon'].rerata, 60000);
+
+  // --- Temuan dari blok biaya ---
+  var biaya = [
+    { b: 'DAILY DRIVER', budget: 500000, terpakai: 550000, sisa: -50000, pct: 110, adaBudget: true, isTotal: false },
+    { b: 'Belanja Bulanan', budget: 1000000, terpakai: 850000, sisa: 150000, pct: 85, adaBudget: true, isTotal: false },
+    { b: 'Isi Bensin', budget: 1000000, terpakai: 600000, sisa: 400000, pct: 60, adaBudget: true, isTotal: false },
+    { b: 'Gaji ART', budget: 1200000, terpakai: 200000, sisa: 1000000, pct: 17, adaBudget: true, isTotal: false },
+    { b: 'Parkir', budget: 0, terpakai: 0, sisa: 0, pct: -1, adaBudget: false, isTotal: false },
+    { b: 'Retribusi Sampah', budget: 0, terpakai: 0, sisa: 0, pct: -1, adaBudget: false, isTotal: false },
+    { b: 'Air Galon', budget: 0, terpakai: 0, sisa: 0, pct: -1, adaBudget: false, isTotal: false },
+    { b: 'TOTAL', budget: 0, terpakai: 0, sisa: 0, pct: -1, adaBudget: false, isTotal: true }
+  ];
+
+  var lebih = temuanBerlebihan_(biaya);
+  _cek_('berlebihan: hanya yang >= 100%', lebih.length, 1);
+  _cek_('berlebihan: nilai kelebihan', lebih[0].lebih, 50000);
+
+  var dekat = temuanMendekati_(biaya);
+  _cek_('mendekati: 80-99% saja', dekat.length, 1);
+  _cek_('mendekati: pos benar', dekat[0].pos, 'Belanja Bulanan');
+  _cek_('mendekati: yang sudah lewat tidak diulang',
+    dekat.filter(function (o) { return o.pos === 'DAILY DRIVER'; }).length, 0);
+
+  // Bulan baru jalan 40%: 60% terpakai = mendahului 20 poin -> disorot;
+  // 17% terpakai = masih di belakang -> tidak disorot.
+  var laju = temuanLajuCepat_(biaya, 40);
+  _cek_('laju: yang mendahului bulan disorot', laju.length, 1);
+  _cek_('laju: pos benar', laju[0].pos, 'Isi Bensin');
+  _cek_('laju: selisih poin persen', laju[0].mendahului, 20);
+  _cek_('laju: pos waspada/habis tidak diulang di sini',
+    laju.filter(function (o) { return o.pct >= AMBANG_WASPADA; }).length, 0);
+  _cek_('laju: bulan hampir habis -> tidak ada yang mendahului', temuanLajuCepat_(biaya, 95).length, 0);
+
+  // --- Lupa diproyeksikan di REKAP ---
+  var budgetByPos = {};
+  for (var i = 0; i < biaya.length; i++) if (!biaya[i].isTotal) budgetByPos[biaya[i].b] = biaya[i].budget;
+
+  var tanpa = temuanTanpaBudget_(ag, budgetByPos);
+  _cek_('tanpa budget: ada pengeluaran tapi budget 0', tanpa.length, 2);
+  _cek_('tanpa budget: urut dari nominal terbesar', tanpa[0].pos, 'Retribusi Sampah');
+  _cek_('tanpa budget: pos yang punya budget dikecualikan',
+    tanpa.filter(function (o) { return o.pos === 'DAILY DRIVER'; }).length, 0);
+
+  var rutin = temuanRutinTerlewat_(rw, budgetByPos, ag);
+  _cek_('rutin terlewat: 3 bulan tanpa budget', rutin.length, 1);
+  _cek_('rutin terlewat: pos benar', rutin[0].pos, 'Air Galon');
+  _cek_('rutin terlewat: yang sekali saja bukan rutin',
+    rutin.filter(function (o) { return o.pos === 'Liburan'; }).length, 0);
+  _cek_('rutin terlewat: tidak mengulang temuan tanpa-budget',
+    rutin.filter(function (o) { return o.pos === 'Parkir'; }).length, 0);
+
+  // --- Naik tajam terhadap rerata ---
+  var naik = temuanNaikTajam_(ag, rw);
+  _cek_('naik tajam: hanya yang lonjakannya besar', naik.length, 1);
+  _cek_('naik tajam: pos benar', naik[0].pos, 'Isi Bensin');
+  _cek_('naik tajam: persen kenaikan', naik[0].naikPct, 50);
+  _cek_('naik tajam: kenaikan kecil diabaikan',
+    naik.filter(function (o) { return o.pos === 'Parkir'; }).length, 0);   // +25%, di bawah ambang
+  _cek_('naik tajam: riwayat < 3 bulan diabaikan',
+    naik.filter(function (o) { return o.pos === 'DAILY DRIVER'; }).length, 0);
+
+  // --- Porsi bulan & jumlah hari ---
+  _cek_('porsi bulan: hari ke-15 dari 30', porsiBulanBerjalan_(15, 30), 50);
+  _cek_('porsi bulan: tanpa data -> 0', porsiBulanBerjalan_(5, 0), 0);
+  _cek_('hari Agustus', jumlahHariBulan_(7, 2026), 31);
+  _cek_('hari Februari biasa', jumlahHariBulan_(1, 2026), 28);
+  _cek_('hari Februari kabisat', jumlahHariBulan_(1, 2028), 29);
+  _cek_('hari Februari 2100 bukan kabisat', jumlahHariBulan_(1, 2100), 28);
+
+  // --- Rangkuman fakta ---
+  var f = susunFaktaReview_({
+    bulan: 'AGUSTUS 2026', hari: 12, hariTotal: 31, biaya: biaya,
+    agregat: ag, riwayat: rw, totalBudget: 3700000, totalTerpakai: 2200000,
+    totalSisaBudget: 1500000, pctTerpakai: 59, saldoReal: 6844939
+  });
+  _cek_('fakta: ada temuan', f.adaTemuan, true);
+  _cek_('fakta: porsi bulan ikut dihitung', f.porsiBulan, 39);
+  _cek_('fakta: jumlah transaksi bulan ini', f.jumlahTransaksi, 5);
+  _cek_('fakta: total transaksi bulan ini', f.totalTransaksi, 1215000);
+  _cek_('fakta: sidik jari stabil', sidikFakta_(f), sidikFakta_(f));
+
+  // Tanpa temuan sama sekali -> tidak perlu memanggil model
+  var kosong = susunFaktaReview_({
+    bulan: 'AGUSTUS 2026', hari: 12, hariTotal: 31,
+    biaya: [{ b: 'Gaji ART', budget: 1200000, terpakai: 200000, sisa: 1000000, pct: 17,
+      adaBudget: true, isTotal: false }],
+    agregat: {}, riwayat: {}
+  });
+  _cek_('fakta: tanpa temuan -> adaTemuan false', kosong.adaTemuan, false);
+}
 // ====================== DOMAIN: CASHFLOW ======================
 
 function testDomainCashflow() {
@@ -644,18 +778,23 @@ function cekModulLengkap() {
     ['12_domain_cashflow', ['mapBankCashflow_', 'buildCashflowRow_']],
     ['13_domain_inbox', ['descGetLine_', 'descSetLine_', 'inboxNeedsRead_', 'inboxAiState_']],
     ['14_domain_pos', ['posDariPenerima_', 'samakanPos_', 'posDariGrid_', 'batasPengeluaran_']],
-    ['15_domain_budget', ['susunBudget_', 'barisTotalPengeluaran_', 'rentangBudget_']],
+    ['15_domain_budget', ['susunBudget_', 'barisTotalPengeluaran_', 'rentangBudget_',
+                          'saldoDiBawahBuffer_', 'ringkasBuffer_']],
+    ['16_domain_review', ['agregatPerPos_', 'riwayatPerPos_', 'temuanBerlebihan_',
+                          'temuanTanpaBudget_', 'temuanRutinTerlewat_', 'susunFaktaReview_']],
     ['20_app_transaksi', ['appendTransaction', 'updateTransaction', 'lupakanCacheHistory_']],
     ['21_app_inbox', ['uploadInbox', 'listInbox', 'analyzeInboxFile', 'inboxReadOne_']],
-    ['22_app_laporan', ['getBudget', 'getBudgetMonths', 'getTransaksiList', 'auditCashflowSetoran']],
+    ['22_app_laporan', ['getBudget', 'getBudgetMonths', 'getTransaksiList', 'auditCashflowSetoran',
+                        'getPeringatanSaldo', 'getReviewBiaya', 'perbaruiReviewHarian_']],
     ['40_adapter_sheets', ['getSheet_', 'getPosList_', 'posDariRentang_', 'sheetsBacaTransaksi_',
                            'sheetsBacaReal_', 'sheetsSiapkanBarisBaru_']],
     ['41_adapter_drive', ['getInboxFolder_', 'getInboxFile_', 'inboxImageBlob_', 'inboxGetAi_']],
-    ['42_adapter_claude', ['analyzeImage', 'analyzeImg_']],
+    ['42_adapter_claude', ['analyzeImage', 'analyzeImg_', 'analisaBiaya_']],
     ['43_adapter_kurs', ['getFxRate_']],
-    ['44_adapter_properties', ['checkPin', 'verifyPin_']],
+    ['44_adapter_properties', ['checkPin', 'verifyPin_', 'propAmbilJson_', 'propSimpanJson_']],
     ['50_inbound_webapp', ['doGet', 'getConfig', 'include']],
-    ['90_triggers', ['autoReadInbox', 'setupAutoRead', 'autoReadStatus']],
+    ['90_triggers', ['autoReadInbox', 'setupAutoRead', 'autoReadStatus',
+                     'reviewHarianJalan', 'setupReviewHarian', 'reviewHarianStatus']],
     ['99_tests', ['jalankanSemuaTest', 'cekStrukturReal', 'daftarSheet', 'cekModulLengkap']]
   ];
   var out = [], perluSalin = [];
