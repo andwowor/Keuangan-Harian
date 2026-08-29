@@ -98,6 +98,18 @@ proyek ini, dan menyimpan izin yang tidak berfungsi hanya memperluas kewenangan 
 Urutan jalur dibalik menjadi Drive lebih dulu: mencoba `script.googleapis.com` setiap kali
 hanya menambah satu permintaan yang pasti gagal.
 
+**Percobaan ketiga**: setelah scope beres, v3 menjawab `400 Bad Request`. Uji bolak-balik
+`cekTulisDrive()` (membaca isi proyek lalu mengirimkannya kembali apa adanya) memberi
+matriks yang menentukan pada proyek nyata:
+
+| Muatan | v3 (PATCH) | v2 (PUT) |
+|---|---|---|
+| mentah hasil ekspor | 200 | 200 |
+| susunan sendiri (+id) | **500 Internal Error** | **200** |
+
+Kesimpulan: endpoint dan scope benar; penulisan produksi memakai **Drive v2 lebih dulu**,
+v3 sebagai cadangan. `id` tiap berkas dari hasil ekspor dipertahankan pada muatan tulis.
+
 Galat dari kedua jalur kini **selalu menyertakan pesan asli Google**. Versi pertama adapter
 ini menelan pesan asli dan hanya menampilkan dugaan, sehingga "API belum aktif" tak dapat
 dibedakan dari "API butuh Cloud project" — dua hal dengan penanganan yang sangat berbeda.

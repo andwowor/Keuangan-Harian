@@ -108,15 +108,18 @@ function driveMuatan_(files) {
 }
 
 function driveTulis_(files) {
+  // Urutan dari hasil uji bolak-balik pada proyek nyata (cekTulisDrive, 29 Agu 2026):
+  // muatan susunan kita -> v2 = 200, v3 = 500 Internal Error (muatan mentah diterima
+  // keduanya). Jadi v2 dicoba PERTAMA; v3 tinggal cadangan bila Google menutup v2 kelak.
   var muatan = driveMuatan_(files);
-  var a = driveKirim_(3, muatan);
+  var a = driveKirim_(2, muatan);
   if (a.getResponseCode() === 200) return a;
-  var b = driveKirim_(2, muatan);
+  var b = driveKirim_(3, muatan);
   if (b.getResponseCode() === 200) return b;
   throw new Error(
-    galatProyek_('menulis isi proyek lewat Drive v3', a.getResponseCode(), a.getContentText()).message +
-    '\n\nDrive v2 juga gagal:\n' +
-    galatProyek_('menulis isi proyek lewat Drive v2', b.getResponseCode(), b.getContentText()).message);
+    galatProyek_('menulis isi proyek lewat Drive v2', a.getResponseCode(), a.getContentText()).message +
+    '\n\nDrive v3 juga gagal:\n' +
+    galatProyek_('menulis isi proyek lewat Drive v3', b.getResponseCode(), b.getContentText()).message);
 }
 
 // ---------------------------------------------------------------- API yang dipakai application
