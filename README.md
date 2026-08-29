@@ -58,13 +58,35 @@ Rincian: [logical](docs/architecture/02-views/logical.md) ·
 (keamanan dijaga `APP_PIN` — [ADR-0006](docs/architecture/adr/ADR-0006-akses-publik-dengan-pin.md)).
 Buka **Web app URL** (`…/exec`). Untuk dipasang sebagai aplikasi HP, lihat [`docs/README.md`](docs/README.md).
 
+## Memperbarui kode (tanpa salin-tempel)
+
+Menu **Setelan → ⬇️ Sinkronkan kode dari GitHub** menarik kode terbaru dari cabang
+`GITHUB_BRANCH` langsung ke proyek Apps Script. **Deploy tetap manual** — aplikasi yang
+sedang dipakai belum berubah sampai Anda menekan *Deploy → Manage deployments → Edit →
+New version*.
+
+- **Periksa dulu** — hanya membandingkan, tidak menulis apa pun.
+- **Sinkronkan** — membuat **versi cadangan** lebih dulu, baru menimpa. Berkas proyek yang
+  bukan berasal dari repositori **dipertahankan**, tidak dihapus.
+- Isi dari internet ditolak sebelum menimpa bila ada yang janggal: berkas kosong, halaman
+  404, manifest rusak, atau `VERSI_APP` tidak cocok dengan `sync-manifest.json`.
+  Satu gagal = seluruh sinkron dibatalkan.
+
+Prasyarat sekali saja: nyalakan **Google Apps Script API** di
+<https://script.google.com/home/usersettings>, dan setujui ulang izin karena
+`appsscript.json` menambah scope `script.projects`. Rinciannya di
+[ADR-0012](docs/architecture/adr/ADR-0012-sinkron-kode-tarik-dari-github.md).
+
+Setiap perubahan berkas `.gs` mengharuskan `sync-manifest.json` diperbarui —
+jalankan `tools/buat-manifest.sh`.
+
 ## Test
 
 Di editor Apps Script, pilih fungsi lalu **Run** (hasil di *Execution log*):
 
 | Fungsi | Cakupan |
 |---|---|
-| `jalankanSemuaTest` | **215 test unit domain** — murni, tidak menyentuh data nyata. Hasilnya mencetak **penanda versi** (`VERSI_APP`, saat ini `2026.08.27-g`); bila jumlah test atau versinya tidak cocok dengan baris ini, ada file yang belum tersalin ke Apps Script. |
+| `jalankanSemuaTest` | **241 test unit domain** — murni, tidak menyentuh data nyata. Hasilnya mencetak **penanda versi** (`VERSI_APP`, saat ini `2026.08.27-h`); bila jumlah test atau versinya tidak cocok dengan baris ini, ada file yang belum tersalin ke Apps Script. |
 | `cekFolderPenyimpanan` | Integrasi: izin Drive & folder inbox |
 | `cekDeteksiRekening` | Aturan sumber dana pada contoh bukti nyata |
 

@@ -38,6 +38,7 @@ function jalankanSemuaTest() {
   testDomainBudgetRekap();
   testDomainPeringatanSaldo();
   testDomainReview();
+  testDomainSinkron();
   testDomainCashflow();
   testDomainInbox();
   // Penanda versi ikut dicetak: bila jumlah test tidak cocok dengan yang tertulis di
@@ -558,6 +559,74 @@ function testDomainReview() {
   });
   _cek_('fakta: tanpa temuan -> adaTemuan false', kosong.adaTemuan, false);
 }
+// ============ DOMAIN: SINKRONISASI KODE DARI REPOSITORI ============
+
+function testDomainSinkron() {
+  // --- Pemetaan nama & jenis berkas ---
+  _cek_('.gs -> SERVER_JS', tipeBerkasScript_('22_app_laporan.gs'), 'SERVER_JS');
+  _cek_('.html -> HTML', tipeBerkasScript_('Index.html'), 'HTML');
+  _cek_('manifest -> JSON', tipeBerkasScript_('appsscript.json'), 'JSON');
+  _cek_('JSON lain bukan berkas proyek', tipeBerkasScript_('sync-manifest.json'), '');
+  _cek_('README diabaikan', tipeBerkasScript_('README.md'), '');
+  _cek_('nama proyek tanpa ekstensi', namaProyek_('16_domain_review.gs'), '16_domain_review');
+  _cek_('manifest jadi "appsscript"', namaProyek_('appsscript.json'), 'appsscript');
+
+  // --- Penyaringan daftar berkas ---
+  var d = berkasDikelola_(['00_config.gs', 'Index.html', 'appsscript.json', 'README.md',
+    'sync-manifest.json', 'docs/runbook.md', 'tools/buat-manifest.sh', '']);
+  _cek_('hanya berkas kode yang diambil', d.length, 3);
+  _cek_('berkas dalam subfolder diabaikan',
+    d.filter(function (x) { return x.path.indexOf('/') >= 0; }).length, 0);
+
+  // --- Pemeriksaan sebelum menimpa ---
+  var sehat = [
+    { name: 'appsscript', type: 'JSON', source: '{"timeZone":"Asia/Makassar"}' },
+    { name: '00_config', type: 'SERVER_JS', source: "var VERSI_APP = '2026.01.01-a';" }
+  ];
+  _cek_('isi sehat lolos', periksaBerkasSinkron_(sehat, '2026.01.01-a').length, 0);
+  _cek_('versi tidak cocok ditolak',
+    periksaBerkasSinkron_(sehat, '2026.01.01-b').length, 1);
+  _cek_('manifest hilang ditolak',
+    periksaBerkasSinkron_([sehat[1]], '2026.01.01-a').length, 1);
+  _cek_('00_config hilang ditolak',
+    periksaBerkasSinkron_([sehat[0]], '').length, 1);
+  _cek_('berkas kosong ditolak', periksaBerkasSinkron_(
+    [sehat[0], sehat[1], { name: '05_shared', type: 'SERVER_JS', source: '   ' }],
+    '2026.01.01-a').length, 1);
+  _cek_('halaman 404 ditolak', periksaBerkasSinkron_(
+    [sehat[0], sehat[1], { name: '05_shared', type: 'SERVER_JS', source: '404: Not Found' }],
+    '2026.01.01-a').length, 1);
+  _cek_('manifest rusak ditolak', periksaBerkasSinkron_(
+    [{ name: 'appsscript', type: 'JSON', source: '{rusak' }, sehat[1]], '2026.01.01-a').length, 1);
+  _cek_('VERSI_APP tidak ada ditolak', periksaBerkasSinkron_(
+    [sehat[0], { name: '00_config', type: 'SERVER_JS', source: 'var X = 1;' }], '').length, 1);
+  _cek_('cariVersiApp_ membaca nilai',
+    cariVersiApp_("...\nvar VERSI_APP = '2026.08.27-h';\n..."), '2026.08.27-h');
+
+  // --- Penggabungan: berkas milik pemilik TIDAK dihapus ---
+  var lama = [
+    { name: '00_config', type: 'SERVER_JS', source: 'lama' },
+    { name: '05_shared', type: 'SERVER_JS', source: 'sama' },
+    { name: 'CatatanSaya', type: 'SERVER_JS', source: 'punya pemilik' }
+  ];
+  var baru = [
+    { name: '00_config', type: 'SERVER_JS', source: 'baru' },
+    { name: '05_shared', type: 'SERVER_JS', source: 'sama' },
+    { name: '17_domain_sinkron', type: 'SERVER_JS', source: 'modul baru' }
+  ];
+  var g = gabungKonten_(lama, baru);
+  _cek_('jumlah berkas hasil gabung', g.files.length, 4);
+  _cek_('berkas asing dipertahankan', g.dipertahankan.join(','), 'CatatanSaya');
+  _cek_('isi baru menang', g.files.filter(function (f) { return f.name === '00_config'; })[0].source, 'baru');
+
+  // --- Ringkasan perubahan ---
+  var r = ringkasSinkron_(lama, baru);
+  _cek_('berkas baru terdeteksi', r.ditambah.join(','), '17_domain_sinkron');
+  _cek_('berkas berubah terdeteksi', r.diubah.join(','), '00_config');
+  _cek_('berkas sama tidak dihitung berubah', r.sama.join(','), '05_shared');
+  _cek_('ada perubahan', r.adaPerubahan, true);
+  _cek_('tanpa perubahan -> false', ringkasSinkron_(lama, lama).adaPerubahan, false);
+}
 // ====================== DOMAIN: CASHFLOW ======================
 
 function testDomainCashflow() {
@@ -782,16 +851,21 @@ function cekModulLengkap() {
                           'saldoDiBawahBuffer_', 'ringkasBuffer_']],
     ['16_domain_review', ['agregatPerPos_', 'riwayatPerPos_', 'temuanBerlebihan_',
                           'temuanTanpaBudget_', 'temuanRutinTerlewat_', 'susunFaktaReview_']],
+    ['17_domain_sinkron', ['tipeBerkasScript_', 'berkasDikelola_', 'periksaBerkasSinkron_',
+                           'gabungKonten_', 'ringkasSinkron_']],
     ['20_app_transaksi', ['appendTransaction', 'updateTransaction', 'lupakanCacheHistory_']],
     ['21_app_inbox', ['uploadInbox', 'listInbox', 'analyzeInboxFile', 'inboxReadOne_']],
     ['22_app_laporan', ['getBudget', 'getBudgetMonths', 'getTransaksiList', 'auditCashflowSetoran',
                         'getPeringatanSaldo', 'getReviewBiaya', 'perbaruiReviewHarian_']],
+    ['23_app_sinkron', ['sinkronDariGitHub']],
     ['40_adapter_sheets', ['getSheet_', 'getPosList_', 'posDariRentang_', 'sheetsBacaTransaksi_',
                            'sheetsBacaReal_', 'sheetsSiapkanBarisBaru_']],
     ['41_adapter_drive', ['getInboxFolder_', 'getInboxFile_', 'inboxImageBlob_', 'inboxGetAi_']],
     ['42_adapter_claude', ['analyzeImage', 'analyzeImg_', 'analisaBiaya_']],
     ['43_adapter_kurs', ['getFxRate_']],
     ['44_adapter_properties', ['checkPin', 'verifyPin_', 'propAmbilJson_', 'propSimpanJson_']],
+    ['45_adapter_github', ['githubManifest_', 'githubAmbilTeks_']],
+    ['46_adapter_script_api', ['scriptBacaKonten_', 'scriptTulisKonten_', 'scriptBuatVersi_']],
     ['50_inbound_webapp', ['doGet', 'getConfig', 'include']],
     ['90_triggers', ['autoReadInbox', 'setupAutoRead', 'autoReadStatus',
                      'reviewHarianJalan', 'setupReviewHarian', 'reviewHarianStatus']],

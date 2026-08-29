@@ -39,6 +39,7 @@ Tiap keputusan di bawah **disembunyikan di balik satu modul dengan antarmuka sta
 | Rentang pantau & ambang peringatan saldo minus | `15_domain_budget.gs` |
 | Kapan saldo dianggap di bawah CASH BUFFER (peringatan kuning) | `15_domain_budget.gs` |
 | Kapan biaya disebut berlebihan / terlewat dianggarkan | `16_domain_review.gs` — [ADR-0011](adr/ADR-0011-review-biaya-angka-deterministik.md) |
+| Syarat minimal sebelum kode dari internet boleh menimpa proyek | `17_domain_sinkron.gs` — [ADR-0012](adr/ADR-0012-sinkron-kode-tarik-dari-github.md) |
 | Aturan baris Setoran Owner | `12_domain_cashflow.gs` |
 | Status baca-otomatis bukti | `13_domain_inbox.gs` |
 | ID spreadsheet CASHFLOW (ganti tiap bulan) | Script Property `CASHFLOW_URL` |

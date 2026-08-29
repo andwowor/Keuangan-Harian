@@ -36,7 +36,9 @@ function getConfig() {
     bulan: BULAN_UPPER,
     tahun: [year - 1, year, year + 1],
     today: Utilities.formatDate(now, TIMEZONE, 'yyyy-MM-dd'),
-    tahunIni: year
+    tahunIni: year,
+    versi: VERSI_APP,
+    cabang: GITHUB_BRANCH
   };
 }
 

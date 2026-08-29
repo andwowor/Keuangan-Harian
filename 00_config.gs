@@ -11,7 +11,20 @@
  * ke editor Apps Script. Dicetak oleh jalankanSemuaTest agar ketahuan bila ada file
  * yang belum tersalin - gejalanya: jumlah test tidak sesuai, atau fungsi baru "not defined".
  */
-var VERSI_APP = '2026.08.27-g';
+var VERSI_APP = '2026.08.27-h';
+
+// ---------------------------------------------------------------------------
+// SINKRONISASI KODE DARI GITHUB (menu Setelan)
+// ---------------------------------------------------------------------------
+// Sumber kebenaran kode ada di repositori; proyek Apps Script menariknya sendiri.
+// Cabang ditulis eksplisit supaya proyek tidak pernah diam-diam mengambil kode dari
+// cabang lain. DEPLOY tetap manual - sinkron hanya mengganti isi proyek.
+var GITHUB_OWNER = 'andwowor';
+var GITHUB_REPO = 'Keuangan-Harian';
+var GITHUB_BRANCH = 'claude/focused-cerf-bsstsi';
+// Daftar berkas yang disinkronkan. Dibaca dari repositori (bukan dari GitHub API) karena
+// Apps Script keluar lewat IP bersama milik Google yang mudah kena batas laju GitHub API.
+var GITHUB_MANIFEST = 'sync-manifest.json';
 
 /**
  * Dashboard Pengisian Biaya Harian — Keuangan Harian

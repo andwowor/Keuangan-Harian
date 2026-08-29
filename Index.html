@@ -241,6 +241,11 @@
     .warn-sub { color: var(--muted); font-weight: 400; }
 
     /* --- Review penggunaan biaya --- */
+    .sync-list { margin-top: 10px; }
+    .sync-row { display: flex; gap: 10px; font-size: 12.5px; line-height: 1.5; padding: 5px 0;
+      border-top: 1px solid var(--line-2); }
+    .sync-lbl { flex: 0 0 40%; font-weight: 600; color: var(--ink-2); }
+    .sync-val { flex: 1 1 auto; color: var(--muted); word-break: break-word; }
     .rv-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px;
       width: 100%; padding: 0; background: none; border: none; text-align: left; color: inherit; }
     .rv-kepala { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
@@ -539,6 +544,19 @@
       </div>
 
       <div class="card">
+        <div class="bt-title">⬇️ Sinkronkan kode dari GitHub</div>
+        <div class="ask-hint" style="margin-bottom:8px">Tarik kode terbaru dari cabang
+          <b id="syncCabang">…</b> langsung ke proyek Apps Script — tanpa salin-tempel.
+          <b>Deploy tetap manual:</b> aplikasi yang sedang dipakai belum berubah sampai Anda
+          menekan Deploy → New version di editor.</div>
+        <div class="row-btns">
+          <button class="btn-ghost" onclick="sinkronKode(false)">Periksa dulu</button>
+          <button class="btn-primary" onclick="sinkronKode(true)">Sinkronkan</button>
+        </div>
+        <div id="syncResult" style="margin-top:10px"></div>
+      </div>
+
+      <div class="card">
         <div class="bt-title">🔁 Periksa "Setoran Owner" CASHFLOW</div>
         <div class="ask-hint" style="margin-bottom:8px">Bandingkan transaksi <b>Pendapatan Usaha</b> (TRANSAKSI) dengan Setoran Owner di CASHFLOW aktif. Yang belum masuk bisa langsung dilengkapi. Aman diulang — hanya menulis yang belum ada.</div>
         <div class="grid2">
@@ -659,6 +677,8 @@
         mInitSelects();
         edInitSelects();
         auInitSelects();
+        var cb = document.getElementById('syncCabang');
+        if (cb) cb.textContent = cfg.cabang || '—';
       }).withFailureHandler(showErr).getConfig();
       refreshTarget();
       showTab(TAB_AWAL);   // menu yang tampil pertama saat aplikasi dibuka
@@ -1693,6 +1713,57 @@
         btn.disabled = false; ibLoadAutoStatus();
         ibMsg('⚠️ ' + esc(e.message || e), 'err');
       })[nyalakan ? 'setupAutoRead' : 'disableAutoRead'](window._pin);
+    }
+
+    // --- Sinkronisasi kode dari GitHub (menu Setelan) ---
+
+    /**
+     * `terapkan` = false hanya membandingkan, tidak menulis apa pun. Sengaja disediakan
+     * sebagai tombol terpisah supaya perubahan bisa dilihat sebelum kode diganti.
+     */
+    function sinkronKode(terapkan) {
+      var box = document.getElementById('syncResult');
+      box.innerHTML = '<div class="ask-hint"><span class="spin"></span> ' +
+        (terapkan ? 'Menarik kode dari GitHub…' : 'Membandingkan dengan GitHub…') + '</div>';
+      google.script.run.withSuccessHandler(function (r) { gambarSinkron(r, terapkan); })
+        .withFailureHandler(function (e) {
+          box.innerHTML = '<div class="msg err">' + esc(e.message || e).replace(/\n/g, '<br>') + '</div>';
+        }).sinkronDariGitHub(!!terapkan, window._pin);
+    }
+
+    function gambarSinkron(r, terapkan) {
+      var box = document.getElementById('syncResult');
+      if (!r.adaPerubahan) {
+        box.innerHTML = '<div class="msg ok">Kode proyek sudah sama dengan GitHub (versi ' +
+          esc(r.versi) + '). Tidak ada yang perlu disinkronkan.</div>';
+        return;
+      }
+      var h = '<div class="msg ' + (r.diterapkan ? 'ok' : 'info') + '">' +
+        (r.diterapkan
+          ? '✅ Kode diperbarui ke versi <b>' + esc(r.versi) + '</b> pada ' + esc(r.waktu) + '.'
+          : 'Ada perubahan menunggu (versi <b>' + esc(r.versi) + '</b>). Belum ada yang ditulis.') +
+        '</div>';
+      h += '<div class="sync-list">' +
+        barisSinkron('Berubah', r.diubah, 'c-waspada') +
+        barisSinkron('Baru', r.ditambah, 'c-aman') +
+        barisSinkron('Sudah sama', r.sama, '') +
+        (r.dipertahankan && r.dipertahankan.length
+          ? barisSinkron('Dipertahankan (bukan dari repo)', r.dipertahankan, '') : '') +
+        '</div>';
+      if (r.diterapkan) {
+        h += '<div class="ask-hint" style="margin-top:10px">Titik pulih tersimpan sebagai ' +
+          '<b>versi ' + esc(String(r.versiCadangan)) + '</b> di editor Apps Script.<br>' +
+          '<b>Langkah Anda berikutnya:</b> buka editor → <b>Deploy</b> → <b>Manage deployments</b> ' +
+          '→ Edit → <b>New version</b> → Deploy.</div>';
+      }
+      box.innerHTML = h;
+    }
+
+    function barisSinkron(judul, daftar, kelas) {
+      if (!daftar || !daftar.length) return '';
+      return '<div class="sync-row"><span class="sync-lbl ' + kelas + '">' + esc(judul) +
+        ' (' + daftar.length + ')</span><span class="sync-val">' +
+        esc(daftar.join(', ')) + '</span></div>';
     }
 
     function renderInbox() {

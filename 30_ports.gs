@@ -100,6 +100,28 @@
  */
 
 /**
+ * PORT: SourceRepository (repositori kode)  -> diimplementasikan 45_adapter_github.gs
+ *
+ *   githubManifest_()        : { versi, cabang, dibuat, berkas:[string] }
+ *   githubAmbilTeks_(path)   : string  isi berkas mentah
+ *
+ * Kontrak: HANYA raw.githubusercontent.com (CDN statis). api.github.com sengaja tidak
+ * dipakai - lihat catatan batas laju di adapter dan ADR-0012.
+ */
+
+/**
+ * PORT: ProjectWriter (isi proyek Apps Script ini)  -> diimplementasikan 46_adapter_script_api.gs
+ *
+ *   scriptBacaKonten_()          : [{ name, type, source }]
+ *   scriptTulisKonten_(files)    : Object   MENGGANTI seluruh isi proyek
+ *   scriptBuatVersi_(keterangan) : number   nomor versi (titik pulih)
+ *
+ * Kontrak: memakai izin pemilik lewat ScriptApp.getOAuthToken() - TIDAK ada kredensial
+ * yang disimpan di repositori. Menulis isi TIDAK membuat deployment; penerbitan tetap
+ * tindakan manual pemilik.
+ */
+
+/**
  * PORT: Scheduler  -> diimplementasikan 90_triggers.gs
  *
  *   setupAutoRead(pin)     : { aktif:boolean }  pasang trigger ±5 menit
