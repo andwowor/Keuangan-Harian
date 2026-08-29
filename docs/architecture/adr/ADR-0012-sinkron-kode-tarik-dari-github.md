@@ -35,11 +35,11 @@ Arahnya dibalik: **proyek menarik**, bukan CI mendorong.
    **raw.githubusercontent.com** (CDN statis, tanpa batas laju seperti API).
 3. Adapter `46_adapter_script_api.gs` membaca & menulis isi proyek memakai
    `ScriptApp.getOAuthToken()` — **izin pemilik sendiri, tidak ada kredensial yang disimpan
-   di mana pun**. Dua jalur dicoba berurutan:
-   **(a) Apps Script API** `script.googleapis.com`, jalur resmi yang bisa membuat *versi*
-   proyek sebagai titik pulih; **(b) Drive API**, karena proyek Apps Script sebenarnya
-   berkas Drive bertipe `application/vnd.google-apps.script` yang isinya dapat diekspor dan
-   ditimpa sebagai `…script+json`.
+   di mana pun**. Dua jalur:
+   **(a) Drive API** — jalur utama; proyek Apps Script sebenarnya berkas Drive bertipe
+   `application/vnd.google-apps.script` yang isinya dapat diekspor dan ditimpa sebagai
+   `…script+json`. **(b) Apps Script API** `script.googleapis.com` — cadangan, satu-satunya
+   yang bisa membuat *versi* proyek, tetapi tertutup pada proyek ini.
 4. Use case `sinkronDariGitHub(terapkan, pin)` di `23_app_sinkron.gs`, tombol di menu Setelan.
 
 **Deploy tidak pernah otomatis.** Menulis isi proyek tidak menyentuh deployment, sehingga
@@ -85,7 +85,18 @@ dipakai fitur Simpanan selama berminggu-minggu, tetap pada Cloud project bawaan,
 consent screen — sehingga tidak ada yang kedaluwarsa.
 
 Konsekuensinya jalur Drive tidak punya mekanisme *versi*, jadi titik pulihnya berupa berkas
-`cadangan-kode-*.json` di folder Simpanan.
+`cadangan-kode-*.json` di folder Simpanan. Berkas itu tidak muncul di daftar Simpanan karena
+`listInbox` hanya menampilkan `image/*`; menghapusnya dilakukan lewat Drive.
+
+**Percobaan berikutnya** menemukan batas kedua: menulis lewat Drive menuntut scope
+`https://www.googleapis.com/auth/drive.scripts` — `drive` saja hanya cukup untuk membaca.
+
+> `The drive.scripts scope is required to update Apps Script content.`
+
+Scope itu ditambahkan; `script.projects` **dihapus** karena terbukti tidak dapat dipakai pada
+proyek ini, dan menyimpan izin yang tidak berfungsi hanya memperluas kewenangan tanpa guna.
+Urutan jalur dibalik menjadi Drive lebih dulu: mencoba `script.googleapis.com` setiap kali
+hanya menambah satu permintaan yang pasti gagal.
 
 Galat dari kedua jalur kini **selalu menyertakan pesan asli Google**. Versi pertama adapter
 ini menelan pesan asli dan hanya menampilkan dugaan, sehingga "API belum aktif" tak dapat
@@ -93,16 +104,11 @@ dibedakan dari "API butuh Cloud project" — dua hal dengan penanganan yang sang
 `cekSinkron()` mencetak jawaban mentah kedua jalur untuk diagnosis.
 
 ## Prasyarat sekali pakai
-- Apps Script API dinyalakan di <https://script.google.com/home/usersettings> (dibutuhkan
-  jalur (a); jalur (b) tetap jalan tanpa ini).
-- Scope `https://www.googleapis.com/auth/script.projects` pada `appsscript.json` — karena
+- Scope `https://www.googleapis.com/auth/drive.scripts` pada `appsscript.json` — karena
   manifest berubah, pemilik menyetujui ulang izin satu kali.
 - **JANGAN** memasang Google Cloud project standar pada proyek ini; lihat bagian di atas.
-
-## Utang teknis
-Scope `script.projects` tetap diminta walau jalur (a) terbukti tertutup pada proyek ini.
-Dibiarkan karena sudah disetujui dan mencabutnya menuntut satu putaran persetujuan ulang
-lagi; layak dihapus saat ada perubahan manifest berikutnya.
+- Menyalakan Apps Script API di <https://script.google.com/home/usersettings> tidak
+  diperlukan untuk jalur Drive.
 - Salinan manual **terakhir** untuk memasang modul sinkron itu sendiri.
 
 ## Konsekuensi

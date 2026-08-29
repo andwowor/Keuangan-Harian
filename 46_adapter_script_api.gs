@@ -1,20 +1,20 @@
 /**
  * ADAPTER OUTBOUND - membaca & menulis ISI PROYEK APPS SCRIPT INI SENDIRI.
  *
- * Dua jalur, dicoba berurutan, keduanya memakai ScriptApp.getOAuthToken() sehingga
- * TIDAK ADA kredensial yang perlu disimpan di mana pun:
+ * Dua jalur, keduanya memakai ScriptApp.getOAuthToken() sehingga TIDAK ADA kredensial
+ * yang perlu disimpan di mana pun:
  *
- *   1. Apps Script API (script.googleapis.com) - jalur resmi, bisa membuat VERSI proyek
- *      sebagai titik pulih. Sering tidak tersedia bila proyek memakai Cloud project
- *      bawaan, karena script.googleapis.com tidak aktif di sana.
- *   2. Drive API (googleapis.com/drive) - proyek Apps Script sebenarnya berkas Drive
- *      bertipe application/vnd.google-apps.script; isinya bisa diekspor & ditimpa sebagai
- *      application/vnd.google-apps.script+json. Memakai scope drive yang SUDAH dipakai
- *      fitur Simpanan, jadi tidak menambah izin apa pun.
+ *   1. Drive API - JALUR UTAMA. Proyek Apps Script sebenarnya berkas Drive bertipe
+ *      application/vnd.google-apps.script; isinya diekspor & ditimpa sebagai
+ *      application/vnd.google-apps.script+json. Butuh scope drive.scripts (menulis)
+ *      selain drive (membaca).
+ *   2. Apps Script API (script.googleapis.com) - CADANGAN. Jalur resmi dan satu-satunya
+ *      yang bisa membuat VERSI proyek, tetapi menolak pada proyek yang memakai Cloud
+ *      project bawaan karena API itu tidak aktif di sana.
  *
- * Jalur 2 sengaja disediakan supaya pemilik TIDAK PERLU memasang Google Cloud project
- * sendiri. Memasangnya akan memunculkan OAuth consent screen berstatus "Testing", dan
- * di situlah otorisasi kedaluwarsa tiap 7 hari - persis yang harus dihindari.
+ * Urutannya sengaja begitu: mengaktifkan jalur 2 menuntut pemasangan Google Cloud project
+ * standar, yang memunculkan OAuth consent screen berstatus "Testing" - dan di situlah
+ * otorisasi kedaluwarsa tiap 7 hari. Justru itu yang harus dihindari.
  *
  * Bagian dari Keuangan Harian - lihat docs/architecture/.
  */
@@ -24,17 +24,20 @@ function scriptApiHeaders_() {
 }
 
 /**
- * Bungkus galat TANPA membuang pesan asli Google. Versi sebelumnya menelan teks asli
- * dan hanya menampilkan dugaan; akibatnya "API belum aktif" tidak bisa dibedakan dari
- * "API perlu Cloud project" - dua hal dengan penanganan yang sama sekali berbeda.
+ * Bungkus galat TANPA membuang pesan asli Google. Versi pertama adapter ini menelan teks
+ * asli dan hanya menampilkan dugaan; akibatnya "API belum aktif" tak dapat dibedakan dari
+ * "scope kurang" - dua hal dengan penanganan yang sama sekali berbeda. Saran hanya
+ * ditambahkan bila pesan Google memang menunjuk penyebab yang dikenali.
  */
 function galatProyek_(aksi, code, text) {
   var asli = String(text || '').replace(/\s+/g, ' ').slice(0, 400);
   var saran = '';
-  if (code === 401 || code === 403) {
-    saran = ' — Periksa: (a) Apps Script API aktif di ' +
-      'https://script.google.com/home/usersettings, (b) scope script.projects ada di ' +
-      'appsscript.json dan sudah disetujui ulang.';
+  if (/drive\.scripts/.test(asli)) {
+    saran = ' — Tambahkan scope https://www.googleapis.com/auth/drive.scripts pada ' +
+      'appsscript.json, lalu jalankan sekali fungsi apa pun di editor untuk menyetujui ulang.';
+  } else if (/has not been used in project|SERVICE_DISABLED/i.test(asli)) {
+    saran = ' — Apps Script API tidak aktif pada Cloud project bawaan proyek ini. JANGAN ' +
+      'memasang Cloud project standar untuk mengaktifkannya; jalur Drive dipakai sebagai ganti.';
   }
   return new Error('Gagal ' + aksi + ' (HTTP ' + code + ').' + saran + '\nPesan Google: ' + asli);
 }
@@ -91,21 +94,24 @@ function driveTulis_(files) {
 var JALUR_PROYEK_ = '';
 
 function scriptBacaKonten_() {
-  var r = apiBaca_();
-  if (r.getResponseCode() === 200) {
-    JALUR_PROYEK_ = 'api';
-    return bakuKonten_(JSON.parse(r.getContentText()).files);
-  }
-  var galatApi = galatProyek_('membaca isi proyek lewat Apps Script API',
-    r.getResponseCode(), r.getContentText());
-
+  // Drive DULU: pada proyek dengan Cloud project bawaan, script.googleapis.com selalu
+  // menolak, jadi mencobanya lebih dulu hanya menambah satu permintaan gagal tiap sinkron.
   var d = driveBaca_();
   if (d.getResponseCode() === 200) {
     JALUR_PROYEK_ = 'drive';
     return bakuKonten_(JSON.parse(d.getContentText()).files);
   }
-  throw new Error(galatApi.message + '\n\nJalur cadangan Drive juga gagal:\n' +
-    galatProyek_('mengekspor proyek lewat Drive', d.getResponseCode(), d.getContentText()).message);
+  var galatDrive = galatProyek_('mengekspor proyek lewat Drive',
+    d.getResponseCode(), d.getContentText());
+
+  var r = apiBaca_();
+  if (r.getResponseCode() === 200) {
+    JALUR_PROYEK_ = 'api';
+    return bakuKonten_(JSON.parse(r.getContentText()).files);
+  }
+  throw new Error(galatDrive.message + '\n\nJalur Apps Script API juga gagal:\n' +
+    galatProyek_('membaca isi proyek lewat Apps Script API',
+      r.getResponseCode(), r.getContentText()).message);
 }
 
 function bakuKonten_(files) {
@@ -116,7 +122,7 @@ function bakuKonten_(files) {
 
 /** Timpa isi proyek. `files` WAJIB memuat SELURUH berkas - ini mengganti, bukan menambah. */
 function scriptTulisKonten_(files) {
-  var pakaiDrive = (JALUR_PROYEK_ === 'drive');
+  var pakaiDrive = (JALUR_PROYEK_ !== 'api');
   var r = pakaiDrive ? driveTulis_(files) : apiTulis_(files);
   if (r.getResponseCode() === 200) return JSON.parse(r.getContentText() || '{}');
   throw galatProyek_('menulis isi proyek lewat ' + (pakaiDrive ? 'Drive' : 'Apps Script API'),
@@ -129,7 +135,7 @@ function scriptTulisKonten_(files) {
  * Simpanan. Keduanya mengembalikan keterangan yang bisa dibaca pemilik.
  */
 function scriptBuatVersi_(keterangan, isiLama) {
-  if (JALUR_PROYEK_ !== 'drive') {
+  if (JALUR_PROYEK_ === 'api') {
     var r = UrlFetchApp.fetch(apiUrl_('/versions'), {
       method: 'post', contentType: 'application/json', headers: scriptApiHeaders_(),
       payload: JSON.stringify({ description: String(keterangan || '') }), muteHttpExceptions: true
@@ -167,8 +173,8 @@ function cekSinkron() {
   out.push('    ' + String(d.getContentText()).replace(/\s+/g, ' ').slice(0, 320));
   out.push('');
 
-  if (a.getResponseCode() === 200) out.push('HASIL: jalur Apps Script API BISA dipakai.');
-  else if (d.getResponseCode() === 200) out.push('HASIL: Apps Script API tertutup, tetapi jalur Drive BISA dipakai. Sinkron akan otomatis memakai Drive.');
+  if (d.getResponseCode() === 200) out.push('HASIL: jalur Drive BISA dipakai (jalur utama).');
+  else if (a.getResponseCode() === 200) out.push('HASIL: Drive tertutup, tetapi Apps Script API BISA dipakai.');
   else out.push('HASIL: kedua jalur tertutup. Kirim seluruh keluaran ini.');
 
   var pesan = out.join('\n');
