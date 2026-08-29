@@ -1751,8 +1751,8 @@
           ? barisSinkron('Dipertahankan (bukan dari repo)', r.dipertahankan, '') : '') +
         '</div>';
       if (r.diterapkan) {
-        h += '<div class="ask-hint" style="margin-top:10px">Titik pulih tersimpan sebagai ' +
-          '<b>versi ' + esc(String(r.versiCadangan)) + '</b> di editor Apps Script.<br>' +
+        h += '<div class="ask-hint" style="margin-top:10px">Titik pulih: <b>' +
+          esc(String(r.versiCadangan)) + '</b>.<br>' +
           '<b>Langkah Anda berikutnya:</b> buka editor → <b>Deploy</b> → <b>Manage deployments</b> ' +
           '→ Edit → <b>New version</b> → Deploy.</div>';
       }

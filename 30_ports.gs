@@ -112,13 +112,15 @@
 /**
  * PORT: ProjectWriter (isi proyek Apps Script ini)  -> diimplementasikan 46_adapter_script_api.gs
  *
- *   scriptBacaKonten_()          : [{ name, type, source }]
+ *   scriptBacaKonten_()          : [{ name, type, source }]   type SELALU HURUF BESAR
  *   scriptTulisKonten_(files)    : Object   MENGGANTI seluruh isi proyek
- *   scriptBuatVersi_(keterangan) : number   nomor versi (titik pulih)
+ *   scriptBuatVersi_(keterangan) : string   keterangan titik pulih (dibaca pemilik)
+ *   cekSinkron()                 : string   diagnostik kedua jalur
  *
  * Kontrak: memakai izin pemilik lewat ScriptApp.getOAuthToken() - TIDAK ada kredensial
- * yang disimpan di repositori. Menulis isi TIDAK membuat deployment; penerbitan tetap
- * tindakan manual pemilik.
+ * yang disimpan di repositori. Adapter memilih sendiri antara Apps Script API dan Drive API;
+ * application tidak perlu tahu jalur mana yang dipakai. Menulis isi TIDAK membuat
+ * deployment; penerbitan tetap tindakan manual pemilik.
  */
 
 /**
