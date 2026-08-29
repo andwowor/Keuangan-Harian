@@ -4,87 +4,309 @@
   <base target="_top">
   <meta charset="utf-8">
   <style>
+    /* ============================================================
+       Tema gelap, diadaptasi dari Figma "Sales Management Dashboard".
+       Token diambil langsung dari file: panel #21222d, tile #171821,
+       teks #fff / #e8e8e8 / #a0a0a0, aksen mint #a9dfd8, amber #feb95a,
+       pink #f2c8ed, biru #20aef3, radius 10px, tipografi Inter.
+
+       Layout sidebar desktop TIDAK dipakai - aplikasi ini mobile-first,
+       navigasi tetap tab atas. Yang diadopsi bahasa visualnya:
+       stat tile, bar proporsi + pil persen, gauge, kartu gelap.
+       ============================================================ */
     :root {
-      --bg: #f4f6f8; --card: #ffffff; --ink: #1f2933; --muted: #6b7785;
-      --line: #e2e8f0; --accent: #2563eb; --accent-d: #1d4ed8;
-      --ok: #16a34a; --warn: #d97706; --err: #dc2626; --ask: #7c3aed;
+      --bg: #0E0F14;          /* latar halaman */
+      --card: #21222D;        /* panel utama */
+      --card-2: #171821;      /* tile / permukaan dalam */
+      --ink: #FFFFFF;         /* teks utama */
+      --ink-2: #E8E8E8;       /* teks sekunder */
+      --muted: #A0A0A0;       /* label redup */
+      --line: rgba(255,255,255,.07);
+      --line-2: rgba(255,255,255,.045);
+      --accent: #A9DFD8;      /* mint - aksen utama */
+      --accent-d: #7FCFC4;
+      --accent-soft: rgba(169,223,216,.14);
+      --amber: #FEB95A;
+      --hijau: #5FD68A;       /* < 80% budget terpakai  */
+      --kuning: #FEB95A;      /* >= 80% budget terpakai */
+      --merah: #FF6B6B;       /* >= 100% budget terpakai */
+      --pink: #F2C8ED;
+      --blue: #20AEF3;
+      --ok: #A9DFD8;          /* pemasukan/positif = mint */
+      --err: #FF8A8A;         /* pengeluaran/negatif */
+      --warn: #FEB95A;
+      --ask: #20AEF3;
+      --r: 10px;
+      --shadow: 0 2px 10px rgba(0,0,0,.35);
     }
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-      background: var(--bg); color: var(--ink); padding: 16px; }
+    body { margin: 0; padding: 16px; min-height: 100vh; background: var(--bg); color: var(--ink);
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased; line-height: 1.5; }
     .wrap { max-width: 560px; margin: 0 auto; }
     h1 { font-size: 20px; margin: 4px 0 2px; }
     .sub { color: var(--muted); font-size: 13px; margin-bottom: 12px; }
-    .target { font-size: 12px; color: var(--accent-d); background: #eff6ff;
-      border: 1px solid #bfdbfe; border-radius: 8px; padding: 7px 10px; margin-bottom: 14px; }
-    .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px;
-      padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
-    .drop { border: 2px dashed var(--line); border-radius: 12px; padding: 22px 14px;
-      text-align: center; color: var(--muted); cursor: pointer; transition: .15s; }
-    .drop:hover, .drop.over { border-color: var(--accent); color: var(--accent); background: #f0f6ff; }
+    .target { font-size: 12px; color: var(--accent); background: var(--accent-soft);
+      border: 1px solid rgba(169,223,216,.22); border-radius: var(--r); padding: 9px 12px; margin-bottom: 14px; }
+
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r);
+      padding: 16px; margin-bottom: 14px; box-shadow: var(--shadow); }
+
+    .drop { border: 1.5px dashed rgba(255,255,255,.16); border-radius: var(--r); padding: 26px 14px;
+      text-align: center; color: var(--muted); cursor: pointer; background: var(--card-2); transition: .15s; }
+    .drop:hover, .drop.over { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
     .drop strong { color: var(--ink); }
-    #preview { display: none; width: 100%; border-radius: 10px; margin-top: 12px; border: 1px solid var(--line); }
-    label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin: 12px 0 4px; }
-    input, select { width: 100%; padding: 10px 11px; font-size: 15px; border: 1px solid var(--line);
-      border-radius: 9px; background: #fff; color: var(--ink); }
-    input:focus, select:focus { outline: none; border-color: var(--accent); }
-    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    #preview { display: none; width: 100%; border-radius: var(--r); margin-top: 12px; border: 1px solid var(--line); }
+
+    label { display: block; font-size: 10px; font-weight: 600; color: var(--muted); margin: 14px 0 5px;
+      text-transform: uppercase; letter-spacing: .06em; }
+    input, select { width: 100%; padding: 11px 12px; font-size: 15px; color: var(--ink);
+      border: 1px solid rgba(255,255,255,.10); border-radius: var(--r); background: var(--card-2); }
+    input::placeholder { color: #6B6F7A; }
+    select option { background: #171821; color: var(--ink); }
+    input:focus, select:focus { outline: none; border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(169,223,216,.16); }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
     button { width: 100%; padding: 12px; font-size: 15px; font-weight: 600; border: none;
-      border-radius: 10px; cursor: pointer; transition: .15s; }
-    .btn-primary { background: var(--accent); color: #fff; }
+      border-radius: var(--r); cursor: pointer; transition: .15s; }
+    .btn-primary { background: var(--accent); color: #10231F; }
     .btn-primary:hover { background: var(--accent-d); }
-    .btn-ghost { background: #eef2f7; color: var(--ink); }
-    button:disabled { opacity: .55; cursor: not-allowed; }
-    .row-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+    .btn-ghost { background: var(--card-2); color: var(--ink-2); border: 1px solid rgba(255,255,255,.10); }
+    .btn-ghost:hover { border-color: rgba(255,255,255,.2); }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .row-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
     .hidden { display: none; }
-    .ask-box { border: 1px solid #ddd6fe; background: #faf5ff; border-radius: 12px;
-      padding: 12px 12px 14px; margin-top: 14px; }
-    .ask-title { font-size: 12px; font-weight: 700; color: var(--ask); text-transform: uppercase; letter-spacing: .03em; }
-    .ask-hint { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    .ask-box { border: 1px solid rgba(32,174,243,.25); background: rgba(32,174,243,.07);
+      border-radius: var(--r); padding: 14px 14px 16px; margin-top: 16px; }
+    .ask-title { font-size: 10px; font-weight: 700; color: var(--ask); text-transform: uppercase; letter-spacing: .06em; }
+    .ask-hint { font-size: 12px; color: var(--muted); margin-top: 3px; }
     .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-    .chip { font-size: 13px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px;
-      background: #fff; cursor: pointer; }
+    .chip { font-size: 13px; padding: 6px 11px; border: 1px solid var(--line); border-radius: 999px;
+      background: var(--card-2); color: var(--ink-2); cursor: pointer; }
     .chip:hover { border-color: var(--accent); color: var(--accent); }
-    .msg { padding: 10px 12px; border-radius: 9px; font-size: 13px; margin-top: 12px; }
-    .msg.ok { background: #ecfdf3; color: var(--ok); border: 1px solid #bbf7d0; }
-    .msg.err { background: #fef2f2; color: var(--err); border: 1px solid #fecaca; }
-    .msg.info { background: #eff6ff; color: var(--accent-d); border: 1px solid #bfdbfe; }
-    .spin { display: inline-block; width: 15px; height: 15px; border: 2px solid #fff;
+
+    .msg { padding: 11px 13px; border-radius: var(--r); font-size: 13px; margin-top: 12px; }
+    .msg.ok { background: var(--accent-soft); color: var(--accent); border: 1px solid rgba(169,223,216,.25); }
+    .msg.err { background: rgba(255,138,138,.10); color: var(--err); border: 1px solid rgba(255,138,138,.28); }
+    .msg.info { background: rgba(32,174,243,.10); color: var(--ask); border: 1px solid rgba(32,174,243,.28); }
+    .spin { display: inline-block; width: 15px; height: 15px; border: 2px solid currentColor;
       border-top-color: transparent; border-radius: 50%; animation: sp .7s linear infinite;
       vertical-align: -2px; margin-right: 7px; }
     @keyframes sp { to { transform: rotate(360deg); } }
-    .pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
-    .pill.tinggi { background: #ecfdf3; color: var(--ok); }
-    .pill.sedang { background: #fffbeb; color: var(--warn); }
-    .pill.rendah { background: #fef2f2; color: var(--err); }
+
+    .pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 6px; }
+    .pill.tinggi { background: var(--accent-soft); color: var(--accent); border: 1px solid rgba(169,223,216,.3); }
+    .pill.sedang { background: rgba(254,185,90,.12); color: var(--amber); border: 1px solid rgba(254,185,90,.3); }
+    .pill.rendah { background: rgba(255,138,138,.12); color: var(--err); border: 1px solid rgba(255,138,138,.3); }
     .note { font-size: 12px; color: var(--warn); margin-top: 8px; }
     .note.boc { color: var(--ask); }
     .nominal-prefix { position: relative; }
-    .nominal-prefix span { position: absolute; left: 11px; top: 11px; color: var(--muted); font-size: 15px; }
-    .nominal-prefix input { padding-left: 30px; }
-    .nav { display: flex; gap: 8px; margin-bottom: 14px; }
-    .navbtn { flex: 1; padding: 10px; border: 1px solid var(--line); background: #fff; border-radius: 10px;
-      font-weight: 600; color: var(--muted); cursor: pointer; font-size: 14px; }
-    .navbtn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-    .budget-sum .sumrow { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; font-size: 15px; }
-    .budget-sum .sumrow + .sumrow { border-top: 1px solid var(--line); }
-    .bt-title { font-weight: 700; font-size: 14px; margin-bottom: 8px; }
+    .nominal-prefix span { position: absolute; left: 12px; top: 12px; color: var(--muted); font-size: 15px; }
+    .nominal-prefix input { padding-left: 32px; }
+
+    /* --- Navigasi: 5 menu (baris 1 = 3, baris 2 = 2) --- */
+    .nav { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 16px; }
+    .navbtn { padding: 10px 4px; border: 1px solid var(--line); background: var(--card); border-radius: var(--r);
+      font-weight: 600; color: var(--muted); cursor: pointer; font-size: 12.5px; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis; grid-column: span 2; }
+    .navbtn:nth-child(4), .navbtn:nth-child(5) { grid-column: span 3; }
+    .navbtn.active { background: var(--accent); color: #10231F; border-color: var(--accent); }
+
+    /* --- Stat tile (adaptasi kartu "Today's Sales") --- */
+    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .stat { background: var(--card-2); border-radius: var(--r); padding: 12px; }
+    .stat-ico { width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center;
+      justify-content: center; font-size: 14px; margin-bottom: 12px; }
+    .stat-val { font-size: 17px; font-weight: 700; color: var(--ink); letter-spacing: -.01em;
+      font-variant-numeric: tabular-nums; }
+    .stat-lbl { font-size: 10px; color: var(--ink-2); margin-top: 5px; }
+    .stat-sub { font-size: 9px; margin-top: 5px; }
+    .t-mint { background: var(--accent-soft); color: var(--accent); }
+    .t-amber { background: rgba(254,185,90,.14); color: var(--amber); }
+    .t-pink { background: rgba(242,200,237,.14); color: var(--pink); }
+    .t-blue { background: rgba(32,174,243,.14); color: var(--blue); }
+    .c-mint { color: var(--accent); } .c-amber { color: var(--amber); }
+    .c-pink { color: var(--pink); }  .c-blue { color: var(--blue); }
+    /* Warna status pemakaian budget (ADR-0010): <80% hijau, >=80% kuning, >=100% merah */
+    .c-aman { color: var(--hijau); } .c-waspada { color: var(--kuning); } .c-habis { color: var(--merah); }
+    .ppill.c-habis { background: rgba(255,107,107,.14); }
+    .ppill.c-waspada { background: rgba(254,185,90,.12); }
+    .ppill.c-aman { background: rgba(95,214,138,.12); }
+
+    /* --- Gauge (adaptasi meter 80% pada kartu Earnings) --- */
+    .gauge { position: relative; width: 180px; height: 92px; margin: 14px auto 4px; overflow: hidden; }
+    .gauge-c { width: 180px; height: 180px; border-radius: 50%;
+      background: conic-gradient(from 270deg, var(--accent) 0 calc(var(--p) * 1.8deg),
+        rgba(255,255,255,.07) calc(var(--p) * 1.8deg) 180deg, transparent 180deg); }
+    .gauge-hole { position: absolute; left: 28px; top: 28px; width: 124px; height: 124px; border-radius: 50%;
+      background: var(--card); display: flex; justify-content: center; padding-top: 26px; }
+    .gauge-num { font-size: 26px; font-weight: 800; color: var(--ink); letter-spacing: -.02em; }
+    .gauge-cap { text-align: center; font-size: 11px; color: var(--muted); }
+
+    /* --- Bar proporsi + pil persen (adaptasi tabel "Top Products") --- */
+    .pbar { height: 6px; border-radius: 6px; background: rgba(255,255,255,.07); overflow: hidden; margin-top: 7px; }
+    .pbar > span { display: block; height: 100%; border-radius: 6px; background: var(--accent); }
+    .ppill { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px;
+      border: 1px solid currentColor; white-space: nowrap; }
+
+    .budget-sum .sumrow { display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 0; font-size: 15px; }
+    .budget-sum .sumrow + .sumrow { border-top: 1px solid var(--line-2); }
+    .bt-title { font-weight: 600; font-size: 15px; margin-bottom: 4px; color: var(--ink); }
     table.bt { width: 100%; border-collapse: collapse; font-size: 14px; }
-    table.bt td { padding: 6px 4px; border-bottom: 1px solid var(--line); }
-    table.bt td.num { text-align: right; white-space: nowrap; }
-    .bt-group td { font-weight: 700; color: var(--accent-d); padding-top: 12px; border-bottom: none; }
+    table.bt td { padding: 9px 4px; border-bottom: 1px solid var(--line-2); color: var(--ink-2); }
+    table.bt td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--ink); }
+    .bt-group td { font-weight: 700; color: var(--accent); padding-top: 16px; border-bottom: none;
+      font-size: 10px; text-transform: uppercase; letter-spacing: .06em; }
     .bt-item td:first-child { padding-left: 14px; }
-    .bt-total td { font-weight: 700; background: #f8fafc; }
-    .lock { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
-    .lockbox { max-width: 340px; width: 100%; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 24px; text-align: center; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
-    .lockbox input { width: 100%; box-sizing: border-box; padding: 11px; font-size: 16px; text-align: center; border: 1px solid var(--line); border-radius: 9px; }
+    table.bt tr[onclick]:hover td { background: rgba(255,255,255,.03); }
+    .bt-total td { font-weight: 700; background: var(--card-2); color: var(--ink); }
+    /* Pos tanpa budget di REKAP: diredupkan agar tidak tertukar dengan pos yang terpantau,
+       tetapi tetap memakai --muted (#A0A0A0, kontras ~7:1) supaya jelas terbaca. */
+    table.bt tr.bt-nobudget td,
+    table.bt tr.bt-nobudget td.num { color: var(--muted); }
+
+    .lock { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center;
+      justify-content: center; padding: 20px; z-index: 50; }
+    .lockbox { max-width: 360px; width: 100%; background: var(--card); border: 1px solid var(--line);
+      border-radius: var(--r); padding: 26px; text-align: center; box-shadow: var(--shadow); }
+    .lockbox input { width: 100%; box-sizing: border-box; padding: 12px; font-size: 16px; text-align: center; }
+
+    .hdr { position: relative; margin: -16px -16px 16px; padding: 22px 16px 18px; text-align: center;
+      background: var(--card); border-bottom: 1px solid var(--line); }
+    .hdr::before { content: none; }
+    .hdr-title { position: relative; margin: 0; font-size: 20px; font-weight: 700; color: var(--ink);
+      letter-spacing: -.01em; }
+    .hdr-tag { position: relative; font-size: 10px; letter-spacing: .22em; text-transform: uppercase;
+      color: var(--muted); margin-top: 5px; }
+    .hdr-line { position: relative; height: 3px; width: 40px; margin: 12px auto 0; border-radius: 3px;
+      background: var(--accent); }
+    /* Logo: panel gelap + batang naik + koin Rp (selaras ikon PWA) */
+    .logo { width: 56px; height: 56px; display: block; margin: 0 auto 10px; }
+    .logo-hdr { width: 40px; height: 40px; margin: 0 auto 8px; }
+
+    .combo { position: relative; }
+    .combo-list { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 30; max-height: 240px;
+      overflow: auto; background: #1B1C26; border: 1px solid rgba(255,255,255,.10); border-radius: var(--r);
+      box-shadow: 0 12px 28px rgba(0,0,0,.5); display: none; }
+    .combo-list.open { display: block; }
+    .combo-item { padding: 11px 12px; font-size: 14px; cursor: pointer; border-bottom: 1px solid var(--line-2);
+      color: var(--ink-2); }
+    .combo-item:last-child { border-bottom: 0; }
+    .combo-item:hover { background: var(--accent-soft); color: var(--accent); }
+    .combo-empty { padding: 11px 12px; color: var(--muted); font-size: 13px; }
+
+    .queue { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .qitem { display: flex; align-items: center; gap: 11px; padding: 10px; border: 1px solid var(--line);
+      border-radius: var(--r); background: var(--card-2); }
+    .qitem[onclick] { cursor: pointer; }
+    .qitem[onclick]:hover { border-color: var(--accent); }
+    .qitem.q-active { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(169,223,216,.18); }
+    .qthumb { width: 44px; height: 44px; border-radius: 9px; object-fit: cover; border: 1px solid var(--line);
+      flex: none; display: flex; align-items: center; justify-content: center; font-size: 18px;
+      color: var(--muted); background: #12131A; }
+    .qmeta { flex: 1; min-width: 0; }
+    .qname { font-size: 13px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .qbadge { display: inline-block; margin-top: 4px; font-size: 11px; font-weight: 600; padding: 2px 8px;
+      border-radius: 6px; border: 1px solid currentColor; }
+    .b-wait { color: var(--muted); } .b-read { color: var(--blue); }
+    .b-ready { color: var(--amber); } .b-saved { color: var(--accent); } .b-err { color: var(--err); }
+    .qdel { width: 28px; height: 28px; flex: none; border-radius: 8px; background: transparent;
+      color: var(--muted); border: 1px solid var(--line); font-size: 13px; padding: 0; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; }
+    .qdel:hover { color: var(--accent); border-color: var(--accent); }
+    .qdel-x { color: var(--err); border-color: rgba(255,138,138,.3); }
+    .qdel-x:hover { background: rgba(255,138,138,.1); border-color: var(--err); }
+    .qitem.read { border-left: 3px solid var(--accent); }
+    .qthumb-wrap { position: relative; flex: none; }
+    .qthumb-check { position: absolute; right: -5px; bottom: -5px; width: 19px; height: 19px; border-radius: 50%;
+      background: var(--accent); color: #10231F; font-size: 12px; font-weight: 900; line-height: 19px;
+      text-align: center; box-shadow: 0 0 0 2px var(--card-2); }
+
+    /* --- Peringatan saldo minus di masa depan --- */
+    .warn-card { background: rgba(255,107,107,.08); border: 1px solid rgba(255,107,107,.32);
+      border-radius: var(--r); padding: 14px 16px; margin-bottom: 14px; }
+    .warn-head { display: flex; align-items: center; gap: 9px; font-weight: 700; color: var(--merah);
+      font-size: 14px; }
+    .warn-list { margin-top: 10px; }
+    .warn-row { display: flex; justify-content: space-between; gap: 10px; font-size: 13px;
+      padding: 6px 0; border-top: 1px solid rgba(255,107,107,.16); }
+    .warn-row b { color: var(--merah); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .warn-card.kuning { background: rgba(254,185,90,.08); border-color: rgba(254,185,90,.34); }
+    .warn-card.kuning .warn-head { color: var(--kuning); }
+    .warn-card.kuning .warn-row { border-top-color: rgba(254,185,90,.18); }
+    .warn-card.kuning .warn-row b { color: var(--kuning); }
+    .warn-sub { color: var(--muted); font-weight: 400; }
+
+    /* --- Review penggunaan biaya --- */
+    .sync-list { margin-top: 10px; }
+    .sync-row { display: flex; gap: 10px; font-size: 12.5px; line-height: 1.5; padding: 5px 0;
+      border-top: 1px solid var(--line-2); }
+    .sync-lbl { flex: 0 0 40%; font-weight: 600; color: var(--ink-2); }
+    .sync-val { flex: 1 1 auto; color: var(--muted); word-break: break-word; }
+    .rv-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      width: 100%; padding: 0; background: none; border: none; text-align: left; color: inherit; }
+    .rv-kepala { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .rv-chev { color: var(--muted); font-size: 15px; line-height: 1; transition: transform .18s; }
+    .rv-toggle[aria-expanded="true"] .rv-chev { transform: rotate(180deg); }
+    .rv-body { margin-top: 14px; }
+    .rv-ring { font-size: 14px; line-height: 1.55; color: var(--ink); margin-bottom: 14px; }
+    .rv-item { border-left: 3px solid var(--line-2); background: var(--card-2); border-radius: 10px;
+      padding: 11px 13px; margin-bottom: 9px; }
+    .rv-item.merah { border-left-color: var(--merah); }
+    .rv-item.kuning { border-left-color: var(--kuning); }
+    .rv-item.hijau { border-left-color: var(--hijau); }
+    .rv-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 5px; }
+    .rv-pos { font-weight: 700; font-size: 13px; }
+    .rv-txt { font-size: 13px; line-height: 1.5; color: var(--ink); }
+    .rv-saran { font-size: 13px; line-height: 1.5; color: var(--ink-2); margin-top: 5px; }
+    .rv-sub { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--muted); margin: 16px 0 8px; }
+    .rv-langkah { margin: 0 0 4px; padding-left: 20px; }
+    .rv-langkah li { font-size: 13px; line-height: 1.55; margin-bottom: 6px; }
+    .rv-kaki { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+    .rv-kaki .ask-hint { flex: 1 1 200px; }
+    .rv-btn { width: auto; padding: 9px 16px; font-size: 13px; }
+    .rv-link { width: auto; padding: 0; margin: 0; background: none; border: none;
+      color: var(--accent); font-size: inherit; font-weight: 600; text-decoration: underline; }
+    .rv-basi { background: rgba(254,185,90,.08); border: 1px solid rgba(254,185,90,.28);
+      border-radius: 10px; padding: 9px 12px; font-size: 12.5px; line-height: 1.5;
+      color: var(--ink-2); margin-bottom: 12px; }
+
+    /* --- Panel progres saat menyimpan (modal pratinjau) --- */
+    .prog { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+    .prog-row { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--ink); }
+    .prog-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted);
+      padding: 4px 0 0 24px; }
+    .prog-item.done { color: var(--accent); }
+    .prog-bar { height: 4px; border-radius: 4px; background: rgba(255,255,255,.08);
+      overflow: hidden; margin-top: 11px; }
+    .prog-bar > i { display: block; height: 100%; width: 38%; border-radius: 4px;
+      background: var(--accent); animation: geser 1.1s ease-in-out infinite; }
+    @keyframes geser { 0% { transform: translateX(-110%); } 100% { transform: translateX(300%); } }
+
+    .review-img { margin: 12px 0 4px; }
+    .review-img img { width: 100%; max-height: 240px; object-fit: contain; border-radius: var(--r);
+      border: 1px solid var(--line); background: #12131A; cursor: zoom-in; display: block; }
+    .imgmodal { position: fixed; inset: 0; z-index: 70; background: rgba(6,7,10,.94);
+      display: flex; align-items: center; justify-content: center; padding: 16px; }
+    .imgmodal img { max-width: 100%; max-height: 100%; border-radius: 10px; cursor: zoom-in;
+      box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+    .imgmodal.zoom { align-items: flex-start; justify-content: flex-start; overflow: auto; }
+    .imgmodal.zoom img { max-width: none; max-height: none; width: auto; cursor: zoom-out; }
+    .imgclose { position: fixed; top: 12px; right: 14px; z-index: 71; width: 40px; height: 40px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; color: #fff; font-size: 20px;
+      background: rgba(255,255,255,.16); border-radius: 50%; }
   </style>
 </head>
 <body>
   <div id="lock" class="lock">
     <div class="lockbox">
-      <div style="font-size:34px">🔒</div>
-      <h2 style="margin:8px 0 2px;font-size:18px">Keuangan Harian</h2>
+      <svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect x="1.5" y="1.5" width="61" height="61" rx="17" fill="#21222D" stroke="rgba(169,223,216,.28)"/><rect x="14" y="36" width="9" height="15" rx="4.5" fill="#20AEF3"/><rect x="27.5" y="28" width="9" height="23" rx="4.5" fill="#7FCFC4"/><rect x="41" y="24" width="9" height="27" rx="4.5" fill="#A9DFD8"/><circle cx="45.5" cy="17" r="10.5" fill="#A9DFD8"/><text x="45.5" y="21.2" text-anchor="middle" font-size="11" font-weight="800" fill="#10231F" font-family="Inter,Arial,sans-serif">Rp</text></svg>
+      <h2 style="margin:6px 0 2px;font-size:18px;color:var(--ink)">Keuangan Harian</h2>
       <div style="color:var(--muted);font-size:13px;margin-bottom:12px">Masukkan PIN untuk masuk</div>
       <input id="pin" type="password" inputmode="numeric" placeholder="PIN" onkeydown="if(event.key==='Enter')unlock()">
       <button class="btn-primary" style="margin-top:12px" onclick="unlock()">Masuk</button>
@@ -92,29 +314,35 @@
     </div>
   </div>
   <div class="wrap">
-    <h1>💸 Dashboard Biaya Harian</h1>
-    <div class="sub">Unggah bukti → dibaca otomatis → konfirmasi → simpan ke sheet TRANSAKSI.</div>
+    <header class="hdr">
+      <svg class="logo logo-hdr" viewBox="0 0 64 64" aria-hidden="true"><rect x="1.5" y="1.5" width="61" height="61" rx="17" fill="#21222D" stroke="rgba(169,223,216,.28)"/><rect x="14" y="36" width="9" height="15" rx="4.5" fill="#20AEF3"/><rect x="27.5" y="28" width="9" height="23" rx="4.5" fill="#7FCFC4"/><rect x="41" y="24" width="9" height="27" rx="4.5" fill="#A9DFD8"/><circle cx="45.5" cy="17" r="10.5" fill="#A9DFD8"/><text x="45.5" y="21.2" text-anchor="middle" font-size="11" font-weight="800" fill="#10231F" font-family="Inter,Arial,sans-serif">Rp</text></svg>
+      <h1 class="hdr-title">Keuangan Harian</h1>
+      <div class="hdr-tag">Dashboard Biaya</div>
+      <div class="hdr-line"></div>
+    </header>
 
     <div class="nav">
-      <button id="navInput" class="navbtn active" onclick="showTab('input')">📥 Input Biaya</button>
-      <button id="navBudget" class="navbtn" onclick="showTab('budget')">📊 Sisa Budget</button>
+      <button id="navInput" class="navbtn" onclick="showTab('input')">📥 Input</button>
+      <button id="navSimpanan" class="navbtn" onclick="showTab('simpanan')">📦 Simpanan</button>
+      <button id="navBudget" class="navbtn active" onclick="showTab('budget')">📊 Budget</button>
+      <button id="navDaftar" class="navbtn" onclick="showTab('daftar')">📋 Daftar</button>
+      <button id="navPengaturan" class="navbtn" onclick="showTab('pengaturan')">⚙ Setelan</button>
     </div>
 
-    <div id="tabInput">
+    <div id="tabInput" class="hidden">
     <div id="target" class="target">Memeriksa baris kosong terbawah…</div>
 
-    <!-- Langkah 1: Upload -->
+    <!-- Langkah 1: Upload (bisa lebih dari satu bukti) -->
     <div class="card">
       <div id="drop" class="drop">
         <div style="font-size:28px">📷</div>
         <div><strong>Ketuk untuk pilih gambar</strong> atau jatuhkan di sini</div>
-        <div style="font-size:12px;margin-top:4px">PNG / JPG · screenshot atau foto bukti transfer</div>
+        <div style="font-size:12px;margin-top:4px">Bisa pilih <b>lebih dari satu</b> · PNG / JPG · tiap gambar = 1 biaya</div>
       </div>
-      <input id="file" type="file" accept="image/*" class="hidden">
-      <img id="preview" alt="preview">
-      <button id="btnAnalyze" class="btn-primary hidden" style="margin-top:12px" onclick="analyze()">
-        Baca Otomatis
-      </button>
+      <input id="file" type="file" accept="image/*" multiple class="hidden">
+      <div id="queue" class="queue hidden"></div>
+      <button id="btnAnalyze" class="btn-primary hidden" style="margin-top:12px" onclick="analyzeAll()">Baca Otomatis</button>
+      <button id="btnClearQueue" class="btn-ghost hidden" style="margin-top:8px" onclick="clearQueue()">Bersihkan daftar bukti</button>
     </div>
 
     <!-- Langkah 2: Form -->
@@ -123,11 +351,22 @@
         <strong style="font-size:15px">Tinjau & Konfirmasi</strong>
         <span id="confPill" class="pill"></span>
       </div>
+      <div id="queueInfo" class="ask-hint" style="margin-top:2px"></div>
       <div id="catatan" class="note hidden"></div>
 
+      <!-- Pratinjau bukti yang dibaca (ketuk untuk perbesar) -->
+      <div id="reviewImgWrap" class="review-img hidden">
+        <img id="reviewImg" alt="bukti transfer" onclick="openImg()">
+        <div class="ask-hint" style="margin-top:4px">📎 Bukti yang dibaca — ketuk gambar untuk perbesar</div>
+      </div>
+
       <!-- Dibaca dari bukti (boleh dikoreksi) -->
-      <label>POS BIAYA <span style="color:var(--muted);font-weight:400">(pilih dari daftar)</span></label>
-      <select id="posBiaya" onchange="onPosChange()"></select>
+      <label>POS BIAYA <span style="color:var(--muted);font-weight:400">(ketik untuk cari, pilih dari daftar)</span></label>
+      <div class="combo">
+        <input id="posBiaya" type="text" autocomplete="off" placeholder="— pilih / cari pos biaya —"
+          oninput="comboFilter('posBiaya')" onfocus="comboOpen('posBiaya')" onblur="comboBlur('posBiaya')">
+        <div id="posBiaya_list" class="combo-list"></div>
+      </div>
 
       <label>KETERANGAN</label>
       <input id="keterangan" type="text" list="ketList" autocomplete="off" placeholder="(ketik atau pilih rekomendasi)">
@@ -151,6 +390,7 @@
 
         <label>SUMBER DANA</label>
         <select id="sumberDana" onchange="onSumberDanaChange()"></select>
+        <div id="srcRead" class="ask-hint hidden" style="margin-top:4px"></div>
         <div id="bocNote" class="note boc hidden"></div>
 
         <div id="rekWrap" class="hidden">
@@ -181,24 +421,241 @@
       </div>
 
       <div class="row-btns">
-        <button class="btn-ghost" onclick="resetAll()">Batal</button>
-        <button id="btnSave" class="btn-primary" onclick="save()">Simpan ke Spreadsheet</button>
+        <button class="btn-ghost" onclick="closeForm()">Tutup</button>
+        <button id="btnSave" class="btn-primary" onclick="save()">Simpan &amp; Lanjut</button>
+      </div>
+    </div>
+
+    <!-- Input manual (tanpa foto) -->
+    <div class="card">
+      <div onclick="toggleManual()" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer">
+        <strong style="font-size:15px">✍️ Input Manual</strong>
+        <span id="mCaret" class="ask-hint">▼</span>
+      </div>
+      <div id="manualBody" class="hidden" style="margin-top:6px">
+        <label>POS BIAYA <span style="color:var(--muted);font-weight:400">(ketik untuk cari)</span></label>
+        <div class="combo">
+          <input id="mPos" type="text" autocomplete="off" placeholder="— pilih / cari pos biaya —"
+            oninput="comboFilter('mPos')" onfocus="comboOpen('mPos')" onblur="comboBlur('mPos')">
+          <div id="mPos_list" class="combo-list"></div>
+        </div>
+
+        <label>KETERANGAN</label>
+        <input id="mKeterangan" type="text" list="mKetList" autocomplete="off" placeholder="(ketik atau pilih rekomendasi)">
+        <datalist id="mKetList"></datalist>
+        <div id="mKetChips" class="chips"></div>
+
+        <label>NOMINAL</label>
+        <div class="nominal-prefix"><span>Rp</span><input id="mNominal" type="text" inputmode="numeric" placeholder="0" oninput="mOnNominalInput()"></div>
+
+        <label>TANGGAL</label>
+        <input id="mTanggal" type="date">
+
+        <div class="grid2">
+          <div><label>BIAYA BULAN</label><select id="mBiayaBulan"></select></div>
+          <div><label>TAHUN BIAYA</label><select id="mTahunBiaya"></select></div>
+        </div>
+
+        <label>SUMBER DANA</label>
+        <select id="mSumberDana" onchange="mOnSumberDanaChange()"></select>
+        <div id="mRekWrap" class="hidden">
+          <label>Rekening <span style="color:var(--muted);font-weight:400">(khusus Pendapatan Usaha)</span></label>
+          <select id="mRekening"></select>
+        </div>
+
+        <div class="grid2">
+          <div><label>BUDGET BULAN</label><select id="mBudgetBulan"></select></div>
+          <div><label>TAHUN BUDGET</label><select id="mTahunBudget"></select></div>
+        </div>
+
+        <button class="btn-primary" style="margin-top:14px" onclick="mSave()">Pratinjau &amp; Simpan</button>
       </div>
     </div>
     </div><!-- /tabInput -->
 
-    <div id="tabBudget" class="hidden">
+    <div id="tabSimpanan" class="hidden">
+      <div class="card">
+        <div class="bt-title">📦 Simpan bukti untuk diproses nanti</div>
+        <div class="ask-hint">Bukti ditampung di folder Google Drive. Kapan saja bisa dipilih untuk dibaca &amp;
+          diinput. Setelah berhasil tersimpan ke TRANSAKSI, bukti otomatis dihapus dari folder.</div>
+        <div class="row-btns">
+          <button class="btn-ghost" onclick="ibPick()">🖼 Pilih Gambar</button>
+          <button class="btn-primary" onclick="ibCamera()">📷 Ambil Foto</button>
+        </div>
+        <input id="ibFile" type="file" accept="image/*" multiple class="hidden">
+        <input id="ibCam" type="file" accept="image/*" capture="environment" class="hidden">
+        <div id="ibUpMsg"></div>
+        <div id="ibAutoRow" class="ask-hint" style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <span id="ibAutoStatus">Baca otomatis di latar: memeriksa…</span>
+          <button id="ibAutoBtn" class="btn-ghost" style="width:auto;padding:6px 10px;font-size:12px;display:none" onclick="ibToggleAutoRead()"></button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <div class="bt-title" style="margin:0">🗂 Bukti tersimpan (<span id="ibCount">–</span>)</div>
+          <button class="btn-ghost" style="width:auto;padding:6px 10px;font-size:12px" onclick="loadInbox()">↻ Muat ulang</button>
+        </div>
+        <div class="ask-hint" style="margin-top:4px">Ketuk bukti untuk <b>lihat penuh</b> · <b>🗑</b> hapus satu bukti · kotak centang untuk memilih (proses/hapus banyak sekaligus).</div>
+        <div id="ibList" style="margin-top:10px"></div>
+        <div id="ibActions" class="row-btns hidden">
+          <button class="btn-ghost" onclick="ibDeleteSelected()">🗑 Hapus terpilih</button>
+          <button id="ibBtnProcess" class="btn-primary" onclick="ibProcessSelected()">▶ Proses terpilih</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="tabBudget">
       <div class="card">
         <label>Bulan</label>
         <select id="budgetMonth" onchange="loadBudget()"></select>
       </div>
+      <div id="peringatanView"></div>
       <div id="budgetView"></div>
+    </div>
+
+    <div id="tabDaftar" class="hidden">
+      <div class="card">
+        <div class="grid2">
+          <div><label>Bulan (BIAYA BULAN)</label><select id="dfBulan" onchange="loadDaftar()"></select></div>
+          <div><label>Tahun (TAHUN BIAYA)</label><select id="dfTahun" onchange="loadDaftar()"></select></div>
+        </div>
+        <label>Tanggal (TANGGAL)</label>
+        <input id="dfTanggal" type="date" onchange="loadDaftar()">
+        <label>POS Biaya</label>
+        <select id="dfPos" onchange="loadDaftar()"></select>
+        <label>Keterangan (mengandung)</label>
+        <input id="dfKeterangan" type="text" autocomplete="off" placeholder="cari keterangan…" oninput="loadDaftarDebounced()">
+        <label>Sumber Dana</label>
+        <select id="dfSumber" onchange="loadDaftar()"></select>
+        <button class="btn-ghost" style="margin-top:12px" onclick="resetDaftar()">Reset filter tambahan</button>
+      </div>
+      <div id="daftarView"></div>
+    </div>
+
+    <div id="tabPengaturan" class="hidden">
+      <div class="card">
+        <div class="bt-title">⚙ Spreadsheet CASHFLOW bulan ini</div>
+        <div id="cfCurrent" class="ask-hint" style="margin-bottom:6px">Memuat…</div>
+        <label>Link spreadsheet CASHFLOW &amp; BIAYA (bulan berjalan)</label>
+        <input id="cfUrl" type="url" autocomplete="off" placeholder="https://docs.google.com/spreadsheets/d/…/edit">
+        <button id="btnCfSave" class="btn-primary" style="margin-top:10px" onclick="saveCashflow()">Simpan Link</button>
+        <div class="ask-hint" style="margin-top:10px">Ganti link ini tiap awal bulan. Setiap input biaya ber-Sumber Dana <b>Pendapatan Usaha</b> otomatis dicatat ke sheet <b>INPUT PENGGUNAAN BIAYA</b> spreadsheet ini (selalu ada pratinjau dulu).</div>
+      </div>
+
+      <div class="card">
+        <div class="bt-title">⬇️ Sinkronkan kode dari GitHub</div>
+        <div class="ask-hint" style="margin-bottom:8px">Tarik kode terbaru dari cabang
+          <b id="syncCabang">…</b> langsung ke proyek Apps Script — tanpa salin-tempel.
+          <b>Deploy tetap manual:</b> aplikasi yang sedang dipakai belum berubah sampai Anda
+          menekan Deploy → New version di editor.</div>
+        <div class="row-btns">
+          <button class="btn-ghost" onclick="sinkronKode(false)">Periksa dulu</button>
+          <button class="btn-primary" onclick="sinkronKode(true)">Sinkronkan</button>
+        </div>
+        <div id="syncResult" style="margin-top:10px"></div>
+      </div>
+
+      <div class="card">
+        <div class="bt-title">🔁 Periksa "Setoran Owner" CASHFLOW</div>
+        <div class="ask-hint" style="margin-bottom:8px">Bandingkan transaksi <b>Pendapatan Usaha</b> (TRANSAKSI) dengan Setoran Owner di CASHFLOW aktif. Yang belum masuk bisa langsung dilengkapi. Aman diulang — hanya menulis yang belum ada.</div>
+        <div class="grid2">
+          <div><label>Bulan (TANGGAL)</label><select id="auBulan"></select></div>
+          <div><label>Tahun</label><select id="auTahun"></select></div>
+        </div>
+        <button class="btn-ghost" style="margin-top:10px" onclick="auditCashflow()">Periksa</button>
+        <div id="auResult" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <div id="previewModal" class="lock" style="display:none;z-index:60">
+      <div class="lockbox" style="max-width:430px;text-align:left">
+        <div style="font-weight:700;font-size:15px;margin-bottom:8px">Pratinjau sebelum simpan</div>
+        <div id="previewBody" style="font-size:13px"></div>
+        <div id="previewProgress" class="prog hidden" aria-live="polite">
+          <div class="prog-row"><span class="spin"></span><span id="progJudul">Menyimpan…</span></div>
+          <div id="progTarget"></div>
+          <div class="prog-bar"><i></i></div>
+          <div class="ask-hint" style="margin-top:8px">Mohon tunggu — jangan tutup aplikasi.
+            <span id="progDetik"></span></div>
+        </div>
+        <div class="row-btns">
+          <button id="btnBatalPreview" class="btn-ghost" onclick="closePreview()">Batal</button>
+          <button id="btnConfirm" class="btn-primary" onclick="confirmPreview()">Konfirmasi &amp; Simpan</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="editModal" class="lock" style="display:none;z-index:60">
+      <div class="lockbox" style="max-width:460px;text-align:left;max-height:92vh;overflow:auto">
+        <div style="font-weight:700;font-size:15px;margin-bottom:2px">✏️ Edit transaksi</div>
+        <div id="edInfo" class="ask-hint" style="margin-bottom:6px"></div>
+
+        <label>POS BIAYA <span style="color:var(--muted);font-weight:400">(ketik untuk cari)</span></label>
+        <div class="combo">
+          <input id="edPos" type="text" autocomplete="off" placeholder="— pilih / cari pos biaya —"
+            oninput="comboFilter('edPos')" onfocus="comboOpen('edPos')" onblur="comboBlur('edPos')">
+          <div id="edPos_list" class="combo-list"></div>
+        </div>
+
+        <label>KETERANGAN</label>
+        <input id="edKeterangan" type="text" autocomplete="off" placeholder="keterangan">
+
+        <label>NOMINAL</label>
+        <div class="nominal-prefix"><span>Rp</span><input id="edNominal" type="text" inputmode="numeric" placeholder="0" oninput="edOnNominalInput()"></div>
+        <div id="edFormulaNote" class="note hidden" style="color:var(--muted)"></div>
+
+        <label>TANGGAL</label>
+        <input id="edTanggal" type="date">
+
+        <div class="grid2">
+          <div><label>BIAYA BULAN</label><select id="edBiayaBulan"></select></div>
+          <div><label>TAHUN BIAYA</label><select id="edTahunBiaya"></select></div>
+        </div>
+
+        <label>SUMBER DANA</label>
+        <select id="edSumberDana" onchange="edOnSumberDanaChange()"></select>
+        <div id="edRekWrap" class="hidden">
+          <label>Rekening <span style="color:var(--muted);font-weight:400">(khusus Pendapatan Usaha)</span></label>
+          <select id="edRekening"></select>
+        </div>
+
+        <div class="grid2">
+          <div><label>BUDGET BULAN</label><select id="edBudgetBulan"></select></div>
+          <div><label>TAHUN BUDGET</label><select id="edTahunBudget"></select></div>
+        </div>
+
+        <div class="ask-hint" style="margin-top:10px">Catatan: sheet <b>CASHFLOW</b> tidak ikut berubah otomatis saat edit — sesuaikan manual bila perlu.</div>
+        <div class="row-btns">
+          <button class="btn-ghost" onclick="closeEdit()">Batal</button>
+          <button id="edBtnSave" class="btn-primary" onclick="saveEdit()">Simpan Perubahan</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="ibModal" class="lock" style="display:none;z-index:65">
+      <div class="lockbox" style="max-width:430px;text-align:left">
+        <div id="ibModalTitle" style="font-weight:700;font-size:15px;margin-bottom:8px"></div>
+        <div id="ibModalBody" style="font-size:13px"></div>
+        <div class="row-btns">
+          <button id="ibModalCancel" class="btn-ghost" onclick="ibModalCancel()">Batal</button>
+          <button id="ibModalOk" class="btn-primary" onclick="ibModalConfirm()">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="imgModal" class="imgmodal" style="display:none" onclick="closeImg()">
+      <span class="imgclose" onclick="event.stopPropagation();closeImg()">✕</span>
+      <img id="imgModalPic" src="" alt="bukti transfer" onclick="event.stopPropagation();toggleImgZoom()">
     </div>
 
     <div id="msg"></div>
   </div>
 
   <script>
+    // Menu yang tampil pertama saat aplikasi dibuka: 'budget' | 'input' | 'simpanan' | 'daftar' | 'pengaturan'
+    var TAB_AWAL = 'budget';
+
     var CFG = null;
     var currentDataUrl = null;
     window._pin = '';
@@ -207,7 +664,7 @@
     function initApp() {
       google.script.run.withSuccessHandler(function (cfg) {
         CFG = cfg;
-        fillSelect('posBiaya', cfg.posBiaya, true, '— pilih pos biaya —');
+        comboInit('posBiaya', cfg.posBiaya, onPosChange);
         fillSelect('sumberDana', cfg.sumberDana, true, '— pilih sumber dana —');
         fillSelect('biayaBulan', cfg.bulan, true, '— pilih bulan —');
         fillSelect('budgetBulan', cfg.bulan, true, '— pilih bulan —');
@@ -217,8 +674,14 @@
         google.script.run.withSuccessHandler(function (ctx) {
           CFG.sumberDanaByPos = (ctx && ctx.sumberDanaByPos) || {};
         }).getHistoryContext();
+        mInitSelects();
+        edInitSelects();
+        auInitSelects();
+        var cb = document.getElementById('syncCabang');
+        if (cb) cb.textContent = cfg.cabang || '—';
       }).withFailureHandler(showErr).getConfig();
       refreshTarget();
+      showTab(TAB_AWAL);   // menu yang tampil pertama saat aplikasi dibuka
     }
 
     function unlock() {
@@ -285,55 +748,198 @@
       sel.value = includeYear ? String(includeYear) : '';
     }
 
-    // --- Upload ---
+    // --- Upload (antrean bukti: bisa lebih dari satu) ---
+    // Tiap item: { id, name, dataUrl, thumb, fileId, status, data, error }
+    //   status: loading|pending|reading|ready|saved|error
+    //   fileId : diisi bila bukti berasal dari folder penyimpanan (tab Simpanan)
+    var queue = [];
+    var activeId = null;   // item yang sedang ditinjau di form
+    var _qid = 0;
+    var analyzing = false;
+
     var drop = document.getElementById('drop');
     var fileInput = document.getElementById('file');
     drop.addEventListener('click', function () { fileInput.click(); });
-    fileInput.addEventListener('change', function (e) { if (e.target.files.length) loadFile(e.target.files[0]); });
+    fileInput.addEventListener('change', function (e) {
+      if (e.target.files.length) addFiles(e.target.files);
+      fileInput.value = ''; // izinkan pilih file yang sama / tambah lagi
+    });
     ['dragover', 'dragenter'].forEach(function (ev) {
       drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('over'); });
     });
     ['dragleave', 'drop'].forEach(function (ev) {
       drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('over'); });
     });
-    drop.addEventListener('drop', function (e) { if (e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]); });
+    drop.addEventListener('drop', function (e) { if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files); });
 
-    function loadFile(file) {
-      if (!file.type.match('image.*')) { showErr('File harus berupa gambar.'); return; }
-      var reader = new FileReader();
-      reader.onload = function (e) {
-        currentDataUrl = e.target.result;
-        var img = document.getElementById('preview');
-        img.src = currentDataUrl; img.style.display = 'block';
-        document.getElementById('btnAnalyze').classList.remove('hidden');
-        clearMsg();
-      };
-      reader.readAsDataURL(file);
+    function addFiles(files) {
+      var arr = Array.prototype.slice.call(files || []);
+      var imgs = arr.filter(function (f) { return f.type && f.type.match('image.*'); });
+      if (!imgs.length) { showErr('Pilih file gambar (PNG/JPG).'); return; }
+      imgs.forEach(function (f) {
+        var item = { id: ++_qid, name: f.name || ('bukti-' + _qid), dataUrl: null, thumb: '', fileId: '',
+          status: 'loading', data: null, error: '' };
+        queue.push(item);
+        var reader = new FileReader();
+        reader.onload = function (e) { item.dataUrl = e.target.result; if (item.status === 'loading') item.status = 'pending'; renderQueue(); };
+        reader.onerror = function () { item.status = 'error'; item.error = 'gagal baca file'; renderQueue(); };
+        reader.readAsDataURL(f);
+      });
+      renderQueue(); clearMsg();
     }
 
-    // --- Analisis ---
-    function analyze() {
-      if (!currentDataUrl) return;
-      var btn = document.getElementById('btnAnalyze');
-      btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Membaca gambar...';
-      showInfo('Sedang membaca bukti dengan Claude…');
-      google.script.run
+    function queueItem(id) { for (var i = 0; i < queue.length; i++) { if (queue[i].id === id) return queue[i]; } return null; }
+    function queueCount(st) { return queue.filter(function (q) { return q.status === st; }).length; }
+
+    function qbadge(it) {
+      var map = { loading: ['memuat…', 'b-wait'], pending: ['menunggu', 'b-wait'], reading: ['membaca…', 'b-read'],
+        ready: ['siap ditinjau', 'b-ready'], saved: ['tersimpan ✓', 'b-saved'], error: ['gagal', 'b-err'] };
+      var m = map[it.status] || ['', 'b-wait'];
+      var t = m[0]; if (it.status === 'error' && it.error) t = 'gagal: ' + it.error;
+      return '<span class="qbadge ' + m[1] + '">' + esc(t) + '</span>';
+    }
+
+    function renderQueue() {
+      var box = document.getElementById('queue');
+      if (!queue.length) { box.innerHTML = ''; box.classList.add('hidden'); updateAnalyzeBtn(); updateFormHeader(); return; }
+      box.classList.remove('hidden');
+      var h = '';
+      queue.forEach(function (it) {
+        var active = (it.id === activeId) ? ' q-active' : '';
+        var clickable = (it.status === 'ready' || it.status === 'saved' || it.status === 'error');
+        var pic = it.dataUrl || it.thumb;
+        h += '<div class="qitem' + active + '"' + (clickable ? (' onclick="loadQueueItem(' + it.id + ')"') : '') + '>';
+        h += pic ? ('<img class="qthumb" src="' + pic + '" alt="">') : '<div class="qthumb">📄</div>';
+        h += '<div class="qmeta"><div class="qname">' + (it.fileId ? '📦 ' : '') + esc(it.name) + '</div>' + qbadge(it) + '</div>';
+        h += '<button class="qdel" title="Hapus" onclick="event.stopPropagation();removeQueueItem(' + it.id + ')">✕</button>';
+        h += '</div>';
+      });
+      box.innerHTML = h;
+      updateAnalyzeBtn(); updateFormHeader();
+    }
+
+    function updateAnalyzeBtn() {
+      var b = document.getElementById('btnAnalyze');
+      var clr = document.getElementById('btnClearQueue');
+      var pending = queueCount('pending');
+      if (analyzing) {
+        b.classList.remove('hidden'); b.disabled = true;
+        var done = queueCount('ready') + queueCount('saved') + queueCount('error');
+        b.innerHTML = '<span class="spin"></span>Membaca… (' + done + '/' + queue.length + ')';
+      } else if (pending > 0) {
+        b.classList.remove('hidden'); b.disabled = false;
+        b.textContent = 'Baca Otomatis' + (pending > 1 ? (' (' + pending + ')') : '');
+      } else {
+        b.classList.add('hidden');
+      }
+      clr.classList.toggle('hidden', queue.length === 0);
+    }
+
+    function updateFormHeader() {
+      var el = document.getElementById('queueInfo'); if (!el) return;
+      if (activeId == null || queue.length <= 1) { el.textContent = ''; return; }
+      var pos = 0; for (var i = 0; i < queue.length; i++) { if (queue[i].id === activeId) { pos = i + 1; break; } }
+      el.textContent = '🧾 Bukti ' + pos + ' dari ' + queue.length + ' · ' + queueCount('saved') + ' tersimpan';
+    }
+
+    function removeQueueItem(id) {
+      queue = queue.filter(function (q) { return q.id !== id; });
+      if (activeId === id) { activeId = null; resetAll(); }
+      renderQueue();
+    }
+
+    function clearQueue() {
+      queue = []; activeId = null; analyzing = false;
+      fileInput.value = '';
+      resetAll();
+      renderQueue(); clearMsg();
+    }
+
+    // --- Analisis semua bukti (berurutan) ---
+    function analyzeAll() {
+      if (analyzing) return;
+      analyzing = true; updateAnalyzeBtn();
+      showInfo('Membaca bukti dengan Claude…');
+      analyzeNext();
+    }
+
+    function analyzeNext() {
+      var it = queue.filter(function (q) { return q.status === 'pending'; })[0];
+      if (!it) { analyzing = false; updateAnalyzeBtn(); onAnalyzeDone(); return; }
+      it.status = 'reading'; renderQueue();
+      var runner = google.script.run
         .withSuccessHandler(function (data) {
-          btn.disabled = false; btn.textContent = 'Baca Ulang';
-          fillForm(data); clearMsg();
+          it.data = data; it.status = 'ready'; renderQueue();
+          if (activeId == null) loadQueueItem(it.id); // tinjau yang pertama sambil sisanya diproses
+          analyzeNext();
         })
         .withFailureHandler(function (err) {
-          btn.disabled = false; btn.textContent = 'Baca Otomatis';
-          showErr(err.message || err);
-        })
-        .analyzeImage(currentDataUrl, window._pin);
+          it.status = 'error'; it.error = (err && err.message) ? err.message : String(err); renderQueue();
+          analyzeNext();
+        });
+      // Bukti dari folder penyimpanan dibaca langsung di server (tidak perlu diunduh ke HP).
+      if (it.fileId) runner.analyzeInboxFile(it.fileId, window._pin);
+      else runner.analyzeImage(it.dataUrl, window._pin);
+    }
+
+    function onAnalyzeDone() {
+      var parts = [];
+      if (queueCount('ready')) parts.push(queueCount('ready') + ' siap ditinjau');
+      if (queueCount('saved')) parts.push(queueCount('saved') + ' tersimpan');
+      if (queueCount('error')) parts.push(queueCount('error') + ' gagal');
+      if (parts.length) showInfo('Selesai membaca. ' + parts.join(' · ') + '. Tinjau tiap entri lalu Simpan.');
+      else clearMsg();
+    }
+
+    function loadQueueItem(id) {
+      var it = queueItem(id);
+      if (!it || !it.data) return;
+      activeId = id;
+      currentDataUrl = it.dataUrl || it.thumb || '';
+      fillForm(it.data);
+      // Bukti dari folder penyimpanan: ambil gambar penuh (thumbnail tampil lebih dulu).
+      if (!it.dataUrl && it.fileId) fetchQueueImage(it);
+      renderQueue();
+    }
+
+    // Unduh gambar penuh dari folder penyimpanan untuk pratinjau yang jelas.
+    function fetchQueueImage(it) {
+      google.script.run.withSuccessHandler(function (res) {
+        it.dataUrl = res.dataUrl;
+        if (activeId === it.id) { currentDataUrl = res.dataUrl; setReviewImg(res.dataUrl); }
+        renderQueue();
+      }).withFailureHandler(function () {}).getInboxImage(it.fileId, window._pin);
+    }
+
+    function closeForm() {
+      activeId = null;
+      document.getElementById('formCard').classList.add('hidden');
+      renderQueue();
+    }
+
+    function advanceQueue() {
+      var next = queue.filter(function (q) { return q.status === 'ready'; })[0];
+      if (next) { loadQueueItem(next.id); return; }
+      activeId = null;
+      document.getElementById('formCard').classList.add('hidden');
+      var busy = queueCount('pending') + queueCount('reading');
+      if (busy === 0) {
+        var saved = queueCount('saved');
+        showOk('✅ Semua bukti selesai. ' + saved + ' tersimpan.');
+      } else {
+        showInfo('Tersimpan. Masih ada ' + busy + ' bukti diproses…');
+      }
+      renderQueue();
     }
 
     function fillForm(d) {
       document.getElementById('formCard').classList.remove('hidden');
 
+      // Pratinjau gambar bukti yang sedang ditinjau (dari item antrean aktif).
+      setReviewImg(currentDataUrl);
+
       // Dibaca dari bukti
-      setSelect('posBiaya', d.pos_biaya);
+      comboSetValue('posBiaya', d.pos_biaya);
       document.getElementById('keterangan').value = d.keterangan || '';
       document.getElementById('nominal').value = groupThousands(String(d.nominal || ''));
       document.getElementById('tanggal').value = d.tanggal || '';
@@ -341,6 +947,7 @@
       // Mata uang asing -> sudah dikonversi ke IDR (kurs tanggal transaksi)
       window._mataUang = d.mataUang || 'IDR';
       window._nominalAsli = d.nominalAsli || 0;
+      window._kurs = (d.konversi && !d.konversi.error) ? (d.konversi.rate || 0) : 0;
       showKursNote(d.konversi);
 
       // === Auto-fill dari history & pola (boleh dikoreksi) ===
@@ -354,6 +961,13 @@
         akunSumber: d.akun_sumber || '', mataUang: d.mataUang || 'IDR', merchant: d.merchant || '',
         sugPos: d.pos_biaya || '', sugSumber: d.sumberDanaSaran || '', sugKeterangan: d.keterangan || ''
       };
+
+      // Tampilkan apa yang TERBACA sebagai sumber dana (untuk transparansi & diagnosa).
+      var srcTxt = [d.akun_sumber, d.akun_sumber_nama].filter(function (x) { return x && x.trim(); }).join(' · ');
+      var sr = document.getElementById('srcRead');
+      sr.classList.remove('hidden');
+      sr.textContent = srcTxt ? ('🔎 Sumber dana terbaca dari bukti: ' + srcTxt)
+        : '🔎 Sumber dana tidak terbaca dari bukti — pilih manual.';
 
       // Periode: BIAYA/BUDGET BULAN = bulan transaksi, TAHUN = tahun transaksi
       var my = deriveMonthYear(d.tanggal);
@@ -500,6 +1114,7 @@
       if (window._mataUang && window._mataUang !== 'IDR' && window._nominalAsli > 0 && v) {
         google.script.run.withSuccessHandler(function (res) {
           document.getElementById('nominal').value = groupThousands(String(res.idr));
+          window._kurs = res.rate || 0;
           showKursNote({ mataUang: window._mataUang, nominalAsli: window._nominalAsli, rate: res.rate, tanggalKurs: res.date });
         }).withFailureHandler(function () {
           showKursNote({ error: true, mataUang: window._mataUang, nominalAsli: window._nominalAsli });
@@ -512,6 +1127,46 @@
       for (var i = 0; i < sel.options.length; i++) {
         if (sel.options[i].value === val) { sel.selectedIndex = i; return; }
       }
+    }
+
+    // --- Combobox (ketik untuk cari + wajib pilih dari daftar) ---
+    var _combo = {};
+    function comboInit(id, options, onChange) {
+      _combo[id] = { options: options || [], onChange: onChange || function () {} };
+      document.getElementById(id).value = '';
+    }
+    function comboValid(id, val) { return _combo[id] && _combo[id].options.indexOf(val) >= 0; }
+    function comboSetValue(id, val) {
+      document.getElementById(id).value = comboValid(id, val) ? val : '';
+    }
+    function comboRender(id, q) {
+      var box = document.getElementById(id + '_list'); if (!box || !_combo[id]) return;
+      box.innerHTML = '';
+      var opts = _combo[id].options;
+      var qq = String(q || '').trim().toLowerCase();
+      var filtered = qq ? opts.filter(function (o) { return o.toLowerCase().indexOf(qq) >= 0; }) : opts;
+      if (!filtered.length) {
+        var e = document.createElement('div'); e.className = 'combo-empty'; e.textContent = 'tidak ada yang cocok'; box.appendChild(e); return;
+      }
+      filtered.forEach(function (o) {
+        var d = document.createElement('div'); d.className = 'combo-item'; d.textContent = o;
+        d.addEventListener('mousedown', function (ev) { ev.preventDefault(); comboSelect(id, o); });
+        box.appendChild(d);
+      });
+    }
+    function comboOpen(id) { comboRender(id, ''); document.getElementById(id + '_list').classList.add('open'); }
+    function comboFilter(id) { comboRender(id, document.getElementById(id).value); document.getElementById(id + '_list').classList.add('open'); }
+    function comboSelect(id, val) {
+      document.getElementById(id).value = val;
+      document.getElementById(id + '_list').classList.remove('open');
+      _combo[id].onChange(val);
+    }
+    function comboBlur(id) {
+      setTimeout(function () {
+        document.getElementById(id + '_list').classList.remove('open');
+        var el = document.getElementById(id);
+        if (!comboValid(id, el.value)) { el.value = ''; _combo[id].onChange(''); }
+      }, 180);
     }
 
     // --- Nominal format ---
@@ -544,12 +1199,18 @@
         budgetBulan: document.getElementById('budgetBulan').value,
         tahunBudget: document.getElementById('tahunBudget').value,
         rekening: (sd === CFG.sumberDanaRekening) ? document.getElementById('rekening').value : '',
+        mataUang: window._mataUang,
+        nominalAsli: window._nominalAsli,
+        kurs: window._kurs,
+        // Bila bukti dari folder penyimpanan: dihapus otomatis setelah tersimpan.
+        inboxFileId: (function () { var a = (activeId != null) ? queueItem(activeId) : null; return (a && a.fileId) || ''; })(),
         pin: window._pin,
         meta: window._meta || {}
       };
 
       // Validasi sesuai aturan
       if (!payload.posBiaya) return showErr('POS BIAYA wajib dipilih.');
+      if (!comboValid('posBiaya', payload.posBiaya)) return showErr('POS BIAYA harus dipilih dari daftar.');
       if (!(payload.nominal > 0)) return showErr('Nominal harus lebih dari 0.');
       if (!payload.tanggal) return showErr('Tanggal wajib diisi (dari bukti).');
       if (!payload.sumberDana) return showErr('Sumber Dana wajib dipilih.');
@@ -558,36 +1219,271 @@
       if (!payload.budgetBulan) return showErr('Budget Bulan wajib dipilih.');
       if (!payload.tahunBudget) return showErr('Tahun Budget wajib dipilih.');
 
+      // Sumber dana Pendapatan Usaha -> pratinjau dulu (akan ditulis juga ke CASHFLOW).
+      if (payload.sumberDana === 'PENDAPATAN USAHA') {
+        showInfo('Menyiapkan pratinjau…');
+        google.script.run.withSuccessHandler(function (pv) {
+          clearMsg(); showPreview(payload, pv, activeId);
+        }).withFailureHandler(function (e) {
+          showErr('Pratinjau CASHFLOW gagal: ' + (e.message || e) + ' (atur link di tab Setelan).');
+        }).previewCashflow(payload, window._pin);
+        return;
+      }
+      doSave(payload, activeId);
+    }
+
+    // queueId != null -> simpan dari antrean bukti (lanjut ke bukti berikutnya);
+    // queueId == null -> simpan dari Input Manual.
+    function doSave(payload, queueId) {
+      var fromQueue = (queueId != null);
       var btn = document.getElementById('btnSave');
+      var label = fromQueue ? 'Simpan & Lanjut' : 'Simpan ke Spreadsheet';
       btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Menyimpan...';
       google.script.run
         .withSuccessHandler(function (res) {
-          btn.disabled = false; btn.textContent = 'Simpan ke Spreadsheet';
-          showOk('✅ Tersimpan ke baris ' + res.row + ' pada sheet TRANSAKSI.');
-          resetAll(); refreshTarget();
+          btn.disabled = false; btn.textContent = label;
+          var m = '✅ Tersimpan ke baris ' + res.row + ' (TRANSAKSI).';
+          if (res.cashflow) {
+            if (res.cashflow.error) m += ' ⚠️ CASHFLOW gagal: ' + res.cashflow.error;
+            else m += ' Juga ke CASHFLOW baris ' + res.cashflow.row + '.';
+          }
+          if (res.inboxDeleted) m += ' Bukti dihapus dari folder penyimpanan.';
+          hentikanProgres_(); closePreview(); showOk(m); refreshTarget();
+          if (fromQueue) {
+            var it = queueItem(queueId);
+            if (it) {
+              it.status = 'saved';
+              if (it.fileId) ibForget(it.fileId);   // hilangkan dari daftar tab Simpanan
+            }
+            advanceQueue();
+          } else {
+            mReset();
+          }
         })
         .withFailureHandler(function (err) {
-          btn.disabled = false; btn.textContent = 'Simpan ke Spreadsheet';
-          showErr(err.message || err);
+          btn.disabled = false; btn.textContent = label;
+          hentikanProgres_(); closePreview(); showErr(err.message || err);
         })
         .appendTransaction(payload);
     }
 
+    // --- Pratinjau (TRANSAKSI + opsional CASHFLOW) ---
+    var _pendingPayload = null;
+    var _pendingQueueId = null;
+    function showPreview(payload, cf, queueId) {
+      _pendingPayload = payload;
+      _pendingQueueId = (typeof queueId === 'undefined') ? null : queueId;
+      var h = '<div style="margin-bottom:6px;color:var(--muted)">' +
+        (cf ? 'Akan ditulis ke <b>2</b> spreadsheet:' : 'Pratinjau entri:') + '</div>';
+      h += '<div class="card" style="padding:10px;margin:0 0 8px"><b>TRANSAKSI (ANALISA KEUANGAN)</b><br>' +
+        'POS: ' + esc(payload.posBiaya) + '<br>Keterangan: ' + esc(payload.keterangan || '-') +
+        '<br>Nominal: ' + rp(payload.nominal) + '<br>Tanggal: ' + esc(formatTglHint(payload.tanggal)) +
+        '<br>Biaya: ' + esc(payload.biayaBulan) + ' ' + esc(String(payload.tahunBiaya)) +
+        '<br>Sumber Dana: ' + esc(payload.sumberDana) +
+        '<br>Budget: ' + esc(payload.budgetBulan) + ' ' + esc(String(payload.tahunBudget)) +
+        '<br>Rekening: ' + esc(payload.rekening || '(kosong)') + '</div>';
+      if (cf) {
+        h += '<div class="card" style="padding:10px;margin:0"><b>' + esc(cf.title) + ' — ' + esc(cf.sheet) +
+          '</b> (baris ' + cf.targetRow + ')<br>' +
+          'Subjek Biaya: <i>(otomatis dari Keterangan)</i><br>Keterangan: ' + esc(cf.row.keterangan) +
+          '<br>Nominal: ' + rp(cf.row.nominal) + '<br>Tanggal: ' + esc(formatTglHint(cf.row.tanggal)) +
+          '<br>Outlet: ' + esc(cf.row.outlet) + '<br>Status Lapor: ' + esc(cf.row.status) +
+          '<br>Sumber Dana: ' + esc(cf.row.sumberDana) + '</div>';
+      }
+      document.getElementById('previewBody').innerHTML = h;
+      document.getElementById('previewModal').style.display = 'flex';
+    }
+    function closePreview() {
+      if (_simpanJalan) return;                 // jangan tutup saat proses berjalan
+      document.getElementById('previewModal').style.display = 'none';
+      _pendingPayload = null; hentikanProgres_();
+    }
+
+    var _simpanJalan = false, _progTimer = null;
+
+    function confirmPreview() {
+      if (!_pendingPayload || _simpanJalan) return;   // cegah klik ganda -> baris dobel
+      _simpanJalan = true;
+      mulaiProgres_(_pendingPayload.sumberDana === 'PENDAPATAN USAHA');
+      doSave(_pendingPayload, _pendingQueueId);
+    }
+
+    /** Tampilkan animasi & daftar tujuan yang sedang ditulis. */
+    function mulaiProgres_(keCashflow) {
+      var tujuan = '<div class="prog-item">→ TRANSAKSI (ANALISA KEUANGAN)</div>';
+      if (keCashflow) tujuan += '<div class="prog-item">→ INPUT PENGGUNAAN BIAYA (CASHFLOW)</div>';
+      document.getElementById('progJudul').textContent =
+        keCashflow ? 'Menyimpan ke 2 spreadsheet…' : 'Menyimpan…';
+      document.getElementById('progTarget').innerHTML = tujuan;
+      document.getElementById('previewProgress').classList.remove('hidden');
+
+      var btn = document.getElementById('btnConfirm');
+      btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Menyimpan…';
+      document.getElementById('btnBatalPreview').disabled = true;
+
+      var mulai = new Date().getTime();
+      _progTimer = setInterval(function () {
+        var dtk = Math.round((new Date().getTime() - mulai) / 1000);
+        document.getElementById('progDetik').textContent = '(' + dtk + ' dtk)';
+      }, 1000);
+    }
+
+    /** Kembalikan modal ke keadaan semula (dipanggil saat selesai maupun gagal). */
+    function hentikanProgres_() {
+      _simpanJalan = false;
+      if (_progTimer) { clearInterval(_progTimer); _progTimer = null; }
+      var pp = document.getElementById('previewProgress');
+      if (pp) pp.classList.add('hidden');
+      var btn = document.getElementById('btnConfirm');
+      if (btn) { btn.disabled = false; btn.textContent = 'Konfirmasi & Simpan'; }
+      var bb = document.getElementById('btnBatalPreview');
+      if (bb) bb.disabled = false;
+      var pd = document.getElementById('progDetik');
+      if (pd) pd.textContent = '';
+    }
+
+    // ===================== INPUT MANUAL =====================
+    function toggleManual() {
+      var hiddenNow = document.getElementById('manualBody').classList.toggle('hidden');
+      document.getElementById('mCaret').textContent = hiddenNow ? '▼' : '▲';
+    }
+    function buildRekeningOptions(id) {
+      var sel = document.getElementById(id); sel.innerHTML = '';
+      var kas = document.createElement('option'); kas.value = ''; kas.textContent = '— Kas tunai usaha (kosongkan) —'; sel.appendChild(kas);
+      CFG.bankRekening.forEach(function (b) { var o = document.createElement('option'); o.value = b; o.textContent = b; sel.appendChild(o); });
+    }
+    function mInitSelects() {
+      comboInit('mPos', CFG.posBiaya, mOnPosChange);
+      fillSelect('mSumberDana', CFG.sumberDana, true, '— pilih sumber dana —');
+      fillSelect('mBiayaBulan', CFG.bulan, true, '— pilih bulan —');
+      fillSelect('mBudgetBulan', CFG.bulan, true, '— pilih bulan —');
+      buildYears('mTahunBiaya', CFG.tahunIni);
+      buildYears('mTahunBudget', CFG.tahunIni);
+      buildRekeningOptions('mRekening');
+      var mi = new Date().getMonth();
+      setSelect('mBiayaBulan', CFG.bulan[mi]);
+      setSelect('mBudgetBulan', CFG.bulan[mi]);
+      document.getElementById('mTanggal').value = CFG.today;
+    }
+    function mOnPosChange() {
+      var pos = document.getElementById('mPos').value;
+      var chips = document.getElementById('mKetChips'); chips.innerHTML = '';
+      var dl = document.getElementById('mKetList'); dl.innerHTML = '';
+      if (!pos) return;
+      google.script.run.withSuccessHandler(function (hist) {
+        (hist || []).forEach(function (k) { var o = document.createElement('option'); o.value = k; dl.appendChild(o); });
+        if ((hist || []).length) {
+          var lbl = document.createElement('div'); lbl.className = 'ask-hint'; lbl.style.width = '100%';
+          lbl.textContent = 'Rekomendasi (dari history POS ini) — ketuk:'; chips.appendChild(lbl);
+        }
+        (hist || []).slice(0, 10).forEach(function (k) {
+          var c = document.createElement('span'); c.className = 'chip'; c.textContent = k;
+          c.onclick = function () { document.getElementById('mKeterangan').value = k; };
+          chips.appendChild(c);
+        });
+      }).withFailureHandler(function () {}).getKeteranganOptions(pos);
+    }
+    function mOnSumberDanaChange() {
+      var sd = document.getElementById('mSumberDana').value;
+      document.getElementById('mRekWrap').classList.toggle('hidden', sd !== CFG.sumberDanaRekening);
+      if (sd !== CFG.sumberDanaRekening) document.getElementById('mRekening').value = '';
+    }
+    function mOnNominalInput() { var el = document.getElementById('mNominal'); el.value = groupThousands(el.value); }
+    function mUnformatNominal() { return Number(document.getElementById('mNominal').value.replace(/[^\d]/g, '')); }
+
+    function mSave() {
+      var sd = document.getElementById('mSumberDana').value;
+      var payload = {
+        posBiaya: document.getElementById('mPos').value,
+        keterangan: document.getElementById('mKeterangan').value.trim(),
+        nominal: mUnformatNominal(),
+        tanggal: document.getElementById('mTanggal').value,
+        sumberDana: sd,
+        biayaBulan: document.getElementById('mBiayaBulan').value,
+        tahunBiaya: document.getElementById('mTahunBiaya').value,
+        budgetBulan: document.getElementById('mBudgetBulan').value,
+        tahunBudget: document.getElementById('mTahunBudget').value,
+        rekening: (sd === CFG.sumberDanaRekening) ? document.getElementById('mRekening').value : '',
+        mataUang: 'IDR', nominalAsli: 0, kurs: 0,
+        pin: window._pin,
+        meta: { merchant: document.getElementById('mKeterangan').value.trim() }
+      };
+      if (!payload.posBiaya) return showErr('POS BIAYA wajib dipilih.');
+      if (!comboValid('mPos', payload.posBiaya)) return showErr('POS BIAYA harus dipilih dari daftar.');
+      if (!(payload.nominal > 0)) return showErr('Nominal harus lebih dari 0.');
+      if (!payload.tanggal) return showErr('Tanggal wajib diisi.');
+      if (!payload.sumberDana) return showErr('Sumber Dana wajib dipilih.');
+      if (!payload.biayaBulan) return showErr('Biaya Bulan wajib dipilih.');
+      if (!payload.tahunBiaya) return showErr('Tahun Biaya wajib dipilih.');
+      if (!payload.budgetBulan) return showErr('Budget Bulan wajib dipilih.');
+      if (!payload.tahunBudget) return showErr('Tahun Budget wajib dipilih.');
+      // Selalu pratinjau dulu (Input Manual -> queueId null).
+      if (payload.sumberDana === 'PENDAPATAN USAHA') {
+        showInfo('Menyiapkan pratinjau…');
+        google.script.run.withSuccessHandler(function (pv) { clearMsg(); showPreview(payload, pv, null); })
+          .withFailureHandler(function (e) { showErr('Pratinjau CASHFLOW gagal: ' + (e.message || e) + ' (atur link di tab Setelan).'); })
+          .previewCashflow(payload, window._pin);
+      } else {
+        showPreview(payload, null, null);
+      }
+    }
+
+    function mReset() {
+      if (!document.getElementById('mPos')) return;
+      document.getElementById('mPos').value = '';
+      document.getElementById('mKeterangan').value = '';
+      document.getElementById('mNominal').value = '';
+      document.getElementById('mSumberDana').value = '';
+      document.getElementById('mKetChips').innerHTML = '';
+      document.getElementById('mRekWrap').classList.add('hidden');
+      document.getElementById('mRekening').value = '';
+      if (CFG) {
+        document.getElementById('mTanggal').value = CFG.today;
+        var mi = new Date().getMonth();
+        setSelect('mBiayaBulan', CFG.bulan[mi]); setSelect('mBudgetBulan', CFG.bulan[mi]);
+        buildYears('mTahunBiaya', CFG.tahunIni); buildYears('mTahunBudget', CFG.tahunIni);
+      }
+    }
+
+    // Bersihkan isian form tinjau (tidak menyentuh antrean bukti).
     function resetAll() {
       currentDataUrl = null;
       window._bankSaran = ''; window._isBoc = false; window._sdSaran = ''; window._sdAlasan = '';
       window._rekSaran = ''; window._bankModel = ''; window._meta = null;
-      window._mataUang = 'IDR'; window._nominalAsli = 0;
-      fileInput.value = '';
-      var img = document.getElementById('preview'); img.src = ''; img.style.display = 'none';
-      document.getElementById('btnAnalyze').classList.add('hidden');
-      document.getElementById('btnAnalyze').textContent = 'Baca Otomatis';
+      window._mataUang = 'IDR'; window._nominalAsli = 0; window._kurs = 0;
+      comboSetValue('posBiaya', '');
+      document.getElementById('keterangan').value = '';
+      document.getElementById('nominal').value = '';
+      document.getElementById('tanggal').value = '';
       document.getElementById('formCard').classList.add('hidden');
       document.getElementById('ketChips').innerHTML = '';
       document.getElementById('rekWrap').classList.add('hidden');
       document.getElementById('bocNote').classList.add('hidden');
+      document.getElementById('srcRead').classList.add('hidden');
       document.getElementById('kursNote').classList.add('hidden');
+      setReviewImg('');
     }
+
+    // Tampilkan/ sembunyikan gambar bukti pada kartu tinjau.
+    function setReviewImg(src) {
+      var wrap = document.getElementById('reviewImgWrap');
+      document.getElementById('reviewImg').src = src || '';
+      wrap.classList.toggle('hidden', !src);
+    }
+
+    // --- Lightbox bukti (lihat gambar penuh, ketuk untuk zoom) ---
+    function openImg() {
+      var src = currentDataUrl;
+      if (!src && activeId != null) { var it = queueItem(activeId); if (it) src = it.dataUrl; }
+      if (!src) return;
+      document.getElementById('imgModalPic').src = src;
+      var m = document.getElementById('imgModal'); m.classList.remove('zoom'); m.style.display = 'flex';
+    }
+    function closeImg() {
+      var m = document.getElementById('imgModal'); m.style.display = 'none'; m.classList.remove('zoom');
+      document.getElementById('imgModalPic').src = '';
+    }
+    function toggleImgZoom() { document.getElementById('imgModal').classList.toggle('zoom'); }
 
     // --- Pesan ---
     function showOk(t) { setMsg(t, 'ok'); }
@@ -596,24 +1492,816 @@
     function clearMsg() { document.getElementById('msg').innerHTML = ''; }
     function setMsg(t, cls) { document.getElementById('msg').innerHTML = '<div class="msg ' + cls + '">' + t + '</div>'; }
 
+    // ============ PENYIMPANAN SEMENTARA BUKTI (FOLDER DRIVE) ============
+    var inbox = { items: [], sel: {}, folderUrl: '', loaded: false, truncated: false, batas: 0, belumTerbaca: 0 };
+
+    function ibMsg(html, cls) {
+      document.getElementById('ibUpMsg').innerHTML = html ? ('<div class="msg ' + cls + '">' + html + '</div>') : '';
+    }
+    function ibFind(id) { for (var i = 0; i < inbox.items.length; i++) { if (inbox.items[i].id === id) return inbox.items[i]; } return null; }
+    function ibSelectedIds() { return inbox.items.filter(function (i) { return inbox.sel[i.id]; }).map(function (i) { return i.id; }); }
+    function ibSize(b) {
+      b = Number(b) || 0;
+      return b >= 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
+    }
+
+    // --- Modal serbaguna (konfirmasi / tawaran hapus galeri / peringatan duplikat) ---
+    var _ibCb = null, _ibCancelCb = null;
+    function ibShowModal(title, html, okLabel, cancelLabel, cb, cancelCb) {
+      document.getElementById('ibModalTitle').textContent = title;
+      document.getElementById('ibModalBody').innerHTML = html;
+      document.getElementById('ibModalOk').textContent = okLabel;
+      document.getElementById('ibModalCancel').textContent = cancelLabel;
+      _ibCb = cb || null; _ibCancelCb = cancelCb || null;
+      document.getElementById('ibModal').style.display = 'flex';
+    }
+    function ibCloseModal() { document.getElementById('ibModal').style.display = 'none'; _ibCb = null; _ibCancelCb = null; }
+    function ibModalConfirm() { var cb = _ibCb; ibCloseModal(); if (cb) cb(); }
+    function ibModalCancel() { var cb = _ibCancelCb; ibCloseModal(); if (cb) cb(); }
+
+    // --- Unggah ke folder penyimpanan ---
+    function ibPick() { document.getElementById('ibFile').click(); }
+    function ibCamera() { document.getElementById('ibCam').click(); }
+
+    document.getElementById('ibFile').addEventListener('change', function (e) {
+      if (e.target.files.length) ibUpload(e.target.files);
+      this.value = '';
+    });
+    document.getElementById('ibCam').addEventListener('change', function (e) {
+      if (e.target.files.length) ibUpload(e.target.files);
+      this.value = '';
+    });
+
+    // Perkecil gambar sebelum diunggah (hemat kuota Drive & mempercepat pembacaan).
+    function ibShrink(file, cb) {
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        var src = e.target.result;
+        var img = new Image();
+        img.onload = function () {
+          var max = 1600, w = img.width, h = img.height;
+          var scale = Math.min(1, max / Math.max(w, h));
+          if (scale === 1 && src.length < 1200000) { cb(src); return; }
+          try {
+            var c = document.createElement('canvas');
+            c.width = Math.max(1, Math.round(w * scale)); c.height = Math.max(1, Math.round(h * scale));
+            c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+            cb(c.toDataURL('image/jpeg', 0.88));
+          } catch (err) { cb(src); }
+        };
+        img.onerror = function () { cb(src); };
+        img.src = src;
+      };
+      reader.onerror = function () { cb(null); };
+      reader.readAsDataURL(file);
+    }
+
+    function ibUpload(files) {
+      var list = Array.prototype.slice.call(files || []).filter(function (f) { return f.type && f.type.match('image.*'); });
+      if (!list.length) { ibMsg('Pilih file gambar (PNG/JPG).', 'err'); return; }
+      var done = [], gagal = 0, dupPending = [], i = 0;
+      function next() {
+        if (i >= list.length) {
+          var pesan = '✅ ' + done.length + ' bukti tersimpan.' +
+            (dupPending.length ? ' ⚠️ ' + dupPending.length + ' duplikat.' : '') +
+            (gagal ? ' ⚠️ ' + gagal + ' gagal.' : '');
+          ibMsg(pesan, done.length ? 'ok' : (dupPending.length ? 'info' : 'err'));
+          // Mulai baca otomatis di latar untuk bukti yang baru masuk (fire-and-forget).
+          if (done.length) google.script.run.readInboxNow(window._pin);
+          loadInbox();
+          ibAfterUpload(done, dupPending);
+          return;
+        }
+        var f = list[i++];
+        ibMsg('<span class="spin"></span>Memeriksa & mengunggah ' + i + '/' + list.length + ' — ' + esc(f.name || 'bukti') + '…', 'info');
+        ibShrink(f, function (dataUrl) {
+          if (!dataUrl) { gagal++; next(); return; }
+          google.script.run
+            .withSuccessHandler(function (res) {
+              if (res && res.duplicate) dupPending.push({ name: f.name || 'bukti', dataUrl: dataUrl, of: res.of });
+              else if (res) done.push(res.name);
+              next();
+            })
+            .withFailureHandler(function (e) { gagal++; ibMsg('⚠️ ' + esc(e.message || e), 'err'); next(); })
+            .uploadInbox(dataUrl, f.name || '', window._pin, false);
+        });
+      }
+      next();
+    }
+
+    // Urutkan tindak lanjut: peringatan duplikat dulu, baru tawaran bersihkan galeri.
+    function ibAfterUpload(done, dups) {
+      if (dups.length) ibWarnDuplicates(dups, function () { if (done.length) ibOfferGalleryDelete(done); });
+      else if (done.length) ibOfferGalleryDelete(done);
+    }
+
+    // Peringatan otomatis: bukti dengan isi sama sudah pernah diunggah.
+    function ibWarnDuplicates(list, thenCb) {
+      var h = '<div style="color:var(--warn)">⚠️ ' + list.length + ' bukti tampaknya <b>sudah pernah diunggah</b> ' +
+        '(isi gambar sama persis):</div>';
+      h += '<div class="card" style="padding:10px;margin:10px 0">' +
+        list.slice(0, 8).map(function (d) {
+          return '📄 ' + esc(d.name) + '<br><span class="ask-hint">≈ sama dengan: ' + esc(d.of.name) + ' · ' + esc(d.of.date) + '</span>';
+        }).join('<br>') +
+        (list.length > 8 ? ('<br><span class="ask-hint">… +' + (list.length - 8) + ' lagi</span>') : '') + '</div>';
+      h += '<div class="ask-hint">Pilih <b>Lewati</b> agar tidak menyimpan yang duplikat, atau <b>Unggah tetap</b> ' +
+        'bila menurut Anda ini bukti yang berbeda.</div>';
+      ibShowModal('⚠️ Duplikat terdeteksi', h, 'Unggah tetap', 'Lewati (disarankan)',
+        function () { ibUploadForced(list, thenCb); },
+        function () { ibMsg(list.length + ' bukti duplikat dilewati (tidak disimpan).', 'info'); if (thenCb) thenCb(); });
+    }
+
+    function ibUploadForced(list, thenCb) {
+      var i = 0, done = 0, gagal = 0;
+      function next() {
+        if (i >= list.length) {
+          ibMsg('✅ ' + done + ' bukti (duplikat) tetap diunggah.' + (gagal ? ' ⚠️ ' + gagal + ' gagal.' : ''), 'ok');
+          loadInbox(); if (thenCb) thenCb();
+          return;
+        }
+        var d = list[i++];
+        ibMsg('<span class="spin"></span>Mengunggah duplikat ' + i + '/' + list.length + '…', 'info');
+        google.script.run
+          .withSuccessHandler(function (res) { if (res && !res.duplicate) done++; next(); })
+          .withFailureHandler(function () { gagal++; next(); })
+          .uploadInbox(d.dataUrl, d.name, window._pin, true);
+      }
+      next();
+    }
+
+    // Otomatis menawarkan pembersihan galeri HP setelah bukti aman di Drive.
+    function ibOfferGalleryDelete(names) {
+      var h = '<div style="color:var(--muted)">' + names.length + ' bukti sudah aman tersimpan di folder Drive. ' +
+        'Hapus juga dari galeri HP supaya tidak menumpuk?</div>';
+      h += '<div class="card" style="padding:10px;margin:10px 0">' +
+        names.slice(0, 8).map(function (n) { return '📄 ' + esc(n); }).join('<br>') +
+        (names.length > 8 ? '<br><span class="ask-hint">… +' + (names.length - 8) + ' lagi</span>' : '') + '</div>';
+      h += '<div class="ask-hint">Penghapusan file galeri harus Anda lakukan di aplikasi <b>Galeri / Google Photos</b> ' +
+        '(demi keamanan, halaman web tidak diizinkan menghapus file di HP). Buka Galeri → pilih screenshot tadi → <b>Hapus</b>.</div>';
+      ibShowModal('🧹 Hapus dari galeri HP?', h, 'Oke, sudah paham', 'Nanti saja', null);
+    }
+
+    // --- Daftar bukti pada folder ---
+    var _ibPollTimer = null;
+    function loadInbox() {
+      document.getElementById('ibList').innerHTML = '<div class="ask-hint"><span class="spin"></span> Memuat…</div>';
+      ibLoadAutoStatus();
+      google.script.run.withSuccessHandler(function (res) {
+        inbox.items = (res && res.items) || [];
+        inbox.folderUrl = (res && res.folderUrl) || '';
+        inbox.truncated = !!(res && res.truncated);
+        inbox.batas = (res && res.batas) || 0;
+        inbox.belumTerbaca = (res && res.belumTerbaca) || 0;
+        inbox.loaded = true;
+        var ada = {};
+        inbox.items.forEach(function (i) { ada[i.id] = 1; });
+        Object.keys(inbox.sel).forEach(function (k) { if (!ada[k]) delete inbox.sel[k]; });
+        renderInbox();
+        ibLoadThumbs();       // thumbnail sisanya menyusul bertahap
+        ibScheduleRefresh();  // segarkan status baca selama masih ada yang belum terbaca
+      }).withFailureHandler(function (e) {
+        inbox.loaded = false;
+        document.getElementById('ibList').innerHTML = '<div class="msg err">' + esc(e.message || e) + '</div>';
+        document.getElementById('ibActions').classList.add('hidden');
+      }).listInbox(window._pin);
+    }
+
+    // Segarkan daftar otomatis (setiap 15 dtk) selama masih ada bukti yang belum terbaca
+    // dan tab Simpanan sedang aktif — supaya status "terbaca" ter-update sendiri.
+    function ibScheduleRefresh() {
+      if (_ibPollTimer) { clearTimeout(_ibPollTimer); _ibPollTimer = null; }
+      var aktif = !document.getElementById('tabSimpanan').classList.contains('hidden');
+      if (aktif && inbox.belumTerbaca > 0) {
+        _ibPollTimer = setTimeout(loadInbox, 15000);
+      }
+    }
+    function ibStopRefresh() { if (_ibPollTimer) { clearTimeout(_ibPollTimer); _ibPollTimer = null; } }
+
+    // Badge status baca AI per bukti.
+    function aiBadge(state) {
+      var map = { done: ['✓ terbaca', 'b-saved'], reading: ['⏳ dibaca', 'b-read'],
+        pending: ['… antre baca', 'b-wait'], error: ['⚠️ gagal baca', 'b-err'] };
+      var m = map[state] || map.pending;
+      return '<span class="qbadge ' + m[1] + '">' + m[0] + '</span>';
+    }
+
+    // --- Baca otomatis di latar belakang (trigger) ---
+    function ibLoadAutoStatus() {
+      google.script.run.withSuccessHandler(function (s) {
+        var st = document.getElementById('ibAutoStatus'), btn = document.getElementById('ibAutoBtn');
+        if (s && s.aktif) {
+          st.innerHTML = '🟢 Baca otomatis di latar: <b>aktif</b> (jalan walau dashboard ditutup)';
+          btn.textContent = 'Nonaktifkan'; btn.dataset.on = '1';
+        } else {
+          st.innerHTML = '⚪ Baca otomatis di latar: <b>nonaktif</b>';
+          btn.textContent = 'Aktifkan'; btn.dataset.on = '';
+        }
+        btn.style.display = 'inline-block';
+      }).withFailureHandler(function () {
+        document.getElementById('ibAutoStatus').textContent = 'Baca otomatis di latar: status tak terbaca.';
+      }).autoReadStatus(window._pin);
+    }
+
+    function ibToggleAutoRead() {
+      var btn = document.getElementById('ibAutoBtn');
+      var nyalakan = !btn.dataset.on;
+      btn.disabled = true; btn.textContent = '…';
+      google.script.run.withSuccessHandler(function () {
+        btn.disabled = false; ibLoadAutoStatus();
+        ibMsg(nyalakan ? '🟢 Baca otomatis diaktifkan (tiap ±5 menit di latar).' : '⚪ Baca otomatis dinonaktifkan.', 'ok');
+      }).withFailureHandler(function (e) {
+        btn.disabled = false; ibLoadAutoStatus();
+        ibMsg('⚠️ ' + esc(e.message || e), 'err');
+      })[nyalakan ? 'setupAutoRead' : 'disableAutoRead'](window._pin);
+    }
+
+    // --- Sinkronisasi kode dari GitHub (menu Setelan) ---
+
+    /**
+     * `terapkan` = false hanya membandingkan, tidak menulis apa pun. Sengaja disediakan
+     * sebagai tombol terpisah supaya perubahan bisa dilihat sebelum kode diganti.
+     */
+    function sinkronKode(terapkan) {
+      var box = document.getElementById('syncResult');
+      box.innerHTML = '<div class="ask-hint"><span class="spin"></span> ' +
+        (terapkan ? 'Menarik kode dari GitHub…' : 'Membandingkan dengan GitHub…') + '</div>';
+      google.script.run.withSuccessHandler(function (r) { gambarSinkron(r, terapkan); })
+        .withFailureHandler(function (e) {
+          box.innerHTML = '<div class="msg err">' + esc(e.message || e).replace(/\n/g, '<br>') + '</div>';
+        }).sinkronDariGitHub(!!terapkan, window._pin);
+    }
+
+    function gambarSinkron(r, terapkan) {
+      var box = document.getElementById('syncResult');
+      if (!r.adaPerubahan) {
+        box.innerHTML = '<div class="msg ok">Kode proyek sudah sama dengan GitHub (versi ' +
+          esc(r.versi) + '). Tidak ada yang perlu disinkronkan.</div>';
+        return;
+      }
+      var h = '<div class="msg ' + (r.diterapkan ? 'ok' : 'info') + '">' +
+        (r.diterapkan
+          ? '✅ Kode diperbarui ke versi <b>' + esc(r.versi) + '</b> pada ' + esc(r.waktu) + '.'
+          : 'Ada perubahan menunggu (versi <b>' + esc(r.versi) + '</b>). Belum ada yang ditulis.') +
+        '</div>';
+      h += '<div class="sync-list">' +
+        barisSinkron('Berubah', r.diubah, 'c-waspada') +
+        barisSinkron('Baru', r.ditambah, 'c-aman') +
+        barisSinkron('Sudah sama', r.sama, '') +
+        (r.dipertahankan && r.dipertahankan.length
+          ? barisSinkron('Dipertahankan (bukan dari repo)', r.dipertahankan, '') : '') +
+        '</div>';
+      if (r.diterapkan) {
+        h += '<div class="ask-hint" style="margin-top:10px">Titik pulih: <b>' +
+          esc(String(r.versiCadangan)) + '</b>.<br>' +
+          '<b>Langkah Anda berikutnya:</b> buka editor → <b>Deploy</b> → <b>Manage deployments</b> ' +
+          '→ Edit → <b>New version</b> → Deploy.</div>';
+      }
+      box.innerHTML = h;
+    }
+
+    function barisSinkron(judul, daftar, kelas) {
+      if (!daftar || !daftar.length) return '';
+      return '<div class="sync-row"><span class="sync-lbl ' + kelas + '">' + esc(judul) +
+        ' (' + daftar.length + ')</span><span class="sync-val">' +
+        esc(daftar.join(', ')) + '</span></div>';
+    }
+
+    function renderInbox() {
+      var box = document.getElementById('ibList');
+      document.getElementById('ibCount').textContent = inbox.items.length;
+      if (!inbox.items.length) {
+        box.innerHTML = '<div class="ask-hint">Belum ada bukti tersimpan. Unggah atau ambil foto di atas.</div>';
+        document.getElementById('ibActions').classList.add('hidden');
+        return;
+      }
+      var sel = ibSelectedIds();
+      var h = '<div class="qitem" style="background:transparent;border-style:dashed" onclick="ibToggleAll()">' +
+        '<input type="checkbox" style="width:18px;height:18px;flex:none"' +
+        (sel.length === inbox.items.length ? ' checked' : '') + ' onclick="event.stopPropagation();ibToggleAll()">' +
+        '<div class="qmeta"><div class="qname">Pilih semua</div>' +
+        '<div class="ask-hint">' + sel.length + ' dari ' + inbox.items.length + ' dipilih</div></div></div>';
+      inbox.items.forEach(function (it) {
+        var on = !!inbox.sel[it.id];
+        var read = it.aiState === 'done';
+        // Ketuk baris/gambar => lihat bukti penuh (full screen). Ketuk kotak centang => pilih.
+        h += '<div class="qitem' + (on ? ' q-active' : '') + (read ? ' read' : '') + '" onclick="ibViewImage(\'' + it.id + '\')" title="Ketuk untuk lihat penuh">' +
+          '<input type="checkbox" style="width:20px;height:20px;flex:none" title="Pilih"' + (on ? ' checked' : '') +
+          ' onclick="event.stopPropagation();ibToggle(\'' + it.id + '\')">' +
+          '<div class="qthumb-wrap">' +
+          (it.thumb ? ('<img class="qthumb" src="' + it.thumb + '" alt="">') : '<div class="qthumb">🧾</div>') +
+          (read ? '<span class="qthumb-check" title="Sudah dibaca otomatis">✓</span>' : '') +
+          '</div>' +
+          '<div class="qmeta"><div class="qname">' + esc(it.name) + '</div>' +
+          '<div class="ask-hint">' + esc(it.date) + ' · ' + ibSize(it.size) + '</div>' +
+          aiBadge(it.aiState) + '</div>' +
+          '<span class="qdel" title="Lihat penuh" onclick="event.stopPropagation();ibViewImage(\'' + it.id + '\')">⤢</span>' +
+          '<span class="qdel qdel-x" title="Hapus bukti ini" onclick="event.stopPropagation();ibDeleteOne(\'' + it.id + '\')">🗑</span></div>';
+      });
+      if (inbox.truncated) {
+        h += '<div class="msg info" style="margin-top:10px">Menampilkan ' + inbox.items.length +
+          ' bukti terbaru (batas aman ' + inbox.batas + ' per muat). Proses/hapus sebagian dulu ' +
+          'untuk melihat sisanya.</div>';
+      }
+      box.innerHTML = h;
+      document.getElementById('ibActions').classList.remove('hidden');
+      document.getElementById('ibBtnProcess').textContent = '▶ Proses terpilih' + (sel.length ? ' (' + sel.length + ')' : '');
+    }
+
+    // Ambil thumbnail yang belum ada, sedikit demi sedikit, tanpa menahan tampilan daftar.
+    function ibLoadThumbs() {
+      var perlu = inbox.items.filter(function (i) { return !i.thumb && !i.thumbTried; });
+      if (!perlu.length) return;
+      var batch = perlu.slice(0, 12);
+      batch.forEach(function (i) { i.thumbTried = 1; });
+      google.script.run.withSuccessHandler(function (map) {
+        var berubah = false;
+        batch.forEach(function (i) { if (map && map[i.id]) { i.thumb = map[i.id]; berubah = true; } });
+        if (berubah) renderInbox();
+        ibLoadThumbs();   // lanjut ke kelompok berikutnya
+      }).withFailureHandler(function () {})
+        .getInboxThumbs(batch.map(function (i) { return i.id; }), window._pin);
+    }
+
+    // Buka satu bukti secara penuh (full screen) memakai lightbox yang sama seperti di tab Input.
+    function ibViewImage(id) {
+      var it = ibFind(id);
+      var m = document.getElementById('imgModal');
+      var pic = document.getElementById('imgModalPic');
+      m.classList.remove('zoom');
+      pic.src = (it && it.thumb) || '';   // tampilkan thumbnail dulu (bila ada) selagi ambil gambar penuh
+      m.style.display = 'flex';
+      google.script.run.withSuccessHandler(function (res) {
+        // Hanya perbarui bila lightbox masih terbuka untuk bukti ini.
+        if (res && res.dataUrl && m.style.display !== 'none') pic.src = res.dataUrl;
+      }).withFailureHandler(function (e) {
+        if (!(it && it.thumb)) { m.style.display = 'none'; showErr('Gagal memuat gambar: ' + (e.message || e)); }
+      }).getInboxImage(id, window._pin);
+    }
+
+    // Hapus satu bukti langsung dari barisnya (dengan konfirmasi).
+    function ibDeleteOne(id) {
+      var it = ibFind(id);
+      var nama = it ? it.name : 'bukti ini';
+      ibShowModal('🗑 Hapus bukti?',
+        '<div style="color:var(--muted)">Hapus <b>' + esc(nama) + '</b> dari folder penyimpanan? ' +
+        'Berkas masuk ke Sampah Google Drive (bisa dipulihkan 30 hari).</div>',
+        'Ya, hapus', 'Batal', function () {
+          ibMsg('<span class="spin"></span>Menghapus…', 'info');
+          google.script.run.withSuccessHandler(function (r) {
+            if (r && r.ok) { ibForget(id); ibMsg('🗑 1 bukti dihapus.', 'ok'); }
+            else ibMsg('⚠️ Gagal menghapus.' + (r && r.pesan ? ' ' + esc(r.pesan) : ''), 'err');
+          }).withFailureHandler(function (e) {
+            ibMsg('⚠️ ' + esc(e.message || e), 'err');
+          }).deleteInbox([id], window._pin);
+        });
+    }
+
+    function ibToggle(id) {
+      if (inbox.sel[id]) delete inbox.sel[id]; else inbox.sel[id] = 1;
+      renderInbox();
+    }
+    function ibToggleAll() {
+      var semua = ibSelectedIds().length === inbox.items.length;
+      inbox.sel = {};
+      if (!semua) inbox.items.forEach(function (i) { inbox.sel[i.id] = 1; });
+      renderInbox();
+    }
+
+    /** Buang satu bukti dari daftar tab Simpanan (setelah tersimpan / terhapus). */
+    function ibForget(fileId) {
+      inbox.items = inbox.items.filter(function (i) { return i.id !== fileId; });
+      delete inbox.sel[fileId];
+      if (inbox.loaded) renderInbox();
+    }
+
+    // --- Proses bukti terpilih: masuk ke antrean tab Input lalu dibaca ---
+    function ibProcessSelected() {
+      var ids = ibSelectedIds();
+      if (!ids.length) { ibMsg('Pilih dulu bukti yang mau diproses.', 'err'); return; }
+      var tambah = 0;
+      ids.forEach(function (id) {
+        var it = ibFind(id);
+        if (!it) return;
+        var sudah = queue.filter(function (q) { return q.fileId === id && q.status !== 'saved'; }).length;
+        if (sudah) return;   // sudah ada di antrean
+        queue.push({ id: ++_qid, name: it.name, dataUrl: null, thumb: it.thumb, fileId: id,
+          status: 'pending', data: null, error: '' });
+        tambah++;
+      });
+      inbox.sel = {}; renderInbox(); ibMsg('', '');
+      showTab('input');
+      renderQueue();
+      if (tambah) {
+        analyzeAll();   // analyzeAll() memasang pesannya sendiri, jadi pesan kita ditulis sesudahnya
+        showInfo(tambah + ' bukti dari penyimpanan masuk antrean — sedang dibaca…');
+      } else showInfo('Bukti terpilih sudah ada di antrean.');
+    }
+
+    // --- Hapus bukti terpilih dari folder ---
+    function ibDeleteSelected() {
+      var ids = ibSelectedIds();
+      if (!ids.length) { ibMsg('Pilih dulu bukti yang mau dihapus.', 'err'); return; }
+      ibShowModal('🗑 Hapus bukti?',
+        '<div style="color:var(--muted)">' + ids.length + ' bukti akan dihapus dari folder penyimpanan ' +
+        '(masuk ke Sampah Google Drive, masih bisa dipulihkan 30 hari).</div>',
+        'Ya, hapus', 'Batal', function () {
+          ibMsg('<span class="spin"></span>Menghapus…', 'info');
+          google.script.run.withSuccessHandler(function (r) {
+            ibMsg('🗑 ' + r.ok + ' bukti dihapus.' + (r.gagal ? ' ⚠️ ' + r.gagal + ' gagal.' : ''), 'ok');
+            inbox.sel = {}; loadInbox();
+          }).withFailureHandler(function (e) {
+            ibMsg('⚠️ ' + esc(e.message || e), 'err');
+          }).deleteInbox(ids, window._pin);
+        });
+    }
+
     // ===================== MENU SISA BUDGET =====================
-    var budgetLoaded = false;
+    var budgetLoaded = false, settingsLoaded = false, daftarLoaded = false, inboxLoaded = false;
+    function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
     function showTab(t) {
-      document.getElementById('tabInput').classList.toggle('hidden', t !== 'input');
-      document.getElementById('tabBudget').classList.toggle('hidden', t !== 'budget');
-      document.getElementById('navInput').classList.toggle('active', t === 'input');
-      document.getElementById('navBudget').classList.toggle('active', t === 'budget');
+      ['input', 'simpanan', 'budget', 'daftar', 'pengaturan'].forEach(function (x) {
+        document.getElementById('tab' + cap(x)).classList.toggle('hidden', x !== t);
+        document.getElementById('nav' + cap(x)).classList.toggle('active', x === t);
+      });
       clearMsg();
+      if (t !== 'simpanan') ibStopRefresh();   // hentikan polling saat keluar tab Simpanan
+      if (t === 'simpanan') {
+        if (!inboxLoaded) { inboxLoaded = true; loadInbox(); }
+        else ibScheduleRefresh();
+      }
       if (t === 'budget' && !budgetLoaded) { budgetLoaded = true; initBudget(); }
+      if (t === 'daftar' && !daftarLoaded) { daftarLoaded = true; initDaftar(); }
+      if (t === 'pengaturan' && !settingsLoaded) { settingsLoaded = true; loadSettings(); }
+    }
+
+    // ===================== DAFTAR BIAYA =====================
+    function fillSelectAll(id, items, allLabel) {
+      var sel = document.getElementById(id); sel.innerHTML = '';
+      var o0 = document.createElement('option'); o0.value = ''; o0.textContent = allLabel; sel.appendChild(o0);
+      (items || []).forEach(function (it) { var o = document.createElement('option'); o.value = it; o.textContent = it; sel.appendChild(o); });
+    }
+
+    function initDaftar() {
+      document.getElementById('daftarView').innerHTML = '<div class="ask-hint">Memuat…</div>';
+      google.script.run.withSuccessHandler(function (f) {
+        var years = (f.tahun && f.tahun.length) ? f.tahun.slice() : [];
+        if (years.indexOf(f.current.tahun) < 0) years.unshift(f.current.tahun);
+        fillSelectAll('dfBulan', f.bulan, 'Semua bulan');
+        fillSelectAll('dfTahun', years.map(String), 'Semua tahun');
+        fillSelectAll('dfPos', (CFG && CFG.posBiaya) || [], 'Semua pos');
+        fillSelectAll('dfSumber', (CFG && CFG.sumberDana) || [], 'Semua sumber');
+        document.getElementById('dfBulan').value = f.current.bulan;
+        document.getElementById('dfTahun').value = String(f.current.tahun);
+        loadDaftar();
+      }).withFailureHandler(function (e) {
+        document.getElementById('daftarView').innerHTML = '<div class="msg err">' + (e.message || e) + '</div>';
+      }).getTransaksiFilters();
+    }
+
+    var _dfTimer = null;
+    function loadDaftarDebounced() { clearTimeout(_dfTimer); _dfTimer = setTimeout(loadDaftar, 350); }
+
+    function loadDaftar() {
+      var filter = {
+        bulan: document.getElementById('dfBulan').value,
+        tahun: document.getElementById('dfTahun').value,
+        tanggal: document.getElementById('dfTanggal').value,
+        pos: document.getElementById('dfPos').value,
+        keterangan: document.getElementById('dfKeterangan').value.trim(),
+        sumber: document.getElementById('dfSumber').value
+      };
+      document.getElementById('daftarView').innerHTML = '<div class="ask-hint"><span class="spin"></span> Memuat…</div>';
+      google.script.run.withSuccessHandler(renderDaftar).withFailureHandler(function (e) {
+        document.getElementById('daftarView').innerHTML = '<div class="msg err">' + (e.message || e) + '</div>';
+      }).getTransaksiList(filter);
+    }
+
+    function resetDaftar() {
+      document.getElementById('dfTanggal').value = '';
+      document.getElementById('dfPos').value = '';
+      document.getElementById('dfKeterangan').value = '';
+      document.getElementById('dfSumber').value = '';
+      loadDaftar();
+    }
+
+    function formatTglShort(iso) { return /^\d{4}-\d{2}-\d{2}/.test(iso) ? formatTglHint(iso) : iso; }
+
+    function daftarLabel() {
+      var v = function (id) { return document.getElementById(id).value; };
+      var p = [];
+      if (v('dfBulan')) p.push(v('dfBulan'));
+      if (v('dfTahun')) p.push(v('dfTahun'));
+      if (v('dfTanggal')) p.push('tgl ' + formatTglShort(v('dfTanggal')));
+      if (v('dfPos')) p.push(v('dfPos'));
+      if (v('dfKeterangan').trim()) p.push('"' + v('dfKeterangan').trim() + '"');
+      if (v('dfSumber')) p.push(v('dfSumber'));
+      return p.length ? p.join(' · ') : 'Semua';
+    }
+
+    function renderDaftar(d) {
+      var h = '<div class="card budget-sum"><div class="sumrow"><span>' + esc(daftarLabel()) +
+        ' · ' + d.count + ' transaksi</span><b style="color:var(--accent-d)">' + rp(d.total) + '</b></div></div>';
+      if (!d.items.length) {
+        h += '<div class="card"><div class="ask-hint">Tidak ada biaya pada filter ini.</div></div>';
+        document.getElementById('daftarView').innerHTML = h; return;
+      }
+      h += '<div class="ask-hint" style="margin:0 2px 8px">Ketuk transaksi untuk <b>edit</b>.</div>';
+      h += '<div class="card"><table class="bt">';
+      d.items.forEach(function (it) {
+        var sub = [it.ket, formatTglShort(it.tgl), it.sumber].filter(Boolean).join(' · ');
+        h += '<tr onclick="daftarEdit(' + it.row + ')" style="cursor:pointer">' +
+          '<td><div style="font-weight:600">' + esc(it.pos) +
+          ' <span style="color:var(--muted);font-weight:400;font-size:11px">✏️</span></div>' +
+          '<div class="ask-hint" style="margin-top:2px">' + esc(sub) + '</div></td>' +
+          '<td class="num">' + rp(it.nominal) + '</td></tr>';
+      });
+      h += '</table></div>';
+      document.getElementById('daftarView').innerHTML = h;
+    }
+
+    // ===================== EDIT TRANSAKSI (dari Daftar) =====================
+    var _editRow = null, _editNominalFormula = '', _editNominalOrig = 0;
+
+    function edInitSelects() {
+      comboInit('edPos', CFG.posBiaya, function () {});
+      fillSelect('edSumberDana', CFG.sumberDana, true, '— pilih sumber dana —');
+      fillSelect('edBiayaBulan', CFG.bulan, true, '— pilih bulan —');
+      fillSelect('edBudgetBulan', CFG.bulan, true, '— pilih bulan —');
+      buildRekeningOptions('edRekening');
+    }
+
+    function edOnSumberDanaChange() {
+      var sd = document.getElementById('edSumberDana').value;
+      document.getElementById('edRekWrap').classList.toggle('hidden', sd !== CFG.sumberDanaRekening);
+      if (sd !== CFG.sumberDanaRekening) document.getElementById('edRekening').value = '';
+    }
+    function edOnNominalInput() { var el = document.getElementById('edNominal'); el.value = groupThousands(el.value); }
+
+    function daftarEdit(row) {
+      showInfo('Memuat transaksi…');
+      google.script.run.withSuccessHandler(function (d) {
+        clearMsg();
+        _editRow = d.row;
+        _editNominalFormula = d.nominalFormula || '';
+        _editNominalOrig = Number(d.nominal) || 0;
+        comboSetValue('edPos', d.pos);
+        document.getElementById('edKeterangan').value = d.keterangan || '';
+        document.getElementById('edNominal').value = groupThousands(String(Math.round(d.nominal || 0)));
+        document.getElementById('edTanggal').value = d.tanggal || '';
+        setSelect('edBiayaBulan', d.biayaBulan);
+        setSelect('edBudgetBulan', d.budgetBulan);
+        buildYears('edTahunBiaya', d.tahunBiaya ? Number(d.tahunBiaya) : CFG.tahunIni);
+        buildYears('edTahunBudget', d.tahunBudget ? Number(d.tahunBudget) : CFG.tahunIni);
+        setSelect('edSumberDana', d.sumberDana);
+        edOnSumberDanaChange();
+        if (d.rekening) document.getElementById('edRekening').value = d.rekening;
+        var fn = document.getElementById('edFormulaNote');
+        if (_editNominalFormula) {
+          fn.classList.remove('hidden');
+          fn.textContent = 'ℹ️ NOMINAL asli berupa formula (' + _editNominalFormula +
+            '). Bila angka tidak diubah, formula dipertahankan.';
+        } else { fn.classList.add('hidden'); fn.textContent = ''; }
+        document.getElementById('edInfo').textContent = 'Baris ' + d.row + ' pada sheet TRANSAKSI';
+        document.getElementById('editModal').style.display = 'flex';
+      }).withFailureHandler(function (e) { showErr(e.message || e); }).getTransaksiRow(row, window._pin);
+    }
+
+    function closeEdit() { document.getElementById('editModal').style.display = 'none'; _editRow = null; }
+
+    function saveEdit() {
+      if (_editRow == null) return;
+      var sd = document.getElementById('edSumberDana').value;
+      var nominal = Number(document.getElementById('edNominal').value.replace(/[^\d]/g, ''));
+      var keepFormula = !!_editNominalFormula && (nominal === Math.round(_editNominalOrig));
+      var payload = {
+        row: _editRow,
+        posBiaya: document.getElementById('edPos').value,
+        keterangan: document.getElementById('edKeterangan').value.trim(),
+        nominal: nominal,
+        tanggal: document.getElementById('edTanggal').value,
+        biayaBulan: document.getElementById('edBiayaBulan').value,
+        tahunBiaya: document.getElementById('edTahunBiaya').value,
+        sumberDana: sd,
+        budgetBulan: document.getElementById('edBudgetBulan').value,
+        tahunBudget: document.getElementById('edTahunBudget').value,
+        rekening: (sd === CFG.sumberDanaRekening) ? document.getElementById('edRekening').value : '',
+        keepFormula: keepFormula,
+        nominalFormula: _editNominalFormula,
+        pin: window._pin
+      };
+      if (!payload.posBiaya) return showErr('POS BIAYA wajib dipilih.');
+      if (!comboValid('edPos', payload.posBiaya)) return showErr('POS BIAYA harus dipilih dari daftar.');
+      if (!(payload.nominal > 0)) return showErr('Nominal harus lebih dari 0.');
+      if (!payload.tanggal) return showErr('Tanggal wajib diisi.');
+      if (!payload.sumberDana) return showErr('Sumber Dana wajib dipilih.');
+      if (!payload.biayaBulan) return showErr('Biaya Bulan wajib dipilih.');
+      if (!payload.tahunBiaya) return showErr('Tahun Biaya wajib dipilih.');
+      if (!payload.budgetBulan) return showErr('Budget Bulan wajib dipilih.');
+      if (!payload.tahunBudget) return showErr('Tahun Budget wajib dipilih.');
+      var btn = document.getElementById('edBtnSave');
+      btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Menyimpan...';
+      google.script.run.withSuccessHandler(function (res) {
+        btn.disabled = false; btn.textContent = 'Simpan Perubahan';
+        closeEdit();
+        showOk('✅ Transaksi baris ' + res.row + ' diperbarui.');
+        loadDaftar();
+      }).withFailureHandler(function (e) {
+        btn.disabled = false; btn.textContent = 'Simpan Perubahan';
+        showErr(e.message || e);
+      }).updateTransaction(payload, window._pin);
+    }
+
+    function loadSettings() {
+      google.script.run.withSuccessHandler(function (s) {
+        var el = document.getElementById('cfCurrent');
+        if (s.cashflowUrl) {
+          el.innerHTML = 'Aktif: <b>' + esc(s.cashflowTitle || '(tanpa nama)') + '</b>';
+          document.getElementById('cfUrl').value = s.cashflowUrl;
+        } else { el.textContent = 'Belum diatur — tempel link di bawah.'; }
+      }).withFailureHandler(function (e) {
+        document.getElementById('cfCurrent').textContent = (e.message || e);
+      }).getSettings();
+    }
+
+    function saveCashflow() {
+      var u = document.getElementById('cfUrl').value.trim();
+      if (!u) { showErr('Link belum diisi.'); return; }
+      var btn = document.getElementById('btnCfSave');
+      btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Menyimpan...';
+      google.script.run.withSuccessHandler(function (res) {
+        btn.disabled = false; btn.textContent = 'Simpan Link';
+        document.getElementById('cfCurrent').innerHTML = 'Aktif: <b>' + esc(res.title) + '</b>';
+        showOk('✅ Link CASHFLOW tersimpan: ' + res.title);
+      }).withFailureHandler(function (e) {
+        btn.disabled = false; btn.textContent = 'Simpan Link';
+        showErr(e.message || e);
+      }).setCashflowUrl(u, window._pin);
+    }
+
+    // ===================== PERIKSA & LENGKAPI SETORAN OWNER (CASHFLOW) =====================
+    function auInitSelects() {
+      fillSelect('auBulan', CFG.bulan, false);
+      buildYears('auTahun', CFG.tahunIni);
+      setSelect('auBulan', CFG.bulan[new Date().getMonth()]);
+      var ty = document.getElementById('auTahun'); ty.value = String(CFG.tahunIni);
+    }
+
+    function auditCashflow() {
+      var bulan = document.getElementById('auBulan').value;
+      var tahun = document.getElementById('auTahun').value;
+      var box = document.getElementById('auResult');
+      box.innerHTML = '<div class="ask-hint"><span class="spin"></span> Memeriksa…</div>';
+      google.script.run.withSuccessHandler(function (a) {
+        renderAudit(a, bulan, tahun);
+      }).withFailureHandler(function (e) {
+        box.innerHTML = '<div class="msg err">' + esc(e.message || e) + '</div>';
+      }).auditCashflowSetoran(bulan, tahun, window._pin);
+    }
+
+    function renderAudit(a, bulan, tahun) {
+      var box = document.getElementById('auResult');
+      var h = '<div class="msg ' + (a.missingCount ? 'info' : 'ok') + '">' +
+        'CASHFLOW: <b>' + esc(a.title) + '</b><br>' + esc(bulan) + ' ' + esc(tahun) + ' — ' +
+        a.total + ' transaksi Pendapatan Usaha · ' + a.matched + ' sudah tercatat · <b>' +
+        a.missingCount + ' belum masuk</b>.</div>';
+      if (a.missingCount) {
+        h += '<div class="card" style="padding:10px;margin:8px 0">';
+        a.missing.slice(0, 30).forEach(function (m) {
+          h += '<div style="display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px solid var(--line)">' +
+            '<span>' + esc(formatTglShort(m.tanggal)) + ' · ' + esc(m.keterangan || m.pos) + '</span>' +
+            '<b class="num">' + rp(m.nominal) + '</b></div>';
+        });
+        if (a.missing.length > 30) h += '<div class="ask-hint" style="margin-top:6px">… +' + (a.missing.length - 30) + ' lagi</div>';
+        h += '</div>';
+        h += '<button class="btn-primary" onclick="backfillCashflow()">Lengkapi — tulis ' + a.missingCount + ' Setoran Owner</button>';
+      }
+      box.innerHTML = h;
+    }
+
+    function backfillCashflow() {
+      var bulan = document.getElementById('auBulan').value;
+      var tahun = document.getElementById('auTahun').value;
+      var box = document.getElementById('auResult');
+      box.innerHTML = '<div class="ask-hint"><span class="spin"></span> Menulis Setoran Owner ke CASHFLOW…</div>';
+      google.script.run.withSuccessHandler(function (r) {
+        showOk('✅ ' + r.ditulis + ' Setoran Owner ditulis ke CASHFLOW.' + (r.gagal ? ' ⚠️ ' + r.gagal + ' gagal: ' + r.pesan : ''));
+        auditCashflow();   // periksa ulang -> harusnya 0 belum masuk
+      }).withFailureHandler(function (e) {
+        box.innerHTML = '<div class="msg err">' + esc(e.message || e) + '</div>';
+      }).backfillCashflowSetoran(bulan, tahun, window._pin);
+    }
+
+    var _peringatanTampil = false;   // pop-up hanya sekali per sesi
+
+    /** Ambil & tampilkan peringatan saldo minus untuk bulan-bulan ke depan. */
+    function muatPeringatanSaldo() {
+      google.script.run.withSuccessHandler(function (w) {
+        window._peringatan = w;
+        gambarPeringatan(w);
+        var perlu = w && (w.ada || (w.kuning && w.kuning.ada));
+        if (perlu && !_peringatanTampil) { _peringatanTampil = true; popupPeringatan(w); }
+      }).withFailureHandler(function () {}).getPeringatanSaldo(window._pin);
+    }
+
+    /**
+     * Banner menetap di atas menu Budget (tetap terlihat setelah pop-up ditutup).
+     * Urutan sengaja: MERAH (saldo minus) dulu, lalu KUNING (saldo di bawah cash buffer) —
+     * dari kondisi paling berat ke yang lebih ringan.
+     */
+    function gambarPeringatan(w) {
+      var box = document.getElementById('peringatanView');
+      if (!box) return;
+      var h = '';
+      if (w && w.ada) h += kartuMinus(w);
+      if (w && w.kuning && w.kuning.ada) h += kartuBuffer(w);
+      box.innerHTML = h;
+    }
+
+    /** Kartu MERAH: saldo real diproyeksikan minus. */
+    function kartuMinus(w) {
+      var h = '<div class="warn-card"><div class="warn-head">⚠️ Saldo akan minus di ' +
+        w.jumlah + ' bulan</div>' +
+        '<div class="ask-hint" style="margin-top:4px">Pantauan ' + esc(w.rentang) + '</div>' +
+        '<div class="warn-list">';
+      w.minus.slice(0, 6).forEach(function (m) {
+        h += '<div class="warn-row"><span>' + esc(m.label) + '</span><b>' + rp(m.nilai) + '</b></div>';
+      });
+      if (w.minus.length > 6) {
+        h += '<div class="ask-hint" style="margin-top:6px">… +' + (w.minus.length - 6) + ' bulan lagi</div>';
+      }
+      return h + '</div></div>';
+    }
+
+    /** Kartu KUNING: saldo masih positif tetapi belum mencapai cash buffer. */
+    function kartuBuffer(w) {
+      var k = w.kuning;
+      var h = '<div class="warn-card kuning"><div class="warn-head">⚠️ Saldo di bawah cash buffer di ' +
+        k.jumlah + ' bulan</div>' +
+        '<div class="ask-hint" style="margin-top:4px">SALDO REAL vs CASH BUFFER · ' + esc(w.rentang) +
+        '</div><div class="warn-list">';
+      k.bawah.slice(0, 6).forEach(function (m) {
+        h += '<div class="warn-row"><span>' + esc(m.label) + '</span><b>' + rp(m.saldo) +
+          ' <span class="warn-sub">/ ' + rp(m.buffer) + '</span></b></div>';
+      });
+      if (k.bawah.length > 6) {
+        h += '<div class="ask-hint" style="margin-top:6px">… +' + (k.bawah.length - 6) + ' bulan lagi</div>';
+      }
+      return h + '</div></div>';
+    }
+
+    /** Pop-up peringatan saat menu Budget pertama kali dibuka (merah dulu, lalu kuning). */
+    function popupPeringatan(w) {
+      var h = '<div class="ask-hint">Bulan berjalan ' + esc(w.bulanBerjalan) +
+        ' · dipantau ' + esc(w.rentang) + '</div>';
+      if (w.ada) h += bagianMinus(w);
+      if (w.kuning && w.kuning.ada) h += bagianBuffer(w);
+      ibShowModal('⚠️ Peringatan posisi keuangan', h, 'Mengerti', 'Tutup', null);
+    }
+
+    /** Bagian MERAH pada pop-up. */
+    function bagianMinus(w) {
+      var h = '<div style="color:var(--merah);font-weight:600;margin-top:12px">Saldo Real diproyeksikan MINUS pada ' +
+        w.jumlah + ' bulan ke depan.</div><div class="card" style="padding:10px;margin:8px 0 0">';
+      w.minus.slice(0, 8).forEach(function (m) {
+        h += '<div class="warn-row" style="border-top:1px solid var(--line-2)"><span>' +
+          esc(m.label) + '</span><b>' + rp(m.nilai) + '</b></div>';
+      });
+      if (w.minus.length > 8) {
+        h += '<div class="ask-hint" style="margin-top:6px">… +' + (w.minus.length - 8) + ' bulan lagi</div>';
+      }
+      return h + '</div><div class="ask-hint" style="margin-top:8px">Paling parah: <b>' +
+        esc(w.terparah.label) + '</b> ' + rp(w.terparah.nilai) +
+        '. Pertimbangkan menahan pengeluaran atau menambah pemasukan sebelum <b>' +
+        esc(w.pertama.label) + '</b>.</div>';
+    }
+
+    /** Bagian KUNING pada pop-up: saldo positif tetapi belum mencapai cash buffer. */
+    function bagianBuffer(w) {
+      var k = w.kuning;
+      var h = '<div style="color:var(--kuning);font-weight:600;margin-top:16px">Saldo Real di bawah CASH BUFFER pada ' +
+        k.jumlah + ' bulan.</div><div class="card kuning" style="padding:10px;margin:8px 0 0">';
+      k.bawah.slice(0, 8).forEach(function (m) {
+        h += '<div class="warn-row" style="border-top:1px solid var(--line-2)"><span>' +
+          esc(m.label) + '</span><b style="color:var(--kuning)">' + rp(m.saldo) +
+          ' <span class="warn-sub">/ ' + rp(m.buffer) + '</span></b></div>';
+      });
+      if (k.bawah.length > 8) {
+        h += '<div class="ask-hint" style="margin-top:6px">… +' + (k.bawah.length - 8) + ' bulan lagi</div>';
+      }
+      return h + '</div><div class="ask-hint" style="margin-top:8px">Kekurangan terbesar: <b>' +
+        esc(k.terparah.label) + '</b> kurang ' + rp(k.terparah.kurang) +
+        ' dari buffer. Bulan yang sudah minus tidak diulang di sini.</div>';
     }
 
     function initBudget() {
       document.getElementById('budgetView').innerHTML = '<div class="ask-hint">Memuat daftar bulan…</div>';
+      muatPeringatanSaldo();
       google.script.run.withSuccessHandler(function (res) {
         var sel = document.getElementById('budgetMonth'); sel.innerHTML = '';
         (res.months || []).forEach(function (m) {
           var o = document.createElement('option'); o.value = m; o.textContent = m; sel.appendChild(o);
         });
+        window._bulanBerjalan = res.current || '';
         if (res.current && res.months.indexOf(res.current) >= 0) sel.value = res.current;
         else if (res.months.length) sel.value = res.months[res.months.length - 1];
         loadBudget();
@@ -640,35 +2328,265 @@
 
     function renderBudget(d) {
       var h = '';
-      // Ringkasan
-      h += '<div class="card budget-sum">';
-      h += '<div class="sumrow"><span>Total Pemasukan</span><b style="color:var(--ok)">' + rp(d.totalIncome) + '</b></div>';
-      h += '<div class="sumrow"><span>Total Pengeluaran</span><b style="color:var(--err)">' + rp(d.totalPengeluaran) + '</b></div>';
-      h += '<div class="sumrow"><span>Sisa (Saldo Real)</span><b style="color:' + (d.saldoReal < 0 ? 'var(--err)' : 'var(--ok)') + '">' + rp(d.saldoReal) + '</b></div>';
+      var adaB = d.adaBudget;                 // apakah angka budget dari REKAP tersedia
+      var pct = adaB ? d.pctTerpakai : -1;
+
+      // --- Stat tile ---
+      h += '<div class="card"><div class="bt-title">' + esc(d.month || 'Ringkasan') + '</div>' +
+        '<div class="ask-hint" style="margin-bottom:12px">Budget dari sheet REKAP · sisa dari sheet REAL</div>' +
+        '<div class="stats">' +
+        statTile('t-mint', '◆', adaB ? rp(d.totalBudget) : '—', 'Total Budget', 'c-mint',
+          adaB ? 'alokasi bulan ini' : 'REKAP tidak terbaca') +
+        statTile('t-amber', '↑', adaB ? rp(d.totalTerpakai) : '—', 'Terpakai', 'c-amber',
+          adaB ? pct + '% dari budget' : '—') +
+        statTile('t-blue', '◇', adaB ? rp(d.totalSisaBudget) : '—', 'Sisa Budget', 'c-blue',
+          adaB ? (pct > 100 ? (pct - 100) + '% melebihi budget' : (100 - pct) + '% belum terpakai') : '—') +
+        statTile('t-pink', '=', rp(d.saldoReal), 'Saldo Real', d.saldoReal < 0 ? 'c-amber' : 'c-pink',
+          'pemasukan ' + rp(d.totalIncome)) +
+        '</div></div>';
+
+      // --- Review penggunaan biaya (hanya bulan berjalan) ---
+      h += '<div id="reviewView"></div>';
+
+      // --- Gauge pemakaian budget ---
+      h += '<div class="card"><div class="bt-title">Pemakaian Budget</div>';
+      if (adaB) {
+        h += '<div class="ask-hint">Terpakai terhadap budget REKAP</div>' +
+          '<div class="gauge"><div class="gauge-c" style="--p:' + Math.min(100, pct) + '"></div>' +
+          '<div class="gauge-hole"><span class="gauge-num">' + pct + '%</span></div></div>' +
+          '<div class="gauge-cap">' + rp(d.totalTerpakai) + ' dari ' + rp(d.totalBudget) + '</div>';
+      } else {
+        h += '<div class="msg err">Angka budget tidak terbaca dari sheet <b>REKAP</b>. ' +
+          'Jalankan <b>cekBudgetRekap</b> di editor Apps Script untuk memeriksa strukturnya.</div>';
+      }
       h += '</div>';
-      // Sisa Kantong (nilai pemasukan per kantong dari REAL)
-      h += '<div class="card"><div class="bt-title">💰 Sisa Kantong</div><table class="bt">';
-      d.pemasukan.forEach(function (o) {
-        h += '<tr><td>' + esc(o.b) + '</td><td class="num">' + rp(o.v) + '</td></tr>';
+
+      // --- Sisa Kantong ---
+      var maksK = 0;
+      d.pemasukan.forEach(function (o) { if (o.v > maksK) maksK = o.v; });
+      h += '<div class="card"><div class="bt-title">Sisa Kantong</div>' +
+        '<div class="ask-hint" style="margin-bottom:10px">' + d.pemasukan.length + ' kantong</div><table class="bt">';
+      d.pemasukan.forEach(function (o, i) {
+        h += '<tr><td>' + esc(o.b) + barProporsi(maksK ? (o.v / maksK * 100) : 0, i) +
+          '</td><td class="num">' + rp(o.v) + '</td></tr>';
       });
-      h += '<tr class="bt-total"><td>TOTAL</td><td class="num">' + rp(d.totalIncome) + '</td></tr>';
-      h += '</table></div>';
-      // Biaya per kategori
-      h += '<div class="card"><div class="bt-title">🧾 Biaya per Kategori</div><table class="bt">';
-      var lastGroup = '';
+      h += '<tr class="bt-total"><td>TOTAL</td><td class="num">' + rp(d.totalIncome) + '</td></tr></table></div>';
+
+      // --- Biaya per kategori: bar & persen = TERPAKAI terhadap BUDGET (REKAP) ---
+      h += '<div class="card"><div class="bt-title">Biaya per Kategori</div>' +
+        '<div class="ask-hint" style="margin-bottom:10px">' +
+        (adaB ? 'Bar &amp; persen = terpakai terhadap budget REKAP. Nilai kanan = sisa budget.'
+              : 'Budget REKAP tidak terbaca — hanya sisa budget yang ditampilkan.') +
+        '</div><table class="bt">';
+      var lastGroup = '', n = 0;
       d.biaya.forEach(function (o) {
         var aUp = o.a.toUpperCase();
         if (o.a && o.a !== '-' && aUp.indexOf('TOTAL') < 0 && o.a !== lastGroup) {
           lastGroup = o.a; h += '<tr class="bt-group"><td colspan="2">' + esc(o.a) + '</td></tr>';
         }
-        var isTot = (o.b.toUpperCase() === 'TOTAL' || aUp.indexOf('TOTAL') >= 0);
-        var label = (aUp.indexOf('TOTAL') >= 0) ? o.a : o.b;
-        h += '<tr class="' + (isTot ? 'bt-total' : 'bt-item') + '"><td>' + esc(label) + '</td><td class="num">' + rp(o.v) + '</td></tr>';
+        if (o.isTotal) {
+          var label = (aUp.indexOf('TOTAL') >= 0) ? o.a : o.b;
+          h += '<tr class="bt-total"><td>' + esc(label) + '</td><td class="num">' + rp(o.v) + '</td></tr>';
+          return;
+        }
+        var kelas = kelasStatus(o.status);
+        h += '<tr class="bt-item' + (o.adaBudget ? '' : ' bt-nobudget') + '"><td>' + esc(o.b) +
+          (o.status === 'habis' ? ' <span class="ppill c-habis">' + (o.pct > 100 ? 'lebih' : 'habis') + '</span>' : '') +
+          (o.adaBudget ? barStatus(o.pct, o.status) : '') +
+          (o.adaBudget ? '<div class="ask-hint" style="margin-top:4px">terpakai ' + rp(o.terpakai) +
+            ' / budget ' + rp(o.budget) + '</div>' : '') +
+          '</td><td class="num">' + rp(o.sisa) +
+          (o.adaBudget ? '<div style="margin-top:5px"><span class="ppill ' + kelas + '">' +
+            o.pct + '%</span></div>' : '') + '</td></tr>';
+        n++;
       });
-      h += '<tr class="bt-total"><td>TOTAL PENGELUARAN</td><td class="num">' + rp(d.totalPengeluaran) + '</td></tr>';
+      if (adaB) {
+        h += '<tr class="bt-total"><td>TOTAL SISA BUDGET</td><td class="num">' + rp(d.totalSisaBudget) + '</td></tr>';
+      }
       h += '</table></div>';
       document.getElementById('budgetView').innerHTML = h;
+      muatReview(d.month, false);
     }
+
+    // ---------------- Review penggunaan biaya (bulan berjalan) ----------------
+
+    var _reviewBuka = false;   // review tertutup saat pertama dibuka - isinya panjang
+
+    /**
+     * Ambil review untuk bulan yang sedang ditampilkan. Backend menolak bulan selain
+     * bulan berjalan, tetapi kita cegah dari sini juga supaya tidak ada panggilan sia-sia.
+     */
+    function muatReview(bulan, paksa) {
+      var box = document.getElementById('reviewView');
+      if (!box) return;
+      if (!bulan || !window._bulanBerjalan || bulan !== window._bulanBerjalan) { box.innerHTML = ''; return; }
+      box.innerHTML = '<div class="card rv-card"><span class="bt-title">Review penggunaan biaya</span>' +
+        '<div class="ask-hint" style="margin-top:4px"><span class="spin"></span> Menganalisa transaksi bulan ini…</div></div>';
+      google.script.run.withSuccessHandler(function (r) { gambarReview(r, bulan); })
+        .withFailureHandler(function (e) {
+          box.innerHTML = '<div class="card"><div class="bt-title">Review penggunaan biaya</div>' +
+            '<div class="msg err">' + esc(e.message || e) + '</div>' +
+            '<button class="btn-ghost rv-btn" style="margin-top:10px" onclick="muatReview(\'' +
+            esc(bulan) + '\', true)">Coba lagi</button></div>';
+        }).getReviewBiaya(bulan, !!paksa, window._pin);
+    }
+
+    function gambarReview(r, bulan) {
+      var box = document.getElementById('reviewView');
+      if (!box) return;
+      if (!r || !r.berlaku) { box.innerHTML = ''; return; }
+      var a = r.analisa || {}, f = r.fakta || {};
+
+      // KEPALA yang selalu terlihat. Isinya sengaja bukan sekadar judul: jumlah temuan dan
+      // tanda "basi" harus terbaca TANPA membuka dropdown, karena justru itu yang menentukan
+      // perlu-tidaknya dibuka.
+      var nSorot = (a.sorotan || []).length, nLewat = (a.terlewat || []).length;
+      var ringkas = [];
+      if (nSorot) ringkas.push(nSorot + ' sorotan');
+      if (nLewat) ringkas.push(nLewat + ' pos belum dianggarkan');
+      if (!ringkas.length) ringkas.push('tidak ada temuan');
+
+      var h = '<div class="card rv-card">' +
+        '<button class="rv-toggle" aria-expanded="' + (_reviewBuka ? 'true' : 'false') +
+        '" onclick="toggleReview()">' +
+        '<span class="rv-kepala">' +
+          '<span class="bt-title" style="margin:0">Review penggunaan biaya</span>' +
+          '<span class="ask-hint">' + esc(f.bulan || bulan) + ' · ' + ringkas.join(' · ') +
+          (r.basi ? ' · <b class="c-waspada">ada transaksi baru</b>' : '') + '</span>' +
+        '</span><span class="rv-chev">▾</span></button>' +
+        '<div id="rvBody" class="rv-body' + (_reviewBuka ? '' : ' hidden') + '">';
+
+      h += '<div class="ask-hint">hari ke-' + f.hari + ' dari ' + f.hariTotal +
+        ' (' + f.porsiBulan + '% bulan berjalan) · ' + f.jumlahTransaksi + ' transaksi</div>' +
+        '<div class="ask-hint" style="margin-bottom:12px">' +
+        (r.dibuat ? 'Analisa dibuat ' + esc(r.dibuat) : 'Analisa baru dibuat') +
+        ' · <span id="rvJadwal">memeriksa jadwal…</span></div>';
+
+      // Angka di kepala kartu selalu terkini, sedangkan narasi dibuat semalam - beri tahu
+      // bila keduanya sudah tidak sejalan, jangan biarkan pemilik mengira narasi ini terbaru.
+      if (r.basi) {
+        h += '<div class="rv-basi">Ada transaksi baru sejak analisa ini dibuat. ' +
+          'Angka di atas sudah terkini, narasinya belum — tekan <b>Analisa ulang</b> bila perlu.</div>';
+      }
+
+      if (a.ringkasan) h += '<div class="rv-ring">' + esc(a.ringkasan) + '</div>';
+
+      // Sorotan pos bermasalah
+      (a.sorotan || []).forEach(function (o) {
+        h += '<div class="rv-item ' + rvKelas(o.tingkat) + '">' +
+          '<div class="rv-head"><span class="rv-pos">' + esc(o.pos) + '</span>' +
+          '<span class="ppill ' + rvPil(o.tingkat) + '">' + esc(o.tingkat) + '</span></div>' +
+          '<div class="rv-txt">' + esc(o.temuan) + '</div>' +
+          '<div class="rv-saran">→ ' + esc(o.saran) + '</div></div>';
+      });
+
+      // Pos yang belum dianggarkan di REKAP
+      if ((a.terlewat || []).length) {
+        h += '<div class="rv-sub">Belum dianggarkan di sheet REKAP</div>';
+        a.terlewat.forEach(function (o) {
+          h += '<div class="rv-item kuning"><div class="rv-head">' +
+            '<span class="rv-pos">' + esc(o.pos) + '</span>' +
+            '<span class="ppill c-waspada">usul ' + rp(o.usulanBudget) + '</span></div>' +
+            '<div class="rv-txt">' + esc(o.alasan) + '</div></div>';
+        });
+      }
+
+      // Langkah konkret
+      if ((a.langkah || []).length) {
+        h += '<div class="rv-sub">Langkah untuk sisa bulan ini</div><ol class="rv-langkah">';
+        a.langkah.forEach(function (t) { h += '<li>' + esc(t) + '</li>'; });
+        h += '</ol>';
+      }
+
+      h += '<div class="rv-kaki"><span class="ask-hint">Angka dihitung dari sheet TRANSAKSI &amp; REKAP; ' +
+        'narasi &amp; saran dibuat AI — periksa sebelum diikuti.</span>' +
+        '<button class="btn-ghost rv-btn" onclick="muatReview(\'' + esc(bulan) + '\', true)">Analisa ulang</button></div>';
+      h += '</div></div>';
+      box.innerHTML = h;
+      if (_reviewBuka) muatJadwalReview();      // jadwal baru diperiksa saat isinya dibuka
+    }
+
+    /**
+     * Buka/tutup isi review. Pilihan pemilik diingat selama sesi supaya tidak menutup
+     * sendiri setiap kali menu Budget dimuat ulang.
+     */
+    function toggleReview() {
+      _reviewBuka = !_reviewBuka;
+      var body = document.getElementById('rvBody');
+      var tombol = document.querySelector('#reviewView .rv-toggle');
+      if (!body || !tombol) return;
+      body.classList.toggle('hidden', !_reviewBuka);
+      tombol.setAttribute('aria-expanded', _reviewBuka ? 'true' : 'false');
+      if (_reviewBuka && document.getElementById('rvJadwal') &&
+          document.getElementById('rvJadwal').textContent.indexOf('memeriksa') === 0) {
+        muatJadwalReview();
+      }
+    }
+
+    /**
+     * Status jadwal harian + tombol pasang/lepas. Ditampilkan di dalam kartu review karena
+     * di situlah jadwal ini terasa akibatnya.
+     */
+    function muatJadwalReview() {
+      var el = document.getElementById('rvJadwal');
+      if (!el) return;
+      google.script.run.withSuccessHandler(function (s) {
+        window._jadwalReview = !!(s && s.aktif);
+        el.innerHTML = (s && s.aktif)
+          ? 'diperbarui otomatis tiap ' + esc(s.jam) + ' WITA ' +
+            '<button class="rv-link" onclick="toggleJadwalReview()">matikan</button>'
+          : 'jadwal harian <b>belum aktif</b> ' +
+            '<button class="rv-link" onclick="toggleJadwalReview()">aktifkan</button>';
+      }).withFailureHandler(function () { el.textContent = 'jadwal tidak terbaca'; })
+        .reviewHarianStatus(window._pin);
+    }
+
+    function toggleJadwalReview() {
+      var el = document.getElementById('rvJadwal');
+      if (el) el.textContent = 'menyimpan…';
+      var nyalakan = !window._jadwalReview;
+      google.script.run.withSuccessHandler(function () { muatJadwalReview(); })
+        .withFailureHandler(function (e) {
+          if (el) el.textContent = 'gagal: ' + (e.message || e);
+        })[nyalakan ? 'setupReviewHarian' : 'disableReviewHarian'](window._pin);
+    }
+
+    function rvKelas(t) { return { tinggi: 'merah', sedang: 'kuning', rendah: 'hijau' }[t] || 'kuning'; }
+    function rvPil(t) { return { tinggi: 'c-habis', sedang: 'c-waspada', rendah: 'c-aman' }[t] || 'c-waspada'; }
+
+
+    /** Satu stat tile: ikon berwarna, nilai besar, label, keterangan kecil. */
+    function statTile(kelasIkon, ikon, nilai, label, kelasSub, sub) {
+      return '<div class="stat"><div class="stat-ico ' + kelasIkon + '">' + ikon + '</div>' +
+        '<div class="stat-val">' + nilai + '</div>' +
+        '<div class="stat-lbl">' + esc(label) + '</div>' +
+        '<div class="stat-sub ' + kelasSub + '">' + esc(sub) + '</div></div>';
+    }
+
+    /** Warna bergiliran mengikuti palet Figma (mint, amber, biru, pink) - untuk Sisa Kantong. */
+    function warnaSiklus(i) { return ['c-mint', 'c-amber', 'c-blue', 'c-pink'][i % 4]; }
+
+    /** Kelas warna dari status budget domain: aman=hijau, waspada=kuning, habis=merah. */
+    function kelasStatus(status) {
+      return { aman: 'c-aman', waspada: 'c-waspada', habis: 'c-habis' }[status] || 'c-mint';
+    }
+
+    /** Bar proporsi berwarna sesuai status pemakaian budget. */
+    function barStatus(pct, status) {
+      var w = Math.max(0, Math.min(100, pct));
+      var warna = { aman: 'var(--hijau)', waspada: 'var(--kuning)', habis: 'var(--merah)' }[status]
+        || 'var(--accent)';
+      return '<div class="pbar"><span style="width:' + w + '%;background:' + warna + '"></span></div>';
+    }
+
+    /** Bar proporsi horizontal, lebar = persen. */
+    function barProporsi(pct, i) {
+      var w = Math.max(0, Math.min(100, pct));
+      var warna = { 'c-mint': 'var(--accent)', 'c-amber': 'var(--amber)',
+        'c-blue': 'var(--blue)', 'c-pink': 'var(--pink)' }[warnaSiklus(i)];
+      return '<div class="pbar"><span style="width:' + w + '%;background:' + warna + '"></span></div>';
+    }
+
   </script>
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#2563eb">
+  <meta name="theme-color" content="#0E0F14">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icon-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -12,29 +12,58 @@
   <meta name="apple-mobile-web-app-title" content="Keuangan">
   <title>Keuangan Harian</title>
   <style>
-    html, body { margin: 0; height: 100%; background: #f4f6f8;
-      font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+    html, body { margin: 0; height: 100%; color: #FFFFFF; background: #0E0F14;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased; }
     #app { position: fixed; inset: 0; border: 0; width: 100%; height: 100%; }
-    .setup { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 20px; background: #f4f6f8; }
-    .box { max-width: 440px; width: 100%; background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 22px; }
-    h1 { font-size: 18px; margin: 0 0 4px; }
-    p { color: #6b7785; font-size: 13px; line-height: 1.5; }
-    code { background: #f1f5f9; padding: 1px 5px; border-radius: 5px; font-size: 12px; }
-    input { width: 100%; box-sizing: border-box; padding: 11px; font-size: 14px; border: 1px solid #e2e8f0; border-radius: 9px; margin-top: 10px; }
-    button { width: 100%; padding: 12px; margin-top: 12px; border: 0; border-radius: 10px; background: #2563eb; color: #fff; font-weight: 600; font-size: 15px; cursor: pointer; }
+    .setup { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 20; }
+    .box { max-width: 440px; width: 100%; background: #21222D; border: 1px solid rgba(255,255,255,.07);
+      border-radius: 10px; padding: 26px 22px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,.35); }
+    .logo { width: 56px; height: 56px; display: block; margin: 0 auto 12px; }
+    h1 { font-size: 19px; margin: 0 0 10px; font-weight: 700; color: #FFFFFF; }
+    p { color: #A0A0A0; font-size: 13px; line-height: 1.55; text-align: left; }
+    code { background: rgba(169,223,216,.14); padding: 1px 5px; border-radius: 5px; font-size: 12px; color: #A9DFD8; }
+    input { width: 100%; box-sizing: border-box; padding: 12px; font-size: 14px;
+      border: 1px solid rgba(255,255,255,.10); border-radius: 10px; margin-top: 10px;
+      background: #171821; color: #FFFFFF; }
+    input:focus { outline: none; border-color: #A9DFD8; box-shadow: 0 0 0 3px rgba(169,223,216,.16); }
+    button { width: 100%; padding: 13px; margin-top: 12px; border: 0; border-radius: 10px;
+      background: #A9DFD8; color: #10231F; font-weight: 700; font-size: 15px; cursor: pointer; }
+    button:hover { background: #7FCFC4; }
     .gear { position: fixed; right: 12px; bottom: 12px; width: 42px; height: 42px; border-radius: 50%;
-      background: rgba(0,0,0,.4); color: #fff; border: 0; font-size: 18px; display: none; z-index: 5; padding: 0; }
-    .err { color: #dc2626; }
+      background: #21222D; color: #E8E8E8; border: 1px solid rgba(255,255,255,.10); font-size: 18px;
+      display: none; z-index: 5; padding: 0; }
+    .err { color: #FF8A8A; }
   </style>
 </head>
 <body>
   <div id="setup" class="setup" style="display:none">
     <div class="box">
-      <h1>💸 Keuangan Harian</h1>
-      <p>Tempel <b>Web app URL</b> Apps Script Anda (yang berakhiran <code>/exec</code>). Hanya disimpan di perangkat ini.</p>
+      <svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect x="1.5" y="1.5" width="61" height="61" rx="17" fill="#21222D" stroke="rgba(169,223,216,.28)"/><rect x="14" y="36" width="9" height="15" rx="4.5" fill="#20AEF3"/><rect x="27.5" y="28" width="9" height="23" rx="4.5" fill="#7FCFC4"/><rect x="41" y="24" width="9" height="27" rx="4.5" fill="#A9DFD8"/><circle cx="45.5" cy="17" r="10.5" fill="#A9DFD8"/><text x="45.5" y="21.2" text-anchor="middle" font-size="11" font-weight="800" fill="#10231F" font-family="Inter,Arial,sans-serif">Rp</text></svg>
+      <h1>Keuangan Harian</h1>
+      <p>Tempel <b>Web app URL</b> Apps Script Anda (yang berakhiran <code>/exec</code>).</p><p style="font-size:12px">Lupa URL-nya? Buka editor Apps Script → <b>Deploy</b> → <b>Manage deployments</b> → salin <b>Web app URL</b>.</p>
       <input id="url" type="url" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec">
       <button onclick="saveUrl()">Simpan & Buka</button>
       <p id="err" class="err"></p>
+    </div>
+  </div>
+
+  <div id="gagal" class="setup" style="display:none">
+    <div class="box">
+      <svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect x="1.5" y="1.5" width="61" height="61" rx="17" fill="#21222D" stroke="rgba(169,223,216,.28)"/><rect x="14" y="36" width="9" height="15" rx="4.5" fill="#20AEF3"/><rect x="27.5" y="28" width="9" height="23" rx="4.5" fill="#7FCFC4"/><rect x="41" y="24" width="9" height="27" rx="4.5" fill="#A9DFD8"/><circle cx="45.5" cy="17" r="10.5" fill="#A9DFD8"/><text x="45.5" y="21.2" text-anchor="middle" font-size="11" font-weight="800" fill="#10231F" font-family="Inter,Arial,sans-serif">Rp</text></svg>
+      <h1>Dashboard tidak termuat</h1>
+      <p>Halaman Apps Script tidak merespon dalam 10 detik. Penyebab tersering:</p>
+      <p style="font-size:12px">
+        1. URL <code>/exec</code> bukan dari deployment yang aktif<br>
+        2. Deployment belum diperbarui (<b>New version</b>)<br>
+        3. Izin OAuth belum disetujui setelah scope baru ditambahkan
+      </p>
+      <a id="bukaLangsung" href="#" target="_blank" rel="noopener"
+         style="display:block;text-decoration:none;padding:13px;margin-top:12px;border-radius:10px;
+                background:#A9DFD8;color:#10231F;font-weight:700;font-size:15px">Buka langsung di browser</a>
+      <button onclick="openSetup()" style="background:#21222D;color:#E8E8E8;border:1px solid rgba(255,255,255,.10)">Ganti URL</button>
+      <p style="font-size:12px">Bila "Buka langsung" juga gagal, masalahnya ada di Apps Script
+        (deployment/izin) — bukan di aplikasi ini.</p>
     </div>
   </div>
 
@@ -42,8 +71,21 @@
   <button class="gear" id="gear" onclick="openSetup()" title="Ganti URL">⚙</button>
 
   <script>
-    function getUrl() { return localStorage.getItem('appUrl') || ''; }
-    function openSetup() { document.getElementById('url').value = getUrl(); document.getElementById('setup').style.display = 'flex'; }
+    // URL BAWAAN (opsional). Isi dengan Web app URL Anda yang berakhiran /exec agar
+    // layar setup TIDAK PERNAH muncul lagi - termasuk setelah data aplikasi terhapus,
+    // ganti HP, atau pasang ulang. Biarkan '' bila tidak ingin dipatri di berkas ini.
+    // Contoh: var URL_BAWAAN = 'https://script.google.com/macros/s/AKfy.../exec';
+    var URL_BAWAAN = '';
+
+    // Prioritas: URL yang pernah disimpan di perangkat -> URL bawaan di atas.
+    function getUrl() { return localStorage.getItem('appUrl') || URL_BAWAAN || ''; }
+
+    function tampilkanGagal(u) {
+      document.getElementById('bukaLangsung').href = u;
+      document.getElementById('gagal').style.display = 'flex';
+    }
+    function sembunyikanGagal() { document.getElementById('gagal').style.display = 'none'; }
+    function openSetup() { sembunyikanGagal(); document.getElementById('url').value = getUrl(); document.getElementById('setup').style.display = 'flex'; }
     function saveUrl() {
       var u = document.getElementById('url').value.trim();
       if (!/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec\b/.test(u)) {
@@ -53,10 +95,19 @@
     }
     (function () {
       var u = getUrl();
-      if (!u) { document.getElementById('setup').style.display = 'flex'; }
-      else {
-        document.getElementById('app').src = u;
+      var app = document.getElementById('app');
+      if (!u) {
+        // Belum ada URL: sembunyikan iframe agar tidak menutupi kotak setup.
+        app.style.display = 'none';
+        document.getElementById('setup').style.display = 'flex';
+      } else {
+        app.style.display = 'block';
+        app.src = u;
         document.getElementById('gear').style.display = 'block';
+        // Bila halaman Apps Script tidak termuat, tampilkan penjelasan - jangan layar kosong.
+        var sudah = false;
+        app.addEventListener('load', function () { sudah = true; sembunyikanGagal(); });
+        setTimeout(function () { if (!sudah) tampilkanGagal(u); }, 10000);
       }
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js').catch(function () {});

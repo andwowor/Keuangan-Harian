@@ -1,6 +1,6 @@
 // Service worker: cache "app shell" (ikon/manifest/halaman) agar app cepat dibuka & bisa
 // diluncurkan offline. Konten dashboard (iframe Apps Script) selalu via jaringan.
-var CACHE = 'kh-shell-v1';
+var CACHE = 'kh-shell-v8';
 var ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', function (e) {
@@ -16,9 +16,23 @@ self.addEventListener('activate', function (e) {
 });
 
 self.addEventListener('fetch', function (e) {
-  var url = new URL(e.request.url);
-  // Hanya tangani aset shell (same-origin). Permintaan ke Apps Script (cross-origin) dibiarkan ke jaringan.
-  if (url.origin === self.location.origin) {
-    e.respondWith(caches.match(e.request).then(function (r) { return r || fetch(e.request); }));
+  var req = e.request;
+  var url = new URL(req.url);
+  // Cross-origin (iframe Apps Script) dibiarkan ke jaringan.
+  if (url.origin !== self.location.origin) return;
+  // Halaman (navigasi): utamakan jaringan agar shell selalu versi terbaru; fallback cache saat offline.
+  if (req.mode === 'navigate') {
+    e.respondWith(
+      fetch(req).then(function (r) {
+        var copy = r.clone();
+        caches.open(CACHE).then(function (c) { c.put('./index.html', copy); });
+        return r;
+      }).catch(function () {
+        return caches.match('./index.html').then(function (r) { return r || caches.match('./'); });
+      })
+    );
+    return;
   }
+  // Aset lain (ikon/manifest): cache dulu.
+  e.respondWith(caches.match(req).then(function (r) { return r || fetch(req); }));
 });
