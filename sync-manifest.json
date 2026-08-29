@@ -1,7 +1,7 @@
 {
-  "versi": "2026.08.29-d",
+  "versi": "2026.08.29-e",
   "cabang": "claude/focused-cerf-bsstsi",
-  "dibuat": "2026-08-29T03:21:45Z",
+  "dibuat": "2026-08-29T03:28:29Z",
   "berkas": [
     "00_config.gs",
     "05_shared.gs",
