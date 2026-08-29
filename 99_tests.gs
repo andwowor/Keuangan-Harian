@@ -857,7 +857,7 @@ function cekModulLengkap() {
     ['21_app_inbox', ['uploadInbox', 'listInbox', 'analyzeInboxFile', 'inboxReadOne_']],
     ['22_app_laporan', ['getBudget', 'getBudgetMonths', 'getTransaksiList', 'auditCashflowSetoran',
                         'getPeringatanSaldo', 'getReviewBiaya', 'perbaruiReviewHarian_']],
-    ['23_app_sinkron', ['sinkronDariGitHub']],
+    ['23_app_sinkron', ['sinkronDariGitHub', 'sinkronSekarang']],
     ['40_adapter_sheets', ['getSheet_', 'getPosList_', 'posDariRentang_', 'sheetsBacaTransaksi_',
                            'sheetsBacaReal_', 'sheetsSiapkanBarisBaru_']],
     ['41_adapter_drive', ['getInboxFolder_', 'getInboxFile_', 'inboxImageBlob_', 'inboxGetAi_']],

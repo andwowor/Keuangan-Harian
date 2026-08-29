@@ -66,6 +66,9 @@ sedang dipakai belum berubah sampai Anda menekan *Deploy → Manage deployments 
 New version*.
 
 - **Periksa dulu** — hanya membandingkan, tidak menulis apa pun.
+- Tombol ini berjalan pada versi web app yang **ter-deploy**. Bila deployment masih lama,
+  jalankan **`sinkronSekarang`** dari editor (dropdown fungsi → Run) — dari editor selalu
+  kode terbaru yang dipakai, jadi sinkron tidak pernah terkunci oleh deployment lama.
 - **Sinkronkan** — membuat **versi cadangan** lebih dulu, baru menimpa. Berkas proyek yang
   bukan berasal dari repositori **dipertahankan**, tidak dihapus.
 - Isi dari internet ditolak sebelum menimpa bila ada yang janggal: berkas kosong, halaman
@@ -86,7 +89,7 @@ Di editor Apps Script, pilih fungsi lalu **Run** (hasil di *Execution log*):
 
 | Fungsi | Cakupan |
 |---|---|
-| `jalankanSemuaTest` | **241 test unit domain** — murni, tidak menyentuh data nyata. Hasilnya mencetak **penanda versi** (`VERSI_APP`, saat ini `2026.08.29-b`); bila jumlah test atau versinya tidak cocok dengan baris ini, ada file yang belum tersalin ke Apps Script. |
+| `jalankanSemuaTest` | **241 test unit domain** — murni, tidak menyentuh data nyata. Hasilnya mencetak **penanda versi** (`VERSI_APP`, saat ini `2026.08.29-c`); bila jumlah test atau versinya tidak cocok dengan baris ini, ada file yang belum tersalin ke Apps Script. |
 | `cekFolderPenyimpanan` | Integrasi: izin Drive & folder inbox |
 | `cekDeteksiRekening` | Aturan sumber dana pada contoh bukti nyata |
 

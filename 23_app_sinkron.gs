@@ -51,3 +51,33 @@ function sinkronDariGitHub(terapkan, pin) {
   ringkas.waktu = Utilities.formatDate(new Date(), TIMEZONE, 'd MMMM yyyy HH:mm');
   return ringkas;
 }
+
+/**
+ * Versi untuk dijalankan LANGSUNG DARI EDITOR (dropdown fungsi > Run).
+ *
+ * Ada supaya sinkron tidak pernah terkunci oleh telur-dan-ayam: tombol di menu Setelan
+ * berjalan pada versi web app yang TER-DEPLOY, sehingga selama deployment masih lama,
+ * tombol itu ikut memakai kode lama. Dari editor selalu kode terbaru yang dipakai.
+ *
+ * Tanpa PIN dengan sengaja: PIN menjaga web app publik yang anonim, sedangkan menjalankan
+ * fungsi dari editor sudah menuntut hak edit penuh atas proyek ini - PIN tidak menambah
+ * pengamanan apa pun di sana.
+ */
+function sinkronSekarang() {
+  var r = sinkronDariGitHub(true, PropertiesService.getScriptProperties().getProperty('APP_PIN'));
+  var out = ['Cabang : ' + r.cabang, 'Versi  : ' + r.versi];
+  if (!r.adaPerubahan) { out.push('', 'Kode proyek sudah sama dengan GitHub.'); }
+  else {
+    out.push('', 'Berubah  (' + r.diubah.length + '): ' + r.diubah.join(', '));
+    out.push('Baru     (' + r.ditambah.length + '): ' + r.ditambah.join(', '));
+    out.push('Sudah sama (' + r.sama.length + ')');
+    if (r.dipertahankan && r.dipertahankan.length) {
+      out.push('Dipertahankan (bukan dari repo): ' + r.dipertahankan.join(', '));
+    }
+    out.push('', 'Titik pulih: ' + r.versiCadangan);
+    out.push('SELESAI ' + r.waktu + ' — sekarang Deploy > Manage deployments > New version.');
+  }
+  var pesan = out.join('\n');
+  Logger.log(pesan);
+  return pesan;
+}
