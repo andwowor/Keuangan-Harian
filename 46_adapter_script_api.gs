@@ -128,7 +128,7 @@ function scriptTulisKonten_(files) {
  * tidak ada mekanisme versi, jadi isi lama disimpan sebagai berkas JSON di folder
  * Simpanan. Keduanya mengembalikan keterangan yang bisa dibaca pemilik.
  */
-function scriptBuatVersi_(keterangan) {
+function scriptBuatVersi_(keterangan, isiLama) {
   if (JALUR_PROYEK_ !== 'drive') {
     var r = UrlFetchApp.fetch(apiUrl_('/versions'), {
       method: 'post', contentType: 'application/json', headers: scriptApiHeaders_(),
@@ -137,7 +137,9 @@ function scriptBuatVersi_(keterangan) {
     if (r.getResponseCode() === 200) return 'versi ' + JSON.parse(r.getContentText()).versionNumber;
     throw galatProyek_('membuat versi cadangan', r.getResponseCode(), r.getContentText());
   }
-  var lama = scriptBacaKonten_();
+  // Isi lama diterima dari pemanggil: membacanya ulang berarti satu 403 + satu ekspor
+  // penuh lagi, dan menambah satu titik gagal tepat sebelum cadangan dibuat.
+  var lama = isiLama || scriptBacaKonten_();
   var nama = 'cadangan-kode-' + Utilities.formatDate(new Date(), TIMEZONE, 'yyyyMMdd-HHmm') + '.json';
   var berkas = getInboxFolder_().createFile(nama, JSON.stringify({ files: lama }, null, 1),
     'application/json');

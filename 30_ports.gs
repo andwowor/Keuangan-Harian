@@ -114,7 +114,7 @@
  *
  *   scriptBacaKonten_()          : [{ name, type, source }]   type SELALU HURUF BESAR
  *   scriptTulisKonten_(files)    : Object   MENGGANTI seluruh isi proyek
- *   scriptBuatVersi_(keterangan) : string   keterangan titik pulih (dibaca pemilik)
+ *   scriptBuatVersi_(ket, isiLama): string   keterangan titik pulih (dibaca pemilik)
  *   cekSinkron()                 : string   diagnostik kedua jalur
  *
  * Kontrak: memakai izin pemilik lewat ScriptApp.getOAuthToken() - TIDAK ada kredensial

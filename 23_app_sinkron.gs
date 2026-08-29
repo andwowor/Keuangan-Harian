@@ -42,7 +42,7 @@ function sinkronDariGitHub(terapkan, pin) {
   // tidak jadi memperbarui daripada memperbarui tanpa jalan kembali.
   ringkas.versiCadangan = scriptBuatVersi_(
     'Sebelum sinkron ' + Utilities.formatDate(new Date(), TIMEZONE, 'd MMM yyyy HH:mm') +
-    ' (ke ' + manifest.versi + ')');
+    ' (ke ' + manifest.versi + ')', lama);
 
   var gabung = gabungKonten_(lama, baru);                  // aturan domain
   scriptTulisKonten_(gabung.files);                        // adapter Apps Script API

@@ -69,9 +69,13 @@ namanya. Proyek bisa memuat berkas buatan pemilik; menghapusnya diam-diam jauh l
 merugikan daripada menyisakan berkas usang.
 
 ## Mengapa ada jalur Drive
-Pada percobaan pertama, `script.googleapis.com` menolak dengan HTTP 403. Penyebab yang
-paling mungkin: proyek memakai **Cloud project bawaan** Apps Script, dan Apps Script API
-tidak aktif di sana. Perbaikan "resmi"-nya adalah memasang **Cloud project standar** milik
+Pada percobaan pertama, `script.googleapis.com` menolak dengan HTTP 403. `cekSinkron()`
+memastikan penyebabnya:
+
+> `Apps Script API has not been used in project 120323933880 before or it is disabled.`
+
+`120323933880` adalah **Cloud project bawaan** Apps Script — tersembunyi dan tidak dapat
+dikelola pemilik. Pada percobaan yang sama, ekspor lewat Drive menjawab **HTTP 200**. Perbaikan "resmi"-nya adalah memasang **Cloud project standar** milik
 sendiri — dan justru **itu yang tidak boleh dilakukan di sini**: memasangnya memunculkan
 OAuth consent screen berstatus *Testing*, yang membuat otorisasi **kedaluwarsa setiap 7
 hari**. Pemilik secara khusus meminta agar tidak ada risiko semacam itu.
@@ -94,6 +98,11 @@ dibedakan dari "API butuh Cloud project" — dua hal dengan penanganan yang sang
 - Scope `https://www.googleapis.com/auth/script.projects` pada `appsscript.json` — karena
   manifest berubah, pemilik menyetujui ulang izin satu kali.
 - **JANGAN** memasang Google Cloud project standar pada proyek ini; lihat bagian di atas.
+
+## Utang teknis
+Scope `script.projects` tetap diminta walau jalur (a) terbukti tertutup pada proyek ini.
+Dibiarkan karena sudah disetujui dan mencabutnya menuntut satu putaran persetujuan ulang
+lagi; layak dihapus saat ada perubahan manifest berikutnya.
 - Salinan manual **terakhir** untuk memasang modul sinkron itu sendiri.
 
 ## Konsekuensi
