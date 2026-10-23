@@ -28,10 +28,10 @@ function appendTransaction(payload) {
   try { logMemory_(catatanMemori_(payload, rekening)); } catch (e) {}
   lupakanCacheHistory_();
 
-  // Auto-isi ke spreadsheet CASHFLOW bila sumber dana = PENDAPATAN USAHA.
+  // Auto-isi ke spreadsheet CASHFLOW bulan TANGGAL transaksi bila sumber dana = PENDAPATAN USAHA.
   var cashflow = null;
   if (payload.sumberDana === SUMBER_DANA_REKENING) {
-    try { cashflow = writeCashflow_(payload); }
+    try { cashflow = writeCashflow_(payload, cashflowTargetTanggal_(payload.tanggal)); }
     catch (e) { cashflow = { error: String(e && e.message || e) }; }
   }
 
@@ -103,15 +103,18 @@ function getTransaksiRow(row, pin) {
   };
 }
 
-/** Pratinjau entri CASHFLOW (tanpa menulis). */
+/**
+ * Pratinjau entri CASHFLOW (tanpa menulis), pada spreadsheet bulan TANGGAL transaksi -
+ * spreadsheet yang sama yang nanti ditulisi appendTransaction.
+ */
 function previewCashflow(payload, pin) {
   verifyPin_(pin);
-  var cf = getCashflowSheet_();
+  var info = sheetsCashflowInfo_(cashflowTargetTanggal_(payload.tanggal));   // adapter Sheets
   return {
     ok: true,
-    title: cf.ss.getName(),
+    title: info.title,
     sheet: CASHFLOW_SHEET,
-    targetRow: cashflowLastRow_(cf.sheet) + 1,
+    targetRow: info.nextRow,
     row: buildCashflowRow_(payload)
   };
 }

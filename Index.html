@@ -535,12 +535,12 @@
 
     <div id="tabPengaturan" class="hidden">
       <div class="card">
-        <div class="bt-title">⚙ Spreadsheet CASHFLOW bulan ini</div>
+        <div class="bt-title">⚙ Spreadsheet CASHFLOW</div>
         <div id="cfCurrent" class="ask-hint" style="margin-bottom:6px">Memuat…</div>
         <label>Link spreadsheet CASHFLOW &amp; BIAYA (bulan berjalan)</label>
         <input id="cfUrl" type="url" autocomplete="off" placeholder="https://docs.google.com/spreadsheets/d/…/edit">
         <button id="btnCfSave" class="btn-primary" style="margin-top:10px" onclick="saveCashflow()">Simpan Link</button>
-        <div class="ask-hint" style="margin-top:10px">Ganti link ini tiap awal bulan. Setiap input biaya ber-Sumber Dana <b>Pendapatan Usaha</b> otomatis dicatat ke sheet <b>INPUT PENGGUNAAN BIAYA</b> spreadsheet ini (selalu ada pratinjau dulu).</div>
+        <div class="ask-hint" style="margin-top:10px"><b>Tidak perlu diganti tiap bulan lagi.</b> Setiap input biaya ber-Sumber Dana <b>Pendapatan Usaha</b> otomatis dicatat ke sheet <b>INPUT PENGGUNAAN BIAYA</b> pada spreadsheet <b>CASHFLOW DAN BIAYA &lt;BULAN&gt; &lt;TAHUN&gt;</b> sesuai <b>tanggal transaksinya</b> — dicari sendiri di Drive (selalu ada pratinjau dulu). Link di atas hanya cadangan untuk bulan berjalan bila spreadsheet berjudul baku itu tidak ditemukan.</div>
       </div>
 
       <div class="card">
@@ -558,7 +558,7 @@
 
       <div class="card">
         <div class="bt-title">🔁 Periksa "Setoran Owner" CASHFLOW</div>
-        <div class="ask-hint" style="margin-bottom:8px">Bandingkan transaksi <b>Pendapatan Usaha</b> (TRANSAKSI) dengan Setoran Owner di CASHFLOW aktif. Yang belum masuk bisa langsung dilengkapi. Aman diulang — hanya menulis yang belum ada.</div>
+        <div class="ask-hint" style="margin-bottom:8px">Bandingkan transaksi <b>Pendapatan Usaha</b> (TRANSAKSI) dengan Setoran Owner di spreadsheet <b>CASHFLOW DAN BIAYA</b> bulan yang dipilih — dicari otomatis di Drive, tidak perlu mengganti link. Yang belum masuk bisa langsung dilengkapi. Aman diulang — hanya menulis yang belum ada.</div>
         <div class="grid2">
           <div><label>Bulan (TANGGAL)</label><select id="auBulan"></select></div>
           <div><label>Tahun</label><select id="auTahun"></select></div>
@@ -1225,7 +1225,7 @@
         google.script.run.withSuccessHandler(function (pv) {
           clearMsg(); showPreview(payload, pv, activeId);
         }).withFailureHandler(function (e) {
-          showErr('Pratinjau CASHFLOW gagal: ' + (e.message || e) + ' (atur link di tab Setelan).');
+          showErr('Pratinjau CASHFLOW gagal: ' + (e.message || e));
         }).previewCashflow(payload, window._pin);
         return;
       }
@@ -1421,7 +1421,7 @@
       if (payload.sumberDana === 'PENDAPATAN USAHA') {
         showInfo('Menyiapkan pratinjau…');
         google.script.run.withSuccessHandler(function (pv) { clearMsg(); showPreview(payload, pv, null); })
-          .withFailureHandler(function (e) { showErr('Pratinjau CASHFLOW gagal: ' + (e.message || e) + ' (atur link di tab Setelan).'); })
+          .withFailureHandler(function (e) { showErr('Pratinjau CASHFLOW gagal: ' + (e.message || e)); })
           .previewCashflow(payload, window._pin);
       } else {
         showPreview(payload, null, null);
@@ -2115,7 +2115,7 @@
       google.script.run.withSuccessHandler(function (s) {
         var el = document.getElementById('cfCurrent');
         if (s.cashflowUrl) {
-          el.innerHTML = 'Aktif: <b>' + esc(s.cashflowTitle || '(tanpa nama)') + '</b>';
+          el.innerHTML = 'Cadangan bulan berjalan: <b>' + esc(s.cashflowTitle || '(tanpa nama)') + '</b>';
           document.getElementById('cfUrl').value = s.cashflowUrl;
         } else { el.textContent = 'Belum diatur — tempel link di bawah.'; }
       }).withFailureHandler(function (e) {
@@ -2130,7 +2130,7 @@
       btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Menyimpan...';
       google.script.run.withSuccessHandler(function (res) {
         btn.disabled = false; btn.textContent = 'Simpan Link';
-        document.getElementById('cfCurrent').innerHTML = 'Aktif: <b>' + esc(res.title) + '</b>';
+        document.getElementById('cfCurrent').innerHTML = 'Cadangan bulan berjalan: <b>' + esc(res.title) + '</b>';
         showOk('✅ Link CASHFLOW tersimpan: ' + res.title);
       }).withFailureHandler(function (e) {
         btn.disabled = false; btn.textContent = 'Simpan Link';
@@ -2163,7 +2163,10 @@
       var h = '<div class="msg ' + (a.missingCount ? 'info' : 'ok') + '">' +
         'CASHFLOW: <b>' + esc(a.title) + '</b><br>' + esc(bulan) + ' ' + esc(tahun) + ' — ' +
         a.total + ' transaksi Pendapatan Usaha · ' + a.matched + ' sudah tercatat · <b>' +
-        a.missingCount + ' belum masuk</b>.</div>';
+        a.missingCount + ' belum masuk</b>.' +
+        (a.matchedBerikut ? '<br>' + a.matchedBerikut + ' lainnya sudah tercatat di <b>' +
+          esc(a.judulBerikut) + '</b> (diinput setelah link diganti) — tidak ditulis ulang.' : '') +
+        '</div>';
       if (a.missingCount) {
         h += '<div class="card" style="padding:10px;margin:8px 0">';
         a.missing.slice(0, 30).forEach(function (m) {
@@ -2173,7 +2176,8 @@
         });
         if (a.missing.length > 30) h += '<div class="ask-hint" style="margin-top:6px">… +' + (a.missing.length - 30) + ' lagi</div>';
         h += '</div>';
-        h += '<button class="btn-primary" onclick="backfillCashflow()">Lengkapi — tulis ' + a.missingCount + ' Setoran Owner</button>';
+        h += '<button class="btn-primary" onclick="backfillCashflow()">Lengkapi — tulis ' + a.missingCount +
+          ' Setoran Owner ke ' + esc(a.title) + '</button>';
       }
       box.innerHTML = h;
     }

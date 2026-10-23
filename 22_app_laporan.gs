@@ -366,15 +366,16 @@ function getLearnedAccounts_() {
 
 /**
  * Kumpulkan "Setoran Owner" yang SUDAH ada di CASHFLOW sebagai multiset key = "tglIso|nominal".
+ * cf.rows = kolom A..D: SUBJEK, KETERANGAN, NOMINAL, TANGGAL.
  */
 function cashflowSetoranHave_(cf) {
   var have = {};
   var tz = cf.tz;
-  var vals = cf.rows;                                  // B..D: KETERANGAN, NOMINAL, TANGGAL
+  var vals = cf.rows || [];
   for (var i = 0; i < vals.length; i++) {
-    if (String(vals[i][0] || '').trim().toLowerCase().indexOf('setoran owner') < 0) continue;
-    var nom = Math.round(Number(vals[i][1]) || 0);
-    var tg = vals[i][2];
+    if (!barisSetoranOwner_(vals[i][0], vals[i][1])) continue;    // aturan domain
+    var nom = Math.round(Number(vals[i][2]) || 0);
+    var tg = vals[i][3];
     var iso = tg instanceof Date ? Utilities.formatDate(tg, tz, 'yyyy-MM-dd') : parseTanggalCell_(tg, tz);
     var key = iso + '|' + nom;
     have[key] = (have[key] || 0) + 1;
@@ -383,52 +384,92 @@ function cashflowSetoranHave_(cf) {
 }
 
 /**
+ * Spreadsheet CASHFLOW untuk bulan yang diperiksa: dicari di Drive lewat judulnya.
+ * '' = link aktif di Setelan (hanya untuk bulan berjalan). Melempar bila tidak pasti.
+ */
+function cashflowTarget_(bulanU, tahunS) {
+  if (!bulanU || !tahunS) return '';
+  var now = new Date();
+  var kini = BULAN_UPPER[Number(Utilities.formatDate(now, TIMEZONE, 'MM')) - 1] + ' ' +
+    Utilities.formatDate(now, TIMEZONE, 'yyyy');
+  var judul = judulCashflowBulan_(bulanU, tahunS);
+  var p = pilihCashflow_(driveCariSpreadsheet_(judul), judul, bulanU + ' ' + tahunS === kini);
+  if (p.galat) throw new Error(p.galat);
+  return p.id;
+}
+
+/**
+ * Spreadsheet CASHFLOW untuk sebuah TANGGAL transaksi (yyyy-MM-dd): bulan TANGGAL-lah yang
+ * menentukan, bukan link di Setelan. Inilah yang menghapus rutinitas "ganti link CASHFLOW
+ * tiap awal bulan" - yang bila terlewat membuat Setoran Owner masuk ke spreadsheet bulan lama.
+ */
+function cashflowTargetTanggal_(iso) {
+  var m = /^(\d{4})-(\d{2})/.exec(String(iso || ''));
+  if (!m) return '';
+  return cashflowTarget_(BULAN_UPPER[Number(m[2]) - 1], m[1]);
+}
+
+/**
  * PERIKSA: transaksi PENDAPATAN USAHA di TRANSAKSI (difilter berdasar TANGGAL bulan/tahun)
- * yang BELUM tercatat sebagai "Setoran Owner" di spreadsheet CASHFLOW aktif. Tidak menulis apa pun.
+ * yang BELUM tercatat sebagai "Setoran Owner" di spreadsheet CASHFLOW BULAN ITU.
+ * Tidak menulis apa pun.
+ *
+ * Spreadsheet BULAN BERIKUTNYA ikut diperiksa: transaksi akhir bulan yang baru diinput
+ * setelah link CASHFLOW di Setelan diganti, Setoran Owner-nya tertulis di spreadsheet
+ * bulan berikutnya. Tanpa ini, transaksi itu dianggap "belum masuk" dan Lengkapi
+ * menulisnya untuk KEDUA kalinya.
  */
 function auditCashflowSetoran(bulan, tahun, pin) {
   verifyPin_(pin);
-  // Lewat PORT sheetsBacaCashflowSetoran_ ({tz,title,rows}) - BUKAN getCashflowSheet_
-  // ({ss,sheet}, objek vendor). Salah sumber inilah yang membuat cf.rows undefined
-  // ("Cannot read properties of undefined") sejak restrukturisasi modul.
-  var cf = sheetsBacaCashflowSetoran_();
-  var have = cashflowSetoranHave_(cf);
-
-  var data = sheetsBacaTransaksi_(10);                 // adapter Sheets (A..J)
-  var hdr = data.hdr, tz = data.tz;
   var bulanU = String(bulan || '').trim().toUpperCase();
   var tahunS = String(tahun || '').trim().replace(/\.0$/, '');
-  var missing = [], total = 0, matched = 0;
 
-  {
-    var rows = data.rows;
-    for (var r = 0; r < rows.length; r++) {
-      var row = rows[r];
-      if (String(row[6]).trim().toUpperCase() !== SUMBER_DANA_REKENING) continue; // G SUMBER DANA
-      var tgl = row[3];
-      var iso = tgl instanceof Date ? Utilities.formatDate(tgl, tz, 'yyyy-MM-dd') : parseTanggalCell_(tgl, tz);
-      if (!iso) continue;
-      if (bulanU && BULAN_UPPER[Number(iso.slice(5, 7)) - 1] !== bulanU) continue;
-      if (tahunS && iso.slice(0, 4) !== tahunS) continue;
-      total++;
-      var nom = Math.round(Number(row[2]) || 0);   // C NOMINAL
-      var key = iso + '|' + nom;
-      if (have[key] > 0) { have[key]--; matched++; continue; }
-      missing.push({
-        row: hdr + 1 + r, tanggal: iso, nominal: nom,
-        pos: String(row[0]).trim(), keterangan: String(row[1]).trim(),
-        rekening: String(row[9]).trim(), sumberCashflow: mapBankCashflow_(String(row[9]).trim())
-      });
+  var cf = sheetsBacaCashflowSetoran_(cashflowTarget_(bulanU, tahunS));   // adapter Sheets
+  var have = cashflowSetoranHave_(cf);
+  var haveBerikut = {}, judulBerikut = '';
+  var nb = bulanBerikut_(bulanU, tahunS);                  // aturan domain
+  if (nb) {
+    var idB = driveCariSpreadsheet_(judulCashflowBulan_(nb.bulan, nb.tahun));   // adapter Drive
+    if (idB.length === 1 && idB[0] !== cf.id) {
+      var cfB = sheetsBacaCashflowSetoran_(idB[0]);
+      haveBerikut = cashflowSetoranHave_(cfB);
+      judulBerikut = cfB.title;
     }
   }
+
+  var data = sheetsBacaTransaksi_(10);                     // adapter Sheets (A..J)
+  var hdr = data.hdr, tz = data.tz;
+  var missing = [], total = 0, matched = 0, matchedBerikut = 0;
+  var rows = data.rows;
+  for (var r = 0; r < rows.length; r++) {
+    var row = rows[r];
+    if (String(row[6]).trim().toUpperCase() !== SUMBER_DANA_REKENING) continue; // G SUMBER DANA
+    var tgl = row[3];
+    var iso = tgl instanceof Date ? Utilities.formatDate(tgl, tz, 'yyyy-MM-dd') : parseTanggalCell_(tgl, tz);
+    if (!iso) continue;
+    if (bulanU && BULAN_UPPER[Number(iso.slice(5, 7)) - 1] !== bulanU) continue;
+    if (tahunS && iso.slice(0, 4) !== tahunS) continue;
+    total++;
+    var nom = Math.round(Number(row[2]) || 0);             // C NOMINAL
+    var key = iso + '|' + nom;
+    if (have[key] > 0) { have[key]--; matched++; continue; }
+    if (haveBerikut[key] > 0) { haveBerikut[key]--; matchedBerikut++; continue; }
+    missing.push({
+      row: hdr + 1 + r, tanggal: iso, nominal: nom,
+      pos: String(row[0]).trim(), keterangan: String(row[1]).trim(),
+      rekening: String(row[9]).trim(), sumberCashflow: mapBankCashflow_(String(row[9]).trim())
+    });
+  }
   return {
-    title: cf.title, sheet: CASHFLOW_SHEET, bulan: bulanU, tahun: tahunS,
-    total: total, matched: matched, missingCount: missing.length, missing: missing
+    ssId: cf.id, title: cf.title, sheet: CASHFLOW_SHEET, bulan: bulanU, tahun: tahunS,
+    total: total, matched: matched, matchedBerikut: matchedBerikut, judulBerikut: judulBerikut,
+    missingCount: missing.length, missing: missing
   };
 }
 
 /**
- * LENGKAPI: tulis semua "Setoran Owner" yang belum masuk (hasil auditCashflowSetoran) ke CASHFLOW.
+ * LENGKAPI: tulis semua "Setoran Owner" yang belum masuk (hasil auditCashflowSetoran) ke
+ * spreadsheet CASHFLOW BULAN ITU - spreadsheet yang sama yang tadi diperiksa.
  * Aman dijalankan ulang — hanya menulis yang benar-benar belum ada.
  */
 function backfillCashflowSetoran(bulan, tahun, pin) {
@@ -437,8 +478,10 @@ function backfillCashflowSetoran(bulan, tahun, pin) {
   var ditulis = 0, err = [];
   for (var i = 0; i < audit.missing.length; i++) {
     var m = audit.missing[i];
-    try { writeCashflow_({ nominal: m.nominal, tanggal: m.tanggal, rekening: m.rekening }); ditulis++; }
-    catch (e) { err.push('Baris ' + m.row + ': ' + (e && e.message || e)); }
+    try {
+      writeCashflow_({ nominal: m.nominal, tanggal: m.tanggal, rekening: m.rekening }, audit.ssId);
+      ditulis++;
+    } catch (e) { err.push('Baris ' + m.row + ': ' + (e && e.message || e)); }
   }
   return { ditulis: ditulis, gagal: err.length, pesan: err.join('; '),
     diperiksa: audit.total, title: audit.title };

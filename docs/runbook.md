@@ -22,9 +22,12 @@ Menekan Save saja TIDAK memperbarui URL `/exec`.
 Jalankan fungsi apa pun dari editor → **Review permissions → Allow**.
 Scope saat ini: `spreadsheets`, `drive`, `script.external_request`, `script.scriptapp`.
 
-## 3. Rutinitas awal bulan  ⚠️ paling sering terlewat
-Ganti link CASHFLOW di tab **Setelan** ke spreadsheet bulan baru.
-Bila terlewat, Setoran Owner akan masuk ke spreadsheet bulan lama (risiko R1).
+## 3. Awal bulan — cukup buat spreadsheet bulan baru
+Tidak perlu lagi mengganti link CASHFLOW (ADR-0013). Pastikan saja spreadsheet bulan baru
+sudah ada dengan judul **persis** `CASHFLOW DAN BIAYA <BULAN> <TAHUN>` (mis.
+`CASHFLOW DAN BIAYA NOVEMBER 2026`). Dashboard memilihnya sendiri dari tanggal transaksi.
+Bila judulnya tidak cocok, penyimpanan Pendapatan Usaha menolak dengan pesan yang menyebut
+judul yang dicari — bukan diam-diam menulis ke bulan lain.
 
 ## 4. Rutinitas akhir bulan — pastikan CASHFLOW lengkap
 Tab **Setelan → 🔁 Periksa "Setoran Owner" CASHFLOW** → pilih bulan & tahun → **Periksa**.

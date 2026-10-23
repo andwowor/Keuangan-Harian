@@ -42,7 +42,7 @@ Tiap keputusan di bawah **disembunyikan di balik satu modul dengan antarmuka sta
 | Syarat minimal sebelum kode dari internet boleh menimpa proyek | `17_domain_sinkron.gs` — [ADR-0012](adr/ADR-0012-sinkron-kode-tarik-dari-github.md) |
 | Aturan baris Setoran Owner | `12_domain_cashflow.gs` |
 | Status baca-otomatis bukti | `13_domain_inbox.gs` |
-| ID spreadsheet CASHFLOW (ganti tiap bulan) | Script Property `CASHFLOW_URL` |
+| Spreadsheet CASHFLOW mana yang ditulisi | `12_domain_cashflow.gs` (`pilihCashflow_`) — dari tanggal transaksi, [ADR-0013](adr/ADR-0013-cashflow-dipilih-dari-tanggal-transaksi.md); `CASHFLOW_URL` tinggal cadangan bulan berjalan |
 | Struktur sheet & lokasi kolom | `40_adapter_sheets.gs` |
 | Penyedia AI & format promptnya | `42_adapter_claude.gs` |
 | Penyedia kurs | `43_adapter_kurs.gs` |
