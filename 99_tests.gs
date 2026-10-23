@@ -647,6 +647,8 @@ function testDomainCashflow() {
   _cek_('bulan berikut biasa', bulanBerikut_('JULI', 2026).bulan + ' ' + bulanBerikut_('JULI', 2026).tahun, 'AGUSTUS 2026');
   _cek_('Desember -> Januari tahun depan', bulanBerikut_('DESEMBER', 2026).bulan + ' ' + bulanBerikut_('DESEMBER', 2026).tahun, 'JANUARI 2027');
   _cek_('bulan tak dikenal -> null', bulanBerikut_('JULY', 2026), null);
+  _cek_('bulan sebelum biasa', bulanSebelum_('JULI', 2026).bulan + ' ' + bulanSebelum_('JULI', 2026).tahun, 'JUNI 2026');
+  _cek_('Januari -> Desember tahun lalu', bulanSebelum_('JANUARI', 2027).bulan + ' ' + bulanSebelum_('JANUARI', 2027).tahun, 'DESEMBER 2026');
 
   _cek_('satu hasil -> dipakai', pilihCashflow_(['abc'], 'X', false).id, 'abc');
   _cek_('tidak ada, bulan berjalan -> link aktif', pilihCashflow_([], 'X', true).id, '');
@@ -862,7 +864,7 @@ function cekModulLengkap() {
     ['11_domain_transaksi', ['validasiTransaksi_', 'rekeningTransaksi_', 'nilaiNominal_',
                              'barisTransaksi_', 'catatanMemori_']],
     ['12_domain_cashflow', ['mapBankCashflow_', 'buildCashflowRow_', 'judulCashflowBulan_',
-                            'bulanBerikut_', 'pilihCashflow_', 'barisSetoranOwner_']],
+                            'bulanBerikut_', 'bulanSebelum_', 'pilihCashflow_', 'barisSetoranOwner_']],
     ['13_domain_inbox', ['descGetLine_', 'descSetLine_', 'inboxNeedsRead_', 'inboxAiState_']],
     ['14_domain_pos', ['posDariPenerima_', 'samakanPos_', 'posDariGrid_', 'batasPengeluaran_']],
     ['15_domain_budget', ['susunBudget_', 'barisTotalPengeluaran_', 'rentangBudget_',

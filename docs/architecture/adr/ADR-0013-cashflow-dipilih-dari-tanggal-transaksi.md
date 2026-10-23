@@ -37,6 +37,10 @@ Lengkapi menulis ke catatan keuangan, jadi salah anggap "belum masuk" berarti en
 
 - Saat memeriksa bulan M, Setoran Owner di spreadsheet **M+1** ikut dihitung: transaksi akhir
   bulan yang dulu diinput setelah link diganti tercatat di sana.
+- Spreadsheet **M−1** juga dibaca, dengan perlakuan berbeda: transaksi awal bulan yang diinput
+  *sebelum* link diganti tertulis di sana (bentuk R1 yang paling umum). Entri itu salah bulan,
+  jadi tetap dianggap belum masuk — bulan M memang kekurangan — tetapi ditandai `diBulanLain`
+  agar pemilik menghapus salinan lamanya; sistem tidak menghapus catatan keuangan sendiri.
 - Baris dikenali sebagai Setoran Owner bila **SUBJEK (A) atau KETERANGAN (B)** memuatnya —
   baris yang diketik pemilik sendiri bisa hanya mengisi salah satunya.
 - Lengkapi tetap didahului daftar yang harus dilihat pemilik; tidak ada penulisan otomatis
