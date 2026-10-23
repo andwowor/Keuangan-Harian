@@ -108,9 +108,13 @@ function logMemory_(m) {
   ]);
 }
 
-/** Tulis satu baris ke sheet INPUT PENGGUNAAN BIAYA pada spreadsheet CASHFLOW. */
-function writeCashflow_(payload) {
-  var cf = getCashflowSheet_();
+/**
+ * Tulis satu baris ke sheet INPUT PENGGUNAAN BIAYA pada spreadsheet CASHFLOW.
+ * `ssId` opsional: kosong = link aktif di Setelan (input harian); diisi = spreadsheet
+ * bulan tertentu (melengkapi Setoran Owner bulan lampau).
+ */
+function writeCashflow_(payload, ssId) {
+  var cf = getCashflowSheet_(ssId);
   var sheet = cf.sheet;
   var maxFilled = cashflowLastRow_(sheet);
   var prevRow = maxFilled > 1 ? maxFilled : 1;
@@ -129,13 +133,23 @@ function writeCashflow_(payload) {
   return { row: newRow, sumberDana: r.sumberDana, title: cf.ss.getName() };
 }
 
-function getCashflowSheet_() {
-  var url = PropertiesService.getScriptProperties().getProperty('CASHFLOW_URL');
-  if (!url) throw new Error('Spreadsheet CASHFLOW belum diatur. Buka menu Pengaturan dan isi linknya.');
-  var ss = SpreadsheetApp.openById(extractSpreadsheetId_(url));
+function getCashflowSheet_(ssId) {
+  var id = ssId;
+  if (!id) {
+    var url = PropertiesService.getScriptProperties().getProperty('CASHFLOW_URL');
+    if (!url) throw new Error('Spreadsheet CASHFLOW belum diatur. Buka menu Pengaturan dan isi linknya.');
+    id = extractSpreadsheetId_(url);
+  }
+  var ss = SpreadsheetApp.openById(id);
   var sheet = ss.getSheetByName(CASHFLOW_SHEET);
   if (!sheet) throw new Error('Sheet "' + CASHFLOW_SHEET + '" tidak ada di spreadsheet CASHFLOW.');
   return { ss: ss, sheet: sheet };
+}
+
+/** Judul & baris tujuan berikutnya pada sheet CASHFLOW target (untuk pratinjau, tanpa menulis). */
+function sheetsCashflowInfo_(ssId) {
+  var cf = getCashflowSheet_(ssId);
+  return { id: cf.ss.getId(), title: cf.ss.getName(), nextRow: cashflowLastRow_(cf.sheet) + 1 };
 }
 
 /** Baris terisi terbawah pada kolom B (KETERANGAN) sheet INPUT PENGGUNAAN BIAYA.
@@ -258,14 +272,18 @@ function sheetsBacaReal_(barisAwal, jumlahBaris, kolomNilai) {
   return out;
 }
 
-/** Baris "Setoran Owner" pada sheet CASHFLOW aktif, sebagai data biasa (B..D). */
-function sheetsBacaCashflowSetoran_() {
-  var cf = getCashflowSheet_();
+/**
+ * Isi sheet INPUT PENGGUNAAN BIAYA sebagai data biasa, kolom A..D
+ * (SUBJEK, KETERANGAN, NOMINAL, TANGGAL). `ssId` opsional seperti writeCashflow_.
+ */
+function sheetsBacaCashflowSetoran_(ssId) {
+  var cf = getCashflowSheet_(ssId);
   var last = cf.sheet.getLastRow();
   return {
+    id: cf.ss.getId(),
     tz: cf.ss.getSpreadsheetTimeZone(),
     title: cf.ss.getName(),
-    rows: last >= 1 ? cf.sheet.getRange(1, 2, last, 3).getValues() : []
+    rows: last >= 1 ? cf.sheet.getRange(1, 1, last, 4).getValues() : []
   };
 }
 

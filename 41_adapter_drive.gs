@@ -94,3 +94,16 @@ function inboxMarkError_(file, msg) {
   d = descSetLine_(d, 'kh-aierr:', String(msg || '').replace(/\s+/g, ' ').slice(0, 180));
   file.setDescription(d);
 }
+
+/**
+ * ID spreadsheet di Drive yang judulnya PERSIS `judul` (bukan "Salinan ...", tidak di
+ * tempat sampah). Mengembalikan array - pemanggil yang memutuskan bila hasilnya 0 atau > 1.
+ */
+function driveCariSpreadsheet_(judul) {
+  var aman = String(judul || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  var it = DriveApp.searchFiles("title = '" + aman + "' and " +
+    "mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false");
+  var out = [];
+  while (it.hasNext()) out.push(it.next().getId());
+  return out;
+}

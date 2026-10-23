@@ -89,7 +89,7 @@ Di editor Apps Script, pilih fungsi lalu **Run** (hasil di *Execution log*):
 
 | Fungsi | Cakupan |
 |---|---|
-| `jalankanSemuaTest` | **241 test unit domain** — murni, tidak menyentuh data nyata. Hasilnya mencetak **penanda versi** (`VERSI_APP`, saat ini `2026.08.29-g`); bila jumlah test atau versinya tidak cocok dengan baris ini, ada file yang belum tersalin ke Apps Script. |
+| `jalankanSemuaTest` | **254 test unit domain** — murni, tidak menyentuh data nyata. Hasilnya mencetak **penanda versi** (`VERSI_APP`, saat ini `2026.10.23-a`); bila jumlah test atau versinya tidak cocok dengan baris ini, ada file yang belum tersalin ke Apps Script. |
 | `cekFolderPenyimpanan` | Integrasi: izin Drive & folder inbox |
 | `cekDeteksiRekening` | Aturan sumber dana pada contoh bukti nyata |
 
@@ -315,13 +315,12 @@ berubah otomatis** saat edit (agar tidak menggandakan entri) — sesuaikan manua
 
 ## Menu "Setelan" & auto-isi CASHFLOW
 
-Tab ketiga (**⚙ Setelan**) untuk menautkan **spreadsheet CASHFLOW & BIAYA bulan berjalan**
-(berganti tiap bulan — cukup tempel link barunya tiap awal bulan; disimpan di Script
-Property `CASHFLOW_URL`).
-
 Bila biaya disimpan dengan **SUMBER DANA = Pendapatan Usaha**, entri otomatis juga dicatat
-ke sheet **INPUT PENGGUNAAN BIAYA** di spreadsheet CASHFLOW tersebut, pada baris kosong
-terbawah, dengan aturan:
+ke sheet **INPUT PENGGUNAAN BIAYA** di spreadsheet **`CASHFLOW DAN BIAYA <BULAN> <TAHUN>`
+sesuai tanggal transaksinya** — dicari sendiri di Drive, **tidak perlu mengganti link tiap
+bulan** ([ADR-0013](docs/architecture/adr/ADR-0013-cashflow-dipilih-dari-tanggal-transaksi.md)).
+Link di tab **⚙ Setelan** (`CASHFLOW_URL`) tinggal cadangan untuk bulan berjalan bila
+spreadsheet berjudul baku tidak ditemukan. Entri ditulis pada baris kosong terbawah:
 
 | Kolom | Isi |
 |-------|-----|
@@ -345,15 +344,18 @@ Bila ada transaksi Pendapatan Usaha yang **belum** tercatat sebagai Setoran Owne
 (mis. karena saat itu link CASHFLOW menunjuk bulan lain, atau penulisan sempat gagal), tab
 **Setelan** punya kartu **🔁 Periksa "Setoran Owner" CASHFLOW**:
 - Pilih **Bulan (TANGGAL)** & **Tahun**, klik **Periksa** — dashboard membandingkan transaksi
-  Pendapatan Usaha di TRANSAKSI (berdasar TANGGAL) dengan Setoran Owner di CASHFLOW aktif,
-  lalu menampilkan berapa yang **belum masuk** beserta daftarnya.
+  Pendapatan Usaha di TRANSAKSI (berdasar TANGGAL) dengan Setoran Owner di spreadsheet
+  CASHFLOW **bulan itu** (dicari otomatis di Drive, tanpa mengganti link), lalu menampilkan
+  berapa yang **belum masuk** beserta daftarnya. Setoran Owner yang dulu tercatat di
+  spreadsheet **bulan berikutnya** (diinput setelah link diganti) ikut dihitung, sehingga
+  tidak ditulis ganda.
 - Klik **Lengkapi** untuk menuliskan semua Setoran Owner yang belum ada. **Aman diulang** —
   pencocokan lewat (tanggal + nominal) memastikan hanya yang benar-benar belum ada yang ditulis,
   jadi tidak menggandakan entri.
 
-Catatan: bila Setoran Owner sebelumnya tak sengaja tertulis ke spreadsheet CASHFLOW **bulan lain**
-(karena link belum diganti saat input), pelengkap ini menambahkannya ke link yang **aktif sekarang**;
-entri yang salah tempat di bulan lain perlu Anda hapus manual bila mau.
+Catatan: Setoran Owner yang dulu salah tempat **dua bulan atau lebih** (mis. transaksi Juli
+yang tercatat di CASHFLOW September) tidak dikenali dan akan ditulis ke bulan yang benar;
+entri lama yang salah tempat perlu dihapus manual bila mau.
 
 ---
 

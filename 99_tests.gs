@@ -640,6 +640,23 @@ function testDomainCashflow() {
   _cek_('status belum input', row.status, 'BELUM INPUT');
   _cek_('sumber dana ikut rekening', row.sumberDana, 'MANDIRI');
   _cek_('nominal diteruskan', row.nominal, 445000);
+
+  // --- Spreadsheet CASHFLOW per bulan ---
+  _cek_('judul CASHFLOW bulanan', judulCashflowBulan_('juli', 2026), 'CASHFLOW DAN BIAYA JULI 2026');
+  _cek_('judul: tahun "2026.0" dirapikan', judulCashflowBulan_('AGUSTUS', '2026.0'), 'CASHFLOW DAN BIAYA AGUSTUS 2026');
+  _cek_('bulan berikut biasa', bulanBerikut_('JULI', 2026).bulan + ' ' + bulanBerikut_('JULI', 2026).tahun, 'AGUSTUS 2026');
+  _cek_('Desember -> Januari tahun depan', bulanBerikut_('DESEMBER', 2026).bulan + ' ' + bulanBerikut_('DESEMBER', 2026).tahun, 'JANUARI 2027');
+  _cek_('bulan tak dikenal -> null', bulanBerikut_('JULY', 2026), null);
+
+  _cek_('satu hasil -> dipakai', pilihCashflow_(['abc'], 'X', false).id, 'abc');
+  _cek_('tidak ada, bulan berjalan -> link aktif', pilihCashflow_([], 'X', true).id, '');
+  _cek_('tidak ada, bulan lampau -> galat, BUKAN link aktif', !!pilihCashflow_([], 'X', false).galat, true);
+  _cek_('judul ganda -> galat (jangan menebak)', !!pilihCashflow_(['a', 'b'], 'X', true).galat, true);
+
+  _cek_('Setoran Owner di KETERANGAN', barisSetoranOwner_('', 'Setoran Owner'), true);
+  _cek_('Setoran Owner hanya di SUBJEK', barisSetoranOwner_('Setoran Owner', 'Transfer Mandiri'), true);
+  _cek_('huruf besar-kecil diabaikan', barisSetoranOwner_('', 'SETORAN OWNER bri'), true);
+  _cek_('biaya lain bukan Setoran Owner', barisSetoranOwner_('Gaji Karyawan', 'Gaji Enji'), false);
 }
 
 // ====================== DOMAIN: STATUS BACA BUKTI (INBOX) ======================
@@ -844,7 +861,8 @@ function cekModulLengkap() {
                             'cocokNomorTersamar_', 'isCreditCard_']],
     ['11_domain_transaksi', ['validasiTransaksi_', 'rekeningTransaksi_', 'nilaiNominal_',
                              'barisTransaksi_', 'catatanMemori_']],
-    ['12_domain_cashflow', ['mapBankCashflow_', 'buildCashflowRow_']],
+    ['12_domain_cashflow', ['mapBankCashflow_', 'buildCashflowRow_', 'judulCashflowBulan_',
+                            'bulanBerikut_', 'pilihCashflow_', 'barisSetoranOwner_']],
     ['13_domain_inbox', ['descGetLine_', 'descSetLine_', 'inboxNeedsRead_', 'inboxAiState_']],
     ['14_domain_pos', ['posDariPenerima_', 'samakanPos_', 'posDariGrid_', 'batasPengeluaran_']],
     ['15_domain_budget', ['susunBudget_', 'barisTotalPengeluaran_', 'rentangBudget_',
@@ -860,7 +878,8 @@ function cekModulLengkap() {
     ['23_app_sinkron', ['sinkronDariGitHub', 'sinkronSekarang']],
     ['40_adapter_sheets', ['getSheet_', 'getPosList_', 'posDariRentang_', 'sheetsBacaTransaksi_',
                            'sheetsBacaReal_', 'sheetsSiapkanBarisBaru_']],
-    ['41_adapter_drive', ['getInboxFolder_', 'getInboxFile_', 'inboxImageBlob_', 'inboxGetAi_']],
+    ['41_adapter_drive', ['getInboxFolder_', 'getInboxFile_', 'inboxImageBlob_', 'inboxGetAi_',
+                          'driveCariSpreadsheet_']],
     ['42_adapter_claude', ['analyzeImage', 'analyzeImg_', 'analisaBiaya_']],
     ['43_adapter_kurs', ['getFxRate_']],
     ['44_adapter_properties', ['checkPin', 'verifyPin_', 'propAmbilJson_', 'propSimpanJson_']],

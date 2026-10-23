@@ -23,9 +23,10 @@
  *   sheetsTulisBarisTransaksi_(row, values)  : void
  *   sheetsBacaReal_(barisAwal, jml, kolom)   : { header:Array, labels:Array, values:Array }
  *   sheetsBacaMemori_()                      : Array<Array>   (sheet AI_MEMORY)
- *   sheetsBacaCashflowSetoran_()             : { tz, title, rows:Array<Array> }
+ *   sheetsBacaCashflowSetoran_(ssId?)        : { id, tz, title, rows:Array<Array> }  kolom A..D
  *   logMemory_(catatan)                      : void
- *   writeCashflow_(payload)                  : { row, sumberDana, title }
+ *   writeCashflow_(payload, ssId?)           : { row, sumberDana, title }
+ *     ssId kosong = link CASHFLOW aktif di Setelan; diisi = spreadsheet bulan tertentu
  *
  * Kontrak: SEMUA nilai balik berupa DATA BIASA (array/objek polos) — bukan objek
  * Range/Sheet — agar application tidak terikat pada Google Sheets.
@@ -44,6 +45,7 @@
  *   inboxMarkReading_(file)          : void
  *   inboxSaveAi_(file, dataObj)      : void
  *   inboxMarkError_(file, pesan)     : void
+ *   driveCariSpreadsheet_(judul)     : Array<string>  ID spreadsheet berjudul PERSIS judul
  *
  * Kontrak keamanan: setiap akses berkas WAJIB lewat getInboxFile_ sehingga berkas di
  * luar folder penyimpanan tidak dapat dibaca lewat ID (QAS-06).
