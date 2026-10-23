@@ -46,6 +46,15 @@ function bulanBerikut_(bulan, tahun) {
                   : { bulan: BULAN_UPPER[i + 1], tahun: String(t) };
 }
 
+/** Bulan sebelumnya: ('JANUARI', 2027) -> { bulan:'DESEMBER', tahun:'2026' }. */
+function bulanSebelum_(bulan, tahun) {
+  var i = BULAN_UPPER.indexOf(String(bulan || '').trim().toUpperCase());
+  var t = Number(String(tahun || '').replace(/\.0$/, ''));
+  if (i < 0 || !t) return null;
+  return i === 0 ? { bulan: BULAN_UPPER[11], tahun: String(t - 1) }
+                 : { bulan: BULAN_UPPER[i - 1], tahun: String(t) };
+}
+
 /**
  * Tentukan spreadsheet target dari hasil pencarian judul di Drive.
  * Mengembalikan { id } ('' = pakai link aktif di Setelan) atau { galat }.

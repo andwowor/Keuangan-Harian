@@ -89,7 +89,7 @@ Di editor Apps Script, pilih fungsi lalu **Run** (hasil di *Execution log*):
 
 | Fungsi | Cakupan |
 |---|---|
-| `jalankanSemuaTest` | **254 test unit domain** — murni, tidak menyentuh data nyata. Hasilnya mencetak **penanda versi** (`VERSI_APP`, saat ini `2026.10.23-a`); bila jumlah test atau versinya tidak cocok dengan baris ini, ada file yang belum tersalin ke Apps Script. |
+| `jalankanSemuaTest` | **256 test unit domain** — murni, tidak menyentuh data nyata. Hasilnya mencetak **penanda versi** (`VERSI_APP`, saat ini `2026.10.23-b`); bila jumlah test atau versinya tidak cocok dengan baris ini, ada file yang belum tersalin ke Apps Script. |
 | `cekFolderPenyimpanan` | Integrasi: izin Drive & folder inbox |
 | `cekDeteksiRekening` | Aturan sumber dana pada contoh bukti nyata |
 
@@ -353,9 +353,10 @@ Bila ada transaksi Pendapatan Usaha yang **belum** tercatat sebagai Setoran Owne
   pencocokan lewat (tanggal + nominal) memastikan hanya yang benar-benar belum ada yang ditulis,
   jadi tidak menggandakan entri.
 
-Catatan: Setoran Owner yang dulu salah tempat **dua bulan atau lebih** (mis. transaksi Juli
-yang tercatat di CASHFLOW September) tidak dikenali dan akan ditulis ke bulan yang benar;
-entri lama yang salah tempat perlu dihapus manual bila mau.
+Setoran Owner yang dulu tertulis ke spreadsheet **bulan sebelumnya** (transaksi awal bulan
+yang diinput sebelum link diganti — bentuk paling umum masalah ini) tetap dianggap belum
+masuk, karena bulan yang diperiksa memang kekurangan; tetapi ditandai **⚠️** beserta judul
+spreadsheet tempatnya, supaya salinan lama di sana bisa Anda hapus setelah melengkapi.
 
 ---
 

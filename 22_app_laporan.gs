@@ -418,6 +418,11 @@ function cashflowTargetTanggal_(iso) {
  * setelah link CASHFLOW di Setelan diganti, Setoran Owner-nya tertulis di spreadsheet
  * bulan berikutnya. Tanpa ini, transaksi itu dianggap "belum masuk" dan Lengkapi
  * menulisnya untuk KEDUA kalinya.
+ *
+ * Spreadsheet BULAN SEBELUMNYA juga dibaca, tetapi dengan perlakuan berbeda: transaksi awal
+ * bulan yang diinput SEBELUM link diganti tertulis di sana - bentuk paling umum risiko R1.
+ * Entri itu salah bulan, jadi tetap dianggap belum masuk (bulan ini memang kekurangan),
+ * namun ditandai `diBulanLain` supaya pemilik tahu salinan lamanya perlu dihapus.
  */
 function auditCashflowSetoran(bulan, tahun, pin) {
   verifyPin_(pin);
@@ -437,9 +442,20 @@ function auditCashflowSetoran(bulan, tahun, pin) {
     }
   }
 
+  var haveSebelum = {}, judulSebelum = '';
+  var ns = bulanSebelum_(bulanU, tahunS);                  // aturan domain
+  if (ns) {
+    var idS = driveCariSpreadsheet_(judulCashflowBulan_(ns.bulan, ns.tahun));   // adapter Drive
+    if (idS.length === 1 && idS[0] !== cf.id) {
+      var cfS = sheetsBacaCashflowSetoran_(idS[0]);
+      haveSebelum = cashflowSetoranHave_(cfS);
+      judulSebelum = cfS.title;
+    }
+  }
+
   var data = sheetsBacaTransaksi_(10);                     // adapter Sheets (A..J)
   var hdr = data.hdr, tz = data.tz;
-  var missing = [], total = 0, matched = 0, matchedBerikut = 0;
+  var missing = [], total = 0, matched = 0, matchedBerikut = 0, salahBulan = 0;
   var rows = data.rows;
   for (var r = 0; r < rows.length; r++) {
     var row = rows[r];
@@ -454,15 +470,19 @@ function auditCashflowSetoran(bulan, tahun, pin) {
     var key = iso + '|' + nom;
     if (have[key] > 0) { have[key]--; matched++; continue; }
     if (haveBerikut[key] > 0) { haveBerikut[key]--; matchedBerikut++; continue; }
+    var diBulanLain = '';
+    if (haveSebelum[key] > 0) { haveSebelum[key]--; diBulanLain = judulSebelum; salahBulan++; }
     missing.push({
       row: hdr + 1 + r, tanggal: iso, nominal: nom,
       pos: String(row[0]).trim(), keterangan: String(row[1]).trim(),
-      rekening: String(row[9]).trim(), sumberCashflow: mapBankCashflow_(String(row[9]).trim())
+      rekening: String(row[9]).trim(), sumberCashflow: mapBankCashflow_(String(row[9]).trim()),
+      diBulanLain: diBulanLain
     });
   }
   return {
     ssId: cf.id, title: cf.title, sheet: CASHFLOW_SHEET, bulan: bulanU, tahun: tahunS,
     total: total, matched: matched, matchedBerikut: matchedBerikut, judulBerikut: judulBerikut,
+    salahBulan: salahBulan, judulSebelum: judulSebelum,
     missingCount: missing.length, missing: missing
   };
 }

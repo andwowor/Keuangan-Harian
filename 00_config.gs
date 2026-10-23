@@ -11,7 +11,7 @@
  * ke editor Apps Script. Dicetak oleh jalankanSemuaTest agar ketahuan bila ada file
  * yang belum tersalin - gejalanya: jumlah test tidak sesuai, atau fungsi baru "not defined".
  */
-var VERSI_APP = '2026.10.23-a';
+var VERSI_APP = '2026.10.23-b';
 
 // ---------------------------------------------------------------------------
 // SINKRONISASI KODE DARI GITHUB (menu Setelan)

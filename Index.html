@@ -2167,11 +2167,17 @@
         (a.matchedBerikut ? '<br>' + a.matchedBerikut + ' lainnya sudah tercatat di <b>' +
           esc(a.judulBerikut) + '</b> (diinput setelah link diganti) — tidak ditulis ulang.' : '') +
         '</div>';
+      if (a.salahBulan) {
+        h += '<div class="msg err" style="margin-top:8px">⚠️ ' + a.salahBulan + ' dari yang belum masuk ' +
+          'ternyata tercatat di <b>' + esc(a.judulSebelum) + '</b> — salah bulan (link belum diganti saat ' +
+          'input). Lengkapi akan menulisnya ke ' + esc(a.title) + ' sebagaimana mestinya; ' +
+          '<b>hapus salinan lamanya di ' + esc(a.judulSebelum) + '</b> (bertanda ⚠️ di daftar).</div>';
+      }
       if (a.missingCount) {
         h += '<div class="card" style="padding:10px;margin:8px 0">';
         a.missing.slice(0, 30).forEach(function (m) {
           h += '<div style="display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px solid var(--line)">' +
-            '<span>' + esc(formatTglShort(m.tanggal)) + ' · ' + esc(m.keterangan || m.pos) + '</span>' +
+            '<span>' + (m.diBulanLain ? '⚠️ ' : '') + esc(formatTglShort(m.tanggal)) + ' · ' + esc(m.keterangan || m.pos) + '</span>' +
             '<b class="num">' + rp(m.nominal) + '</b></div>';
         });
         if (a.missing.length > 30) h += '<div class="ask-hint" style="margin-top:6px">… +' + (a.missing.length - 30) + ' lagi</div>';
