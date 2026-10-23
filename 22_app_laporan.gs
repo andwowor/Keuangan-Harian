@@ -388,7 +388,10 @@ function cashflowSetoranHave_(cf) {
  */
 function auditCashflowSetoran(bulan, tahun, pin) {
   verifyPin_(pin);
-  var cf = getCashflowSheet_();
+  // Lewat PORT sheetsBacaCashflowSetoran_ ({tz,title,rows}) - BUKAN getCashflowSheet_
+  // ({ss,sheet}, objek vendor). Salah sumber inilah yang membuat cf.rows undefined
+  // ("Cannot read properties of undefined") sejak restrukturisasi modul.
+  var cf = sheetsBacaCashflowSetoran_();
   var have = cashflowSetoranHave_(cf);
 
   var data = sheetsBacaTransaksi_(10);                 // adapter Sheets (A..J)
@@ -419,7 +422,7 @@ function auditCashflowSetoran(bulan, tahun, pin) {
     }
   }
   return {
-    title: cf.ss.getName(), sheet: CASHFLOW_SHEET, bulan: bulanU, tahun: tahunS,
+    title: cf.title, sheet: CASHFLOW_SHEET, bulan: bulanU, tahun: tahunS,
     total: total, matched: matched, missingCount: missing.length, missing: missing
   };
 }
