@@ -1,7 +1,7 @@
 {
-  "versi": "2026.10.23-b",
+  "versi": "2026.11.03-a",
   "cabang": "claude/focused-cerf-bsstsi",
-  "dibuat": "2026-10-23T05:09:24Z",
+  "dibuat": "2026-11-03T01:29:45Z",
   "berkas": [
     "00_config.gs",
     "05_shared.gs",
@@ -13,10 +13,12 @@
     "15_domain_budget.gs",
     "16_domain_review.gs",
     "17_domain_sinkron.gs",
+    "18_domain_kategori.gs",
     "20_app_transaksi.gs",
     "21_app_inbox.gs",
     "22_app_laporan.gs",
     "23_app_sinkron.gs",
+    "24_app_kategori.gs",
     "30_ports.gs",
     "40_adapter_sheets.gs",
     "41_adapter_drive.gs",

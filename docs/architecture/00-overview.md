@@ -40,6 +40,7 @@ Tiap keputusan di bawah **disembunyikan di balik satu modul dengan antarmuka sta
 | Kapan saldo dianggap di bawah CASH BUFFER (peringatan kuning) | `15_domain_budget.gs` |
 | Kapan biaya disebut berlebihan / terlewat dianggarkan | `16_domain_review.gs` — [ADR-0011](adr/ADR-0011-review-biaya-angka-deterministik.md) |
 | Syarat minimal sebelum kode dari internet boleh menimpa proyek | `17_domain_sinkron.gs` — [ADR-0012](adr/ADR-0012-sinkron-kode-tarik-dari-github.md) |
+| Bukti & bobot rekomendasi KATEGORI BIAYA | `18_domain_kategori.gs` — [ADR-0014](adr/ADR-0014-rekomendasi-kategori-biaya-dari-history.md); daftar pilihan dari dropdown kolom K |
 | Aturan baris Setoran Owner | `12_domain_cashflow.gs` |
 | Status baca-otomatis bukti | `13_domain_inbox.gs` |
 | Spreadsheet CASHFLOW mana yang ditulisi | `12_domain_cashflow.gs` (`pilihCashflow_`) — dari tanggal transaksi, [ADR-0013](adr/ADR-0013-cashflow-dipilih-dari-tanggal-transaksi.md); `CASHFLOW_URL` tinggal cadangan bulan berjalan |

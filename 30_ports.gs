@@ -23,6 +23,7 @@
  *   sheetsTulisBarisTransaksi_(row, values)  : void
  *   sheetsBacaReal_(barisAwal, jml, kolom)   : { header:Array, labels:Array, values:Array }
  *   sheetsBacaMemori_()                      : Array<Array>   (sheet AI_MEMORY)
+ *   sheetsDaftarKategori_()                  : [{ nama, cakupan }]  dari ATURAN DROPDOWN kolom K
  *   sheetsBacaCashflowSetoran_(ssId?)        : { id, tz, title, rows:Array<Array> }  kolom A..D
  *   logMemory_(catatan)                      : void
  *   writeCashflow_(payload, ssId?)           : { row, sumberDana, title }
@@ -96,6 +97,9 @@
  *   propAmbilJson_(kunci)      : Object|null  hasil tersimpan lintas sesi
  *   propSimpanJson_(kunci, v)  : void
  *   propHapus_(kunci)          : void
+ *   cacheAmbil_(kunci)         : Object|null  cache sementara (CacheService)
+ *   cacheSimpan_(kunci, v, dtk): boolean  false bila > ~95 KB (batas 100 KB) - dihitung ulang saja
+ *   cacheHapus_(kunci)         : void
  *
  * Kontrak: SETIAP fungsi backend yang membaca atau menulis data pengguna wajib
  * memanggil verifyPin_ di baris pertama (QAS-06).

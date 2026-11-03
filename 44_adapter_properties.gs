@@ -39,3 +39,32 @@ function propSimpanJson_(kunci, nilai) {
 function propHapus_(kunci) {
   try { PropertiesService.getScriptProperties().deleteProperty(kunci); } catch (e) {}
 }
+
+// ====================== CACHE SEMENTARA (CacheService) ======================
+
+/** Ambil objek dari cache; null bila tidak ada atau isinya rusak. */
+function cacheAmbil_(kunci) {
+  try {
+    var v = CacheService.getScriptCache().get(kunci);
+    return v ? JSON.parse(v) : null;
+  } catch (e) { return null; }
+}
+
+/**
+ * Simpan objek ke cache. Entri di atas ~95 KB dilewati (batas CacheService 100 KB per
+ * entri): lebih baik dihitung ulang daripada gagal. Gagal menyimpan tidak boleh
+ * menggagalkan use case.
+ */
+function cacheSimpan_(kunci, nilai, detik) {
+  try {
+    var teks = JSON.stringify(nilai);
+    if (teks.length > 95000) return false;
+    CacheService.getScriptCache().put(kunci, teks, detik);
+    return true;
+  } catch (e) { return false; }
+}
+
+/** Hapus satu entri cache. */
+function cacheHapus_(kunci) {
+  try { CacheService.getScriptCache().remove(kunci); } catch (e) {}
+}

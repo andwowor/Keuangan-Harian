@@ -86,6 +86,8 @@
     .chip { font-size: 13px; padding: 6px 11px; border: 1px solid var(--line); border-radius: 999px;
       background: var(--card-2); color: var(--ink-2); cursor: pointer; }
     .chip:hover { border-color: var(--accent); color: var(--accent); }
+    .chip.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+    .kat-alasan { width: 100%; font-size: 12px; color: var(--muted); margin-top: 2px; }
 
     .msg { padding: 11px 13px; border-radius: var(--r); font-size: 13px; margin-top: 12px; }
     .msg.ok { background: var(--accent-soft); color: var(--accent); border: 1px solid rgba(169,223,216,.25); }
@@ -369,7 +371,7 @@
       </div>
 
       <label>KETERANGAN</label>
-      <input id="keterangan" type="text" list="ketList" autocomplete="off" placeholder="(ketik atau pilih rekomendasi)">
+      <input id="keterangan" type="text" list="ketList" autocomplete="off" placeholder="(ketik atau pilih rekomendasi)" oninput="katMinta('')">
       <datalist id="ketList"></datalist>
       <div id="ketChips" class="chips"></div>
 
@@ -387,6 +389,10 @@
       <div class="ask-box">
         <div class="ask-title">✅ Terisi otomatis dari history — konfirmasi</div>
         <div id="askHint" class="ask-hint"></div>
+
+        <label>KATEGORI BIAYA</label>
+        <select id="kategori" onchange="katPilihManual('')"></select>
+        <div id="katSaran" class="chips"></div>
 
         <label>SUMBER DANA</label>
         <select id="sumberDana" onchange="onSumberDanaChange()"></select>
@@ -441,9 +447,13 @@
         </div>
 
         <label>KETERANGAN</label>
-        <input id="mKeterangan" type="text" list="mKetList" autocomplete="off" placeholder="(ketik atau pilih rekomendasi)">
+        <input id="mKeterangan" type="text" list="mKetList" autocomplete="off" placeholder="(ketik atau pilih rekomendasi)" oninput="katMinta('m')">
         <datalist id="mKetList"></datalist>
         <div id="mKetChips" class="chips"></div>
+
+        <label>KATEGORI BIAYA</label>
+        <select id="mKategori" onchange="katPilihManual('m')"></select>
+        <div id="mKatSaran" class="chips"></div>
 
         <label>NOMINAL</label>
         <div class="nominal-prefix"><span>Rp</span><input id="mNominal" type="text" inputmode="numeric" placeholder="0" oninput="mOnNominalInput()"></div>
@@ -599,7 +609,11 @@
         </div>
 
         <label>KETERANGAN</label>
-        <input id="edKeterangan" type="text" autocomplete="off" placeholder="keterangan">
+        <input id="edKeterangan" type="text" autocomplete="off" placeholder="keterangan" oninput="katMinta('ed')">
+
+        <label>KATEGORI BIAYA</label>
+        <select id="edKategori" onchange="katPilihManual('ed')"></select>
+        <div id="edKatSaran" class="chips"></div>
 
         <label>NOMINAL</label>
         <div class="nominal-prefix"><span>Rp</span><input id="edNominal" type="text" inputmode="numeric" placeholder="0" oninput="edOnNominalInput()"></div>
@@ -677,6 +691,7 @@
         mInitSelects();
         edInitSelects();
         auInitSelects();
+        katIsiPilihan();
         var cb = document.getElementById('syncCabang');
         if (cb) cb.textContent = cfg.cabang || '—';
       }).withFailureHandler(showErr).getConfig();
@@ -987,6 +1002,10 @@
       // KETERANGAN: rekomendasi history + usulan model
       loadKeteranganOptions(d.pos_biaya, d.keterangan_opsi || [], d.keterangan_yakin);
 
+      // KATEGORI BIAYA: rekomendasi dari history (POS + keterangan + merchant pada bukti)
+      katReset('');
+      katMinta('', true);
+
       // Keyakinan & catatan
       var pill = document.getElementById('confPill');
       pill.textContent = 'keyakinan: ' + (d.confidence || '-');
@@ -1002,6 +1021,7 @@
     function onPosChange() {
       var pos = document.getElementById('posBiaya').value;
       loadKeteranganOptions(pos, [], true);
+      katMinta('', true);
       // Bila tidak ada saran deterministik (rekening/BOC), perbarui saran sumber dana dari pola POS baru.
       if (!window._sdSaran) { applySumberDanaSuggestion(pos); onSumberDanaChange(); }
     }
@@ -1078,7 +1098,7 @@
         }
         merged.slice(0, 10).forEach(function (k) {
           var c = document.createElement('span'); c.className = 'chip'; c.textContent = k;
-          c.onclick = function () { document.getElementById('keterangan').value = k; };
+          c.onclick = function () { document.getElementById('keterangan').value = k; katMinta('', true); };
           chips.appendChild(c);
         });
       }).withFailureHandler(function (e) {
@@ -1169,6 +1189,98 @@
       }, 180);
     }
 
+    // ---------------- KATEGORI BIAYA (kolom K) ----------------
+    // Satu komponen untuk tiga form: '' = Input dari bukti, 'm' = Input Manual, 'ed' = Edit.
+    var KAT_ID = {
+      '': { pilih: 'kategori', saran: 'katSaran', pos: 'posBiaya', ket: 'keterangan' },
+      m: { pilih: 'mKategori', saran: 'mKatSaran', pos: 'mPos', ket: 'mKeterangan' },
+      ed: { pilih: 'edKategori', saran: 'edKatSaran', pos: 'edPos', ket: 'edKeterangan' }
+    };
+    // manual = pemilik sudah memilih sendiri -> rekomendasi berikutnya tidak menimpa pilihannya.
+    var _kat = { '': { manual: false, timer: null, seq: 0 }, m: { manual: false, timer: null, seq: 0 },
+      ed: { manual: false, timer: null, seq: 0 } };
+
+    /** Isi ketiga dropdown dari daftar dropdown kolom K sheet TRANSAKSI (CFG.kategoriBiaya). */
+    function katIsiPilihan() {
+      Object.keys(KAT_ID).forEach(function (p) {
+        var sel = document.getElementById(KAT_ID[p].pilih);
+        if (!sel) return;
+        sel.innerHTML = '';
+        var ph = document.createElement('option');
+        ph.value = ''; ph.textContent = '— pilih kategori biaya —'; ph.disabled = true; ph.selected = true;
+        sel.appendChild(ph);
+        (CFG.kategoriBiaya || []).forEach(function (k) {
+          var o = document.createElement('option');
+          o.value = k.nama; o.textContent = k.nama; if (k.cakupan) o.title = k.cakupan;
+          sel.appendChild(o);
+        });
+      });
+    }
+
+    function katReset(p) {
+      var st = _kat[p], id = KAT_ID[p];
+      st.manual = false; st.seq++;
+      if (st.timer) { clearTimeout(st.timer); st.timer = null; }
+      var sel = document.getElementById(id.pilih); if (sel) sel.selectedIndex = 0;
+      var box = document.getElementById(id.saran); if (box) box.innerHTML = '';
+    }
+
+    function katPilihManual(p) { _kat[p].manual = true; katTandaiChip(p); }
+
+    /** Minta rekomendasi ke server. `segera` = tanpa jeda (POS berubah / bukti baru dimuat). */
+    function katMinta(p, segera) {
+      var st = _kat[p];
+      if (st.timer) clearTimeout(st.timer);
+      st.timer = setTimeout(function () { st.timer = null; katAmbil(p); }, segera ? 0 : 450);
+    }
+
+    function katAmbil(p) {
+      var id = KAT_ID[p], st = _kat[p];
+      var input = {
+        pos: (document.getElementById(id.pos) || {}).value || '',
+        keterangan: ((document.getElementById(id.ket) || {}).value || '').trim(),
+        merchant: (p === '' && window._meta) ? (window._meta.merchant || '') : ''
+      };
+      var box = document.getElementById(id.saran);
+      if (!input.pos && !input.keterangan) { box.innerHTML = ''; return; }
+      var seq = ++st.seq;
+      google.script.run.withSuccessHandler(function (r) {
+        if (seq !== st.seq) return;              // jawaban basi: input sudah berubah lagi
+        katTampil(p, (r && r.saran) || []);
+      }).withFailureHandler(function () {
+        if (seq === st.seq) box.innerHTML = '';
+      }).rekomendasiKategori(input, window._pin);
+    }
+
+    function katTampil(p, saran) {
+      var id = KAT_ID[p], st = _kat[p], box = document.getElementById(id.saran);
+      box.innerHTML = '';
+      if (!saran.length) return;
+      var lbl = document.createElement('div');
+      lbl.className = 'ask-hint'; lbl.style.width = '100%';
+      lbl.textContent = 'Rekomendasi dari history — ketuk untuk pilih:';
+      box.appendChild(lbl);
+      saran.forEach(function (s, i) {
+        var c = document.createElement('span');
+        c.className = 'chip'; c.dataset.kat = s.kategori; c.title = s.alasan || '';
+        c.textContent = (i === 0 ? '★ ' : '') + s.kategori;
+        c.onclick = function () { setSelect(id.pilih, s.kategori); st.manual = true; katTandaiChip(p); };
+        box.appendChild(c);
+      });
+      var al = document.createElement('div');
+      al.className = 'kat-alasan'; al.textContent = 'Alasan: ' + (saran[0].alasan || '-');
+      box.appendChild(al);
+      if (!st.manual) setSelect(id.pilih, saran[0].kategori);
+      katTandaiChip(p);
+    }
+
+    /** Sorot chip yang sama dengan pilihan dropdown saat ini. */
+    function katTandaiChip(p) {
+      var id = KAT_ID[p], nilai = document.getElementById(id.pilih).value;
+      var chips = document.getElementById(id.saran).querySelectorAll('.chip');
+      for (var i = 0; i < chips.length; i++) chips[i].classList.toggle('on', chips[i].dataset.kat === nilai);
+    }
+
     // --- Nominal format ---
     function onNominalInput() {
       var el = document.getElementById('nominal'); el.value = groupThousands(el.value);
@@ -1199,6 +1311,7 @@
         budgetBulan: document.getElementById('budgetBulan').value,
         tahunBudget: document.getElementById('tahunBudget').value,
         rekening: (sd === CFG.sumberDanaRekening) ? document.getElementById('rekening').value : '',
+        kategoriBiaya: document.getElementById('kategori').value,
         mataUang: window._mataUang,
         nominalAsli: window._nominalAsli,
         kurs: window._kurs,
@@ -1214,6 +1327,7 @@
       if (!(payload.nominal > 0)) return showErr('Nominal harus lebih dari 0.');
       if (!payload.tanggal) return showErr('Tanggal wajib diisi (dari bukti).');
       if (!payload.sumberDana) return showErr('Sumber Dana wajib dipilih.');
+      if (!payload.kategoriBiaya) return showErr('Kategori Biaya wajib dipilih.');
       if (!payload.biayaBulan) return showErr('Biaya Bulan wajib dipilih.');
       if (!payload.tahunBiaya) return showErr('Tahun Biaya wajib dipilih.');
       if (!payload.budgetBulan) return showErr('Budget Bulan wajib dipilih.');
@@ -1277,6 +1391,7 @@
         (cf ? 'Akan ditulis ke <b>2</b> spreadsheet:' : 'Pratinjau entri:') + '</div>';
       h += '<div class="card" style="padding:10px;margin:0 0 8px"><b>TRANSAKSI (ANALISA KEUANGAN)</b><br>' +
         'POS: ' + esc(payload.posBiaya) + '<br>Keterangan: ' + esc(payload.keterangan || '-') +
+        '<br>Kategori: ' + esc(payload.kategoriBiaya || '-') +
         '<br>Nominal: ' + rp(payload.nominal) + '<br>Tanggal: ' + esc(formatTglHint(payload.tanggal)) +
         '<br>Biaya: ' + esc(payload.biayaBulan) + ' ' + esc(String(payload.tahunBiaya)) +
         '<br>Sumber Dana: ' + esc(payload.sumberDana) +
@@ -1369,6 +1484,7 @@
       var pos = document.getElementById('mPos').value;
       var chips = document.getElementById('mKetChips'); chips.innerHTML = '';
       var dl = document.getElementById('mKetList'); dl.innerHTML = '';
+      katMinta('m', true);
       if (!pos) return;
       google.script.run.withSuccessHandler(function (hist) {
         (hist || []).forEach(function (k) { var o = document.createElement('option'); o.value = k; dl.appendChild(o); });
@@ -1378,7 +1494,7 @@
         }
         (hist || []).slice(0, 10).forEach(function (k) {
           var c = document.createElement('span'); c.className = 'chip'; c.textContent = k;
-          c.onclick = function () { document.getElementById('mKeterangan').value = k; };
+          c.onclick = function () { document.getElementById('mKeterangan').value = k; katMinta('m', true); };
           chips.appendChild(c);
         });
       }).withFailureHandler(function () {}).getKeteranganOptions(pos);
@@ -1404,6 +1520,7 @@
         budgetBulan: document.getElementById('mBudgetBulan').value,
         tahunBudget: document.getElementById('mTahunBudget').value,
         rekening: (sd === CFG.sumberDanaRekening) ? document.getElementById('mRekening').value : '',
+        kategoriBiaya: document.getElementById('mKategori').value,
         mataUang: 'IDR', nominalAsli: 0, kurs: 0,
         pin: window._pin,
         meta: { merchant: document.getElementById('mKeterangan').value.trim() }
@@ -1413,6 +1530,7 @@
       if (!(payload.nominal > 0)) return showErr('Nominal harus lebih dari 0.');
       if (!payload.tanggal) return showErr('Tanggal wajib diisi.');
       if (!payload.sumberDana) return showErr('Sumber Dana wajib dipilih.');
+      if (!payload.kategoriBiaya) return showErr('Kategori Biaya wajib dipilih.');
       if (!payload.biayaBulan) return showErr('Biaya Bulan wajib dipilih.');
       if (!payload.tahunBiaya) return showErr('Tahun Biaya wajib dipilih.');
       if (!payload.budgetBulan) return showErr('Budget Bulan wajib dipilih.');
@@ -1435,6 +1553,7 @@
       document.getElementById('mNominal').value = '';
       document.getElementById('mSumberDana').value = '';
       document.getElementById('mKetChips').innerHTML = '';
+      katReset('m');
       document.getElementById('mRekWrap').classList.add('hidden');
       document.getElementById('mRekening').value = '';
       if (CFG) {
@@ -1457,6 +1576,7 @@
       document.getElementById('tanggal').value = '';
       document.getElementById('formCard').classList.add('hidden');
       document.getElementById('ketChips').innerHTML = '';
+      katReset('');
       document.getElementById('rekWrap').classList.add('hidden');
       document.getElementById('bocNote').classList.add('hidden');
       document.getElementById('srcRead').classList.add('hidden');
@@ -2023,7 +2143,7 @@
     var _editRow = null, _editNominalFormula = '', _editNominalOrig = 0;
 
     function edInitSelects() {
-      comboInit('edPos', CFG.posBiaya, function () {});
+      comboInit('edPos', CFG.posBiaya, function () { katMinta('ed', true); });
       fillSelect('edSumberDana', CFG.sumberDana, true, '— pilih sumber dana —');
       fillSelect('edBiayaBulan', CFG.bulan, true, '— pilih bulan —');
       fillSelect('edBudgetBulan', CFG.bulan, true, '— pilih bulan —');
@@ -2055,6 +2175,11 @@
         setSelect('edSumberDana', d.sumberDana);
         edOnSumberDanaChange();
         if (d.rekening) document.getElementById('edRekening').value = d.rekening;
+        // Kategori yang sudah tercatat dihormati: saran hanya ditampilkan, tidak menimpa.
+        katReset('ed');
+        setSelect('edKategori', d.kategoriBiaya || '');
+        _kat.ed.manual = !!d.kategoriBiaya;
+        katMinta('ed', true);
         var fn = document.getElementById('edFormulaNote');
         if (_editNominalFormula) {
           fn.classList.remove('hidden');
@@ -2085,6 +2210,7 @@
         budgetBulan: document.getElementById('edBudgetBulan').value,
         tahunBudget: document.getElementById('edTahunBudget').value,
         rekening: (sd === CFG.sumberDanaRekening) ? document.getElementById('edRekening').value : '',
+        kategoriBiaya: document.getElementById('edKategori').value,
         keepFormula: keepFormula,
         nominalFormula: _editNominalFormula,
         pin: window._pin
@@ -2094,6 +2220,7 @@
       if (!(payload.nominal > 0)) return showErr('Nominal harus lebih dari 0.');
       if (!payload.tanggal) return showErr('Tanggal wajib diisi.');
       if (!payload.sumberDana) return showErr('Sumber Dana wajib dipilih.');
+      if (!payload.kategoriBiaya) return showErr('Kategori Biaya wajib dipilih.');
       if (!payload.biayaBulan) return showErr('Biaya Bulan wajib dipilih.');
       if (!payload.tahunBiaya) return showErr('Tahun Biaya wajib dipilih.');
       if (!payload.budgetBulan) return showErr('Budget Bulan wajib dipilih.');

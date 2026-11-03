@@ -6,7 +6,7 @@
  *   - field apa yang wajib diisi,
  *   - kapan Rekening boleh terisi,
  *   - kapan NOMINAL ditulis sebagai formula (mata uang asing) vs angka/teks,
- *   - bagaimana satu baris TRANSAKSI (A..J) disusun.
+ *   - bagaimana satu baris TRANSAKSI (A..K) disusun.
  *
  * Bagian dari Keuangan Harian - lihat docs/architecture/.
  */
@@ -22,7 +22,8 @@ var FIELD_WAJIB_TRANSAKSI = [
   ['biayaBulan', 'BIAYA BULAN wajib dipilih.'],
   ['tahunBiaya', 'TAHUN BIAYA wajib dipilih.'],
   ['budgetBulan', 'BUDGET BULAN wajib dipilih.'],
-  ['tahunBudget', 'TAHUN BUDGET wajib dipilih.']
+  ['tahunBudget', 'TAHUN BUDGET wajib dipilih.'],
+  ['kategoriBiaya', 'KATEGORI BIAYA wajib dipilih.']
 ];
 
 /** Lempar galat bila ada field wajib yang kosong / nominal tidak sah. */
@@ -80,7 +81,7 @@ function nilaiTanggal_(iso, selLama, tanggalDate) {
   return selBertipeTanggal_(selLama) ? tanggalDate : formatTanggalIdFromIso_(iso);
 }
 
-/** Susun satu baris TRANSAKSI kolom A..J. */
+/** Susun satu baris TRANSAKSI kolom A..K. */
 function barisTransaksi_(payload, rekening, nominalValue, tanggalValue) {
   return [
     payload.posBiaya,               // A POS BIAYA
@@ -92,7 +93,8 @@ function barisTransaksi_(payload, rekening, nominalValue, tanggalValue) {
     payload.sumberDana,             // G SUMBER DANA
     payload.budgetBulan,            // H BUDGET BULAN
     Number(payload.tahunBudget),    // I TAHUN BUDGET
-    rekening                        // J Rekening
+    rekening,                       // J Rekening
+    payload.kategoriBiaya || ''     // K KATEGORI BIAYA
   ];
 }
 

@@ -39,6 +39,7 @@ function jalankanSemuaTest() {
   testDomainPeringatanSaldo();
   testDomainReview();
   testDomainSinkron();
+  testDomainKategori();
   testDomainCashflow();
   testDomainInbox();
   // Penanda versi ikut dicetak: bila jumlah test tidak cocok dengan yang tertulis di
@@ -95,7 +96,7 @@ function testDomainKartuKredit() {
 function _payloadUji_() {
   return { posBiaya: 'DAILY DRIVER', keterangan: 'Kopi', nominal: 25000, tanggal: '2026-07-14',
     biayaBulan: 'JULI', tahunBiaya: 2026, sumberDana: 'UANG SAKU',
-    budgetBulan: 'JULI', tahunBudget: 2026, rekening: '' };
+    budgetBulan: 'JULI', tahunBudget: 2026, rekening: '', kategoriBiaya: 'Makanan & Minuman' };
 }
 
 function testDomainTransaksi() {
@@ -105,6 +106,7 @@ function testDomainTransaksi() {
 
   _cekLempar_('nominal 0 ditolak', function () { var q = _payloadUji_(); q.nominal = 0; validasiTransaksi_(q); });
   _cekLempar_('tanggal kosong ditolak', function () { var q = _payloadUji_(); q.tanggal = ''; validasiTransaksi_(q); });
+  _cekLempar_('kategori kosong ditolak', function () { var q = _payloadUji_(); q.kategoriBiaya = ''; validasiTransaksi_(q); });
   _cekLempar_('POS kosong ditolak', function () { var q = _payloadUji_(); q.posBiaya = ''; validasiTransaksi_(q); });
 
   // Aturan Rekening
@@ -130,9 +132,10 @@ function testDomainTransaksi() {
   _cek_('tanggal Date saat sel Date', nilaiTanggal_('2026-07-14', new Date(), d), d);
   _cek_('tanggal teks saat sel teks', nilaiTanggal_('2026-07-14', '14 Juli 2026', d), '14 Juli 2026');
 
-  // Susunan baris A..J
+  // Susunan baris A..K
   var baris = barisTransaksi_(p, '', 25000, d);
-  _cek_('baris punya 10 kolom', baris.length, 10);
+  _cek_('baris punya 11 kolom', baris.length, 11);
+  _cek_('kolom K = kategori biaya', baris[10], 'Makanan & Minuman');
   _cek_('kolom A = POS', baris[0], 'DAILY DRIVER');
   _cek_('kolom F = tahun angka', baris[5], 2026);
   _cek_('kolom J = rekening', baris[9], '');
@@ -627,6 +630,72 @@ function testDomainSinkron() {
   _cek_('ada perubahan', r.adaPerubahan, true);
   _cek_('tanpa perubahan -> false', ringkasSinkron_(lama, lama).adaPerubahan, false);
 }
+// ============ DOMAIN: REKOMENDASI KATEGORI BIAYA ============
+
+function _daftarKategoriUji_() {
+  return [
+    { nama: 'Makanan & Minuman', cakupan: 'Makan di luar, pesan antar, kopi, snack, kue, roti' },
+    { nama: 'Belanja Dapur & Rumah Tangga', cakupan: 'Belanja bulanan, bahan masak, telur, air galon, sabun' },
+    { nama: 'Transportasi', cakupan: 'Bensin, parkir, Grab, taksi' },
+    { nama: 'Hewan Peliharaan', cakupan: 'Makanan dan pasir untuk hewan peliharaan' }
+  ];
+}
+
+function testDomainKategori() {
+  var daftar = _daftarKategoriUji_();
+  // History meniru pola nyata: POS yang sama terbelah ke beberapa kategori.
+  var rows = [
+    ['DAILY DRIVER', 'Kopi', 'Makanan & Minuman'],
+    ['DAILY DRIVER', 'Kopi Kenangan', 'Makanan & Minuman'],
+    ['DAILY DRIVER', 'Kopi', 'Makanan & Minuman'],
+    ['DAILY DRIVER', 'Belanja Bulanan', 'Belanja Dapur & Rumah Tangga'],
+    ['DAILY DRIVER', 'Belanja Bulanan', 'Belanja Dapur & Rumah Tangga'],
+    ['DAILY DRIVER', 'Telur', 'Belanja Dapur & Rumah Tangga'],
+    ['Isi Bensin', 'Bensin Manado', 'Transportasi'],
+    ['DAILY DRIVER', 'Makan', 'Kategori Lama Yang Sudah Dihapus']   // tidak di dropdown -> diabaikan
+  ];
+  var m = modelKategori_(rows, daftar);
+
+  // --- Pemecahan kata ---
+  _cek_('kata: huruf kecil & tanda baca dibuang', kataKategori_('Kopi-Kenangan, 2 cup!').join(','), 'kopi,kenangan,cup');
+  _cek_('kata: angka & kata abaikan dibuang', kataKategori_('Bayar untuk 123 parkir dan tol').join(','), 'bayar,parkir,tol');
+  _cek_('kata: tanpa duplikat', kataKategori_('kopi Kopi KOPI').length, 1);
+
+  // --- Model ---
+  _cek_('model: kategori di luar dropdown tidak dihitung', m.jumlah, 7);
+  _cek_('model: kategori disimpan sebagai nomor urut', m.ket['kopi'][0], 2);
+  _cek_('model: daftar nama ikut tersimpan', m.nama[1], 'Belanja Dapur & Rumah Tangga');
+
+  // --- Rekomendasi ---
+  var r1 = rekomendasiKategori_(m, { pos: 'DAILY DRIVER', keterangan: 'Kopi' });
+  _cek_('keterangan dikenal -> kategorinya', r1[0].kategori, 'Makanan & Minuman');
+  _cek_('saran teratas berskor 1', r1[0].skor, 1);
+  _cek_('alasan menyebut keterangan', r1[0].alasan.indexOf('Kopi') >= 0, true);
+  _cek_('maksimal 3 saran', rekomendasiKategori_(m, { pos: 'DAILY DRIVER', keterangan: 'Kopi' }).length <= 3, true);
+
+  var r2 = rekomendasiKategori_(m, { pos: 'DAILY DRIVER', keterangan: 'Belanja Bulanan' });
+  _cek_('POS sama, keterangan lain -> kategori lain', r2[0].kategori, 'Belanja Dapur & Rumah Tangga');
+
+  var r3 = rekomendasiKategori_(m, { pos: 'DAILY DRIVER', keterangan: 'Kopi Tuku' });
+  _cek_('kata dikenal dalam keterangan baru', r3[0].kategori, 'Makanan & Minuman');
+
+  var r4 = rekomendasiKategori_(m, { pos: '', keterangan: 'Parkir mall' });
+  _cek_('kata yang hanya ada di CAKUPAN', r4[0].kategori, 'Transportasi');
+  _cek_('alasan menyebut cakupan', r4[0].alasan.indexOf('cakupan') >= 0, true);
+
+  var r5 = rekomendasiKategori_(m, { pos: 'DAILY DRIVER', keterangan: '', merchant: 'Kopi Janji Jiwa' });
+  _cek_('merchant dari bukti ikut menentukan', r5[0].kategori, 'Makanan & Minuman');
+
+  _cek_('tanpa bukti apa pun -> tanpa saran', rekomendasiKategori_(m, {}).length, 0);
+  _cek_('kategori lama tidak pernah disarankan',
+    rekomendasiKategori_(m, { pos: 'DAILY DRIVER', keterangan: 'Makan' })
+      .filter(function (x) { return x.kategori === 'Kategori Lama Yang Sudah Dihapus'; }).length, 0);
+
+  // --- Validasi pilihan ---
+  _cek_('kategori di daftar sah', kategoriSah_('Transportasi', daftar), true);
+  _cek_('kategori di luar daftar ditolak', kategoriSah_('Transport', daftar), false);
+  _cek_('kategori kosong ditolak', kategoriSah_('', daftar), false);
+}
 // ====================== DOMAIN: CASHFLOW ======================
 
 function testDomainCashflow() {
@@ -873,18 +942,21 @@ function cekModulLengkap() {
                           'temuanTanpaBudget_', 'temuanRutinTerlewat_', 'susunFaktaReview_']],
     ['17_domain_sinkron', ['tipeBerkasScript_', 'berkasDikelola_', 'periksaBerkasSinkron_',
                            'gabungKonten_', 'ringkasSinkron_']],
+    ['18_domain_kategori', ['kataKategori_', 'modelKategori_', 'rekomendasiKategori_', 'kategoriSah_']],
     ['20_app_transaksi', ['appendTransaction', 'updateTransaction', 'lupakanCacheHistory_']],
     ['21_app_inbox', ['uploadInbox', 'listInbox', 'analyzeInboxFile', 'inboxReadOne_']],
     ['22_app_laporan', ['getBudget', 'getBudgetMonths', 'getTransaksiList', 'auditCashflowSetoran',
                         'getPeringatanSaldo', 'getReviewBiaya', 'perbaruiReviewHarian_']],
     ['23_app_sinkron', ['sinkronDariGitHub', 'sinkronSekarang']],
+    ['24_app_kategori', ['rekomendasiKategori', 'daftarKategori_', 'pastikanKategoriSah_']],
     ['40_adapter_sheets', ['getSheet_', 'getPosList_', 'posDariRentang_', 'sheetsBacaTransaksi_',
-                           'sheetsBacaReal_', 'sheetsSiapkanBarisBaru_']],
+                           'sheetsBacaReal_', 'sheetsSiapkanBarisBaru_', 'sheetsDaftarKategori_']],
     ['41_adapter_drive', ['getInboxFolder_', 'getInboxFile_', 'inboxImageBlob_', 'inboxGetAi_',
                           'driveCariSpreadsheet_']],
     ['42_adapter_claude', ['analyzeImage', 'analyzeImg_', 'analisaBiaya_']],
     ['43_adapter_kurs', ['getFxRate_']],
-    ['44_adapter_properties', ['checkPin', 'verifyPin_', 'propAmbilJson_', 'propSimpanJson_']],
+    ['44_adapter_properties', ['checkPin', 'verifyPin_', 'propAmbilJson_', 'propSimpanJson_',
+                               'cacheAmbil_', 'cacheSimpan_']],
     ['45_adapter_github', ['githubManifest_', 'githubAmbilTeks_']],
     ['46_adapter_script_api', ['scriptBacaKonten_', 'scriptTulisKonten_', 'scriptBuatVersi_']],
     ['50_inbound_webapp', ['doGet', 'getConfig', 'include']],

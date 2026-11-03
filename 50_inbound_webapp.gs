@@ -38,7 +38,8 @@ function getConfig() {
     today: Utilities.formatDate(now, TIMEZONE, 'yyyy-MM-dd'),
     tahunIni: year,
     versi: VERSI_APP,
-    cabang: GITHUB_BRANCH
+    cabang: GITHUB_BRANCH,
+    kategoriBiaya: daftarKategoriAman_()  // [{ nama, cakupan }] dari dropdown kolom K
   };
 }
 
@@ -99,4 +100,13 @@ function widgetHtml_(d) {
     + '<div class="row"><span class="muted">Biaya hari ini</span><b>' + show(d.hariIni) + ' (' + (d.hariIniCount || 0) + ')</b></div>'
     + '<div class="up">diperbarui ' + d.updated + '</div>'
     + '</body></html>';
+}
+
+/**
+ * Daftar kategori untuk getConfig. getConfig dipanggil setiap aplikasi dibuka, jadi gagal
+ * membaca daftar kategori tidak boleh membuat SELURUH aplikasi gagal dimuat - cukup field
+ * kategorinya yang kosong (simpan tetap tertahan oleh aturan wajib, dengan pesan yang jelas).
+ */
+function daftarKategoriAman_() {
+  try { return daftarKategori_(); } catch (e) { return []; }
 }
