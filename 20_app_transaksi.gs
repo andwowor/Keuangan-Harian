@@ -10,11 +10,12 @@
 /**
  * Menambahkan satu baris transaksi di baris kosong terbawah sheet TRANSAKSI.
  * payload: {posBiaya, keterangan, nominal, tanggal(YYYY-MM-DD),
- *           biayaBulan, tahunBiaya, sumberDana, budgetBulan, tahunBudget, rekening}
+ *           biayaBulan, tahunBiaya, sumberDana, budgetBulan, tahunBudget, rekening, kategoriBiaya}
  */
 function appendTransaction(payload) {
   verifyPin_(payload && payload.pin);
   validasiTransaksi_(payload);                                   // aturan domain
+  pastikanKategoriSah_(payload.kategoriBiaya);                   // dropdown kolom K
   var rekening = rekeningTransaksi_(payload.sumberDana, payload.rekening);
 
   var slot = sheetsSiapkanBarisBaru_();                          // adapter Sheets
@@ -48,6 +49,7 @@ function lupakanCacheHistory_() {
     var c = CacheService.getScriptCache();
     c.remove('histctx'); c.remove('posex'); c.remove('learnacct');
   } catch (e) {}
+  lupakanCacheKategori_();
 }
 
 /**
@@ -58,6 +60,7 @@ function lupakanCacheHistory_() {
 function updateTransaction(payload, pin) {
   verifyPin_(pin || (payload && payload.pin));
   validasiTransaksi_(payload);                                   // aturan domain
+  pastikanKategoriSah_(payload.kategoriBiaya);                   // dropdown kolom K
   var row = Number(payload.row);
   var batas = sheetsBatasTransaksi_();
   if (!(row > batas.hdr && row <= batas.last)) throw new Error('Baris transaksi tidak valid.');
@@ -78,7 +81,7 @@ function updateTransaction(payload, pin) {
   return { ok: true, row: row };
 }
 
-/** Ambil satu baris transaksi lengkap (A..J) untuk diedit. */
+/** Ambil satu baris transaksi lengkap (A..K) untuk diedit. */
 function getTransaksiRow(row, pin) {
   verifyPin_(pin);
   row = Number(row);
@@ -99,7 +102,8 @@ function getTransaksiRow(row, pin) {
     sumberDana: String(v[6]).trim(),
     budgetBulan: String(v[7]).trim().toUpperCase(),
     tahunBudget: String(v[8]).trim().replace(/\.0$/, ''),
-    rekening: String(v[9]).trim()
+    rekening: String(v[9]).trim(),
+    kategoriBiaya: String(v[KOLOM_KATEGORI - 1] || '').trim()
   };
 }
 

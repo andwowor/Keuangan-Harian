@@ -89,7 +89,7 @@ Di editor Apps Script, pilih fungsi lalu **Run** (hasil di *Execution log*):
 
 | Fungsi | Cakupan |
 |---|---|
-| `jalankanSemuaTest` | **256 test unit domain** — murni, tidak menyentuh data nyata. Hasilnya mencetak **penanda versi** (`VERSI_APP`, saat ini `2026.10.23-b`); bila jumlah test atau versinya tidak cocok dengan baris ini, ada file yang belum tersalin ke Apps Script. |
+| `jalankanSemuaTest` | **278 test unit domain** — murni, tidak menyentuh data nyata. Hasilnya mencetak **penanda versi** (`VERSI_APP`, saat ini `2026.11.03-a`); bila jumlah test atau versinya tidak cocok dengan baris ini, ada file yang belum tersalin ke Apps Script. |
 | `cekFolderPenyimpanan` | Integrasi: izin Drive & folder inbox |
 | `cekDeteksiRekening` | Aturan sumber dana pada contoh bukti nyata |
 
@@ -312,6 +312,20 @@ bila Pendapatan Usaha), BUDGET BULAN/TAHUN. **Simpan Perubahan** menulis balik k
 sama di sheet TRANSAKSI. Catatan: bila NOMINAL berupa **formula** (mis. BIAYA KULIAH CHINA =
 nominal×kurs), formula dipertahankan selama angkanya tidak diubah. Sheet **CASHFLOW tidak ikut
 berubah otomatis** saat edit (agar tidak menggandakan entri) — sesuaikan manual bila perlu.
+
+## KATEGORI BIAYA (kolom K)
+
+Setiap input — dari bukti, Input Manual, maupun Edit — **wajib** memilih **KATEGORI BIAYA**
+dari dropdown. Pilihannya dibaca langsung dari **aturan dropdown kolom K** sheet TRANSAKSI
+(sumbernya sheet `KATEGORI BIAYA`), jadi menambah atau mengganti kategori cukup di sheet.
+
+Dashboard **merekomendasikan** kategori dari history: keterangan yang sama, kata-kata di
+keterangan & nama merchant pada bukti, POS, dan teks CAKUPAN tiap kategori. Saran teratas
+langsung terpilih, dua alternatif tampil sebagai chip, dan alasannya disebutkan (mis.
+*"12 dari 14 transaksi berketerangan 'Kopi'"*). Begitu Anda memilih sendiri, saran berikutnya
+tidak menimpa pilihan Anda. Diuji pada 1.572 transaksi nyata: saran teratas benar **82,4%**,
+jawaban benar ada di 3 saran **96,8%** (menebak dari POS saja: 48,2%) —
+[ADR-0014](docs/architecture/adr/ADR-0014-rekomendasi-kategori-biaya-dari-history.md).
 
 ## Menu "Setelan" & auto-isi CASHFLOW
 

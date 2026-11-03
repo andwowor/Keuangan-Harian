@@ -11,7 +11,7 @@
  * ke editor Apps Script. Dicetak oleh jalankanSemuaTest agar ketahuan bila ada file
  * yang belum tersalin - gejalanya: jumlah test tidak sesuai, atau fungsi baru "not defined".
  */
-var VERSI_APP = '2026.10.23-b';
+var VERSI_APP = '2026.11.03-a';
 
 // ---------------------------------------------------------------------------
 // SINKRONISASI KODE DARI GITHUB (menu Setelan)
@@ -122,6 +122,19 @@ var ACCOUNTS = [
 
 // Spreadsheet CASHFLOW (diatur via menu Pengaturan; diganti tiap awal bulan).
 var CASHFLOW_SHEET = 'INPUT PENGGUNAAN BIAYA';
+
+// ---------------------------------------------------------------------------
+// KATEGORI BIAYA (kolom K sheet TRANSAKSI) - lihat ADR-0014
+// ---------------------------------------------------------------------------
+// Jumlah kolom sheet TRANSAKSI yang dikelola dashboard: A (POS BIAYA) .. K (KATEGORI BIAYA).
+var TRANSAKSI_NCOL = 11;
+// Nomor kolom KATEGORI BIAYA (K). Daftar pilihannya dibaca dari ATURAN DROPDOWN sel ini,
+// bukan dari nama sheet, supaya selalu sama dengan yang ditawarkan sheet itu sendiri.
+var KOLOM_KATEGORI = 11;
+// Cadangan bila aturan dropdown kolom K tidak terbaca: sheet & kolom sumber daftar.
+var KATEGORI_SHEET_CADANGAN = 'KATEGORI BIAYA';
+// Umur cache model rekomendasi (detik). Dibuang otomatis setiap ada transaksi tersimpan.
+var KATEGORI_CACHE_DETIK = 3600;
 var CASHFLOW_SUMBER_OPTIONS = ['KAS TUNAI MAUMBI', 'KAS TUNAI PERKAMIL', 'BCA', 'BRI', 'BNI',
   'MANDIRI', 'BCA MEGA', 'BRI MEGA', 'MANDIRI MEGA', 'KAS SEWA GEDUNG',
   'KAS BIAYA DITAHAN TUNAI', 'KAS BIAYA DITAHAN BANK'];

@@ -218,14 +218,14 @@ function sheetsBacaTransaksi_(nCol) {
   var hdr = findHeaderRow_(sheet);
   var last = findLastDataRow_(sheet, hdr);
   var tz = sheet.getParent().getSpreadsheetTimeZone();
-  var rows = (last > hdr) ? sheet.getRange(hdr + 1, 1, last - hdr, nCol || 10).getValues() : [];
+  var rows = (last > hdr) ? sheet.getRange(hdr + 1, 1, last - hdr, nCol || TRANSAKSI_NCOL).getValues() : [];
   return { hdr: hdr, last: last, tz: tz, rows: rows };
 }
 
 /** Isi satu baris TRANSAKSI (nilai + formula) sebagai data biasa. */
 function sheetsBacaBarisTransaksi_(row, nCol) {
   var sheet = getSheet_();
-  var rng = sheet.getRange(row, 1, 1, nCol || 10);
+  var rng = sheet.getRange(row, 1, 1, nCol || TRANSAKSI_NCOL);
   return { values: rng.getValues()[0], formulas: rng.getFormulas()[0],
     tz: sheet.getParent().getSpreadsheetTimeZone() };
 }
@@ -240,8 +240,8 @@ function sheetsSiapkanBarisBaru_() {
   var last = findLastDataRow_(sheet, hdr);
   var prevRow = last > hdr ? last : hdr;
   var newRow = last + 1;
-  var prevRange = sheet.getRange(prevRow, 1, 1, 10);
-  var newRange = sheet.getRange(newRow, 1, 1, 10);
+  var prevRange = sheet.getRange(prevRow, 1, 1, TRANSAKSI_NCOL);
+  var newRange = sheet.getRange(newRow, 1, 1, TRANSAKSI_NCOL);
   prevRange.copyTo(newRange, { formatOnly: true });
   try { newRange.setDataValidations(prevRange.getDataValidations()); } catch (e) {}
   return {
@@ -252,11 +252,58 @@ function sheetsSiapkanBarisBaru_() {
   };
 }
 
-/** Tulis satu baris TRANSAKSI (A..J) lalu paksa simpan. */
+/** Tulis satu baris TRANSAKSI (A..K) lalu paksa simpan. */
 function sheetsTulisBarisTransaksi_(row, values) {
   var sheet = getSheet_();
   sheet.getRange(row, 1, 1, values.length).setValues([values]);
   SpreadsheetApp.flush();
+}
+
+/**
+ * Daftar KATEGORI BIAYA: [{ nama, cakupan }].
+ *
+ * Diambil dari ATURAN DROPDOWN kolom K (KOLOM_KATEGORI) pada baris data pertama sheet
+ * TRANSAKSI - jadi pilihan di dashboard selalu sama persis dengan pilihan di sheet, dan ikut
+ * berubah sendiri bila pemilik menambah/mengganti kategori atau memindahkan daftarnya.
+ * `cakupan` = isi kolom di sebelah kanan daftar (penjelasan kategori) bila ada.
+ * Cadangan: sheet KATEGORI_SHEET_CADANGAN kolom A..B mulai baris 2.
+ */
+function sheetsDaftarKategori_() {
+  var sheet = getSheet_();
+  var hdr = findHeaderRow_(sheet);
+  var nama = [], cakupan = [];
+  try {
+    var dv = sheet.getRange(hdr + 1, KOLOM_KATEGORI).getDataValidation();
+    if (dv) {
+      var tipe = dv.getCriteriaType(), nilai = dv.getCriteriaValues();
+      if (tipe === SpreadsheetApp.DataValidationCriteria.VALUE_IN_RANGE && nilai[0]) {
+        var src = nilai[0], sh = src.getSheet();
+        var akhir = Math.min(src.getLastRow(), sh.getLastRow());
+        if (akhir >= src.getRow()) {
+          var lebar = src.getColumn() < sh.getMaxColumns() ? 2 : 1;
+          var v = sh.getRange(src.getRow(), src.getColumn(), akhir - src.getRow() + 1, lebar).getValues();
+          for (var i = 0; i < v.length; i++) { nama.push(v[i][0]); cakupan.push(lebar > 1 ? v[i][1] : ''); }
+        }
+      } else if (tipe === SpreadsheetApp.DataValidationCriteria.VALUE_IN_LIST && nilai[0]) {
+        nama = nilai[0].slice();
+      }
+    }
+  } catch (e) {}
+  if (!nama.length) {
+    var cad = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(KATEGORI_SHEET_CADANGAN);
+    if (cad && cad.getLastRow() >= 2) {
+      var w = cad.getRange(2, 1, cad.getLastRow() - 1, 2).getValues();
+      for (var j = 0; j < w.length; j++) { nama.push(w[j][0]); cakupan.push(w[j][1]); }
+    }
+  }
+  var out = [], ada = {};
+  for (var k = 0; k < nama.length; k++) {
+    var n = String(nama[k] || '').trim();
+    if (!n || ada[n]) continue;
+    ada[n] = true;
+    out.push({ nama: n, cakupan: String(cakupan[k] || '').trim() });
+  }
+  return out;
 }
 
 /** Sheet REAL: header baris 1 + blok label/nilai, sebagai data biasa. */
