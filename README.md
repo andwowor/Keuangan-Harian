@@ -89,7 +89,7 @@ Di editor Apps Script, pilih fungsi lalu **Run** (hasil di *Execution log*):
 
 | Fungsi | Cakupan |
 |---|---|
-| `jalankanSemuaTest` | **278 test unit domain** — murni, tidak menyentuh data nyata. Hasilnya mencetak **penanda versi** (`VERSI_APP`, saat ini `2026.11.03-a`); bila jumlah test atau versinya tidak cocok dengan baris ini, ada file yang belum tersalin ke Apps Script. |
+| `jalankanSemuaTest` | **278 test unit domain** — murni, tidak menyentuh data nyata. Hasilnya mencetak **penanda versi** (`VERSI_APP`, saat ini `2026.11.25-a`); bila jumlah test atau versinya tidak cocok dengan baris ini, ada file yang belum tersalin ke Apps Script. |
 | `cekFolderPenyimpanan` | Integrasi: izin Drive & folder inbox |
 | `cekDeteksiRekening` | Aturan sumber dana pada contoh bukti nyata |
 
@@ -256,6 +256,8 @@ Menu **📊 Budget** adalah **tampilan pertama saat aplikasi dibuka** (diatur le
 konstanta `TAB_AWAL` di `Index.html`). Menampilkan kondisi keuangan bulanan dari
 sheet **REAL**:
 - Pilih **bulan** (otomatis dari baris 1 sheet REAL; default bulan berjalan).
+- Tombol **↻ Muat ulang** mengambil ulang angka bulan yang dipilih beserta peringatan saldo dan
+  kartu review (narasi review tetap memakai analisa tersimpan; untuk analisa baru ada **Analisa ulang**).
 - **Ringkasan**: Total Pemasukan, Total Pengeluaran, dan Sisa (Saldo Real).
 - **Sisa Kantong** — nilai per kantong (**baris 71–89** REAL — semua kantong, termasuk yang 0).
 - **Biaya per kategori** (**baris 3–68** REAL, dengan subtotal per grup). Pos yang **tidak
@@ -292,9 +294,9 @@ Data dibaca langsung dari REAL (yang sudah terisi formula dari TRANSAKSI), jadi 
 selalu sinkron. Kolom bulan dideteksi otomatis dari label "BULAN TAHUN" di baris 1
 (mis. `JUNI 2026`), tidak di-hardcode.
 
-## Menu "Daftar Biaya"
+## Menu "Riwayat Biaya"
 
-Tab (**📋 Daftar**) untuk melihat daftar biaya dari sheet **TRANSAKSI** (ANALISA KEUANGAN),
+Tab (**📋 Riwayat Biaya**) untuk melihat riwayat biaya dari sheet **TRANSAKSI** (ANALISA KEUANGAN),
 dengan filter gabungan (semua opsional, di-AND-kan):
 - **Bulan** (kolom BIAYA BULAN) & **Tahun** (kolom TAHUN BIAYA) — default bulan/tahun berjalan, bisa diset "Semua".
 - **Tanggal** (kolom TANGGAL) — tanggal spesifik.
@@ -304,7 +306,8 @@ dengan filter gabungan (semua opsional, di-AND-kan):
 
 Menampilkan tiap transaksi (POS, keterangan, tanggal, sumber dana, nominal) **urut terbaru → terlama**,
 plus jumlah transaksi & total nominal sesuai filter. Tombol **Reset filter tambahan** mengosongkan
-filter tanggal/POS/keterangan/sumber.
+filter tanggal/POS/keterangan/sumber. Tombol **↻ Muat ulang** mengambil ulang data dengan filter yang
+sedang dipilih — mis. setelah menyimpan transaksi baru dari menu Input.
 
 **Edit manual transaksi:** ketuk salah satu transaksi (ikon ✏️) untuk membuka form edit —
 POS BIAYA (combobox), KETERANGAN, NOMINAL, TANGGAL, BIAYA BULAN/TAHUN, SUMBER DANA (+Rekening

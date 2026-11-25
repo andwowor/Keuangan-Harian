@@ -53,7 +53,7 @@ function lupakanCacheHistory_() {
 }
 
 /**
- * Perbarui satu baris transaksi yang sudah ada (edit manual dari menu Daftar).
+ * Perbarui satu baris transaksi yang sudah ada (edit manual dari menu Riwayat Biaya).
  * Catatan: sheet CASHFLOW TIDAK ikut diubah otomatis (agar tidak menggandakan entri) —
  * bila perlu, sesuaikan CASHFLOW secara manual.
  */
