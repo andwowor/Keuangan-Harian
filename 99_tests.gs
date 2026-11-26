@@ -752,6 +752,37 @@ function testDomainInbox() {
   _cek_('sedang dibaca -> jangan ganggu', inboxNeedsRead_('kh-aistate:reading\nkh-aits:' + now), false);
   _cek_('reading macet -> baca ulang', inboxNeedsRead_('kh-aistate:reading\nkh-aits:' + (now - 700000)), true);
 
+  // --- Coba ulang otomatis: bedakan galat AKUN/SEMENTARA dari galat BUKTI ---
+  // Pesan asli dari 9 bukti pemilik yang gagal pada 26 Nov 2026:
+  var galatAkun = 'Claude API error 403: {"type":"error","error":{"type":"permission_error",' +
+    '"message":"This organization can\'t receive replies from Claude right now. An Admin of this organization can';
+  _cek_('403 organisasi -> galat akun', jenisGalatBaca_(galatAkun), 'akun');
+  _cek_('saldo kredit habis -> galat akun',
+    jenisGalatBaca_('Claude API error 400: Your credit balance is too low'), 'akun');
+  _cek_('kunci belum diset -> galat akun',
+    jenisGalatBaca_('ANTHROPIC_API_KEY belum diset. Buka Project Settings'), 'akun');
+  _cek_('529 overloaded -> sementara', jenisGalatBaca_('Claude API error 529: overloaded_error'), 'sementara');
+  _cek_('429 -> sementara', jenisGalatBaca_('Claude API error 429: rate_limit_error'), 'sementara');
+  _cek_('tipe gambar -> galat bukti', jenisGalatBaca_('Tipe gambar tidak didukung: image/heic'), 'berkas');
+  _cek_('galat tak dikenal -> galat bukti (tidak diulang)', jenisGalatBaca_('sesuatu yang aneh'), 'berkas');
+
+  var mnt = 60 * 1000;
+  _cek_('jeda percobaan 1 = 15 menit', jedaCobaUlang_(1), 15 * mnt);
+  _cek_('jeda berlipat: percobaan 3 = 60 menit', jedaCobaUlang_(3), 60 * mnt);
+  _cek_('jeda dibatasi 12 jam', jedaCobaUlang_(20), 12 * 60 * mnt);
+
+  var dAkun = function (tsLalu, coba) {
+    return 'kh-aistate:error\nkh-aierr:' + galatAkun +
+      (tsLalu != null ? '\nkh-aierrts:' + (now - tsLalu) : '') + (coba ? '\nkh-aicoba:' + coba : '');
+  };
+  _cek_('galat akun lama (tanpa waktu) -> segera dicoba ulang', inboxNeedsRead_(dAkun(null, 0), now), true);
+  _cek_('galat akun barusan -> tunggu jeda', inboxNeedsRead_(dAkun(1 * mnt, 1), now), false);
+  _cek_('galat akun 20 mnt lalu, percobaan 1 -> coba ulang', inboxNeedsRead_(dAkun(20 * mnt, 1), now), true);
+  _cek_('galat akun 20 mnt lalu, percobaan 3 -> masih tunggu', inboxNeedsRead_(dAkun(20 * mnt, 3), now), false);
+  _cek_('galat bukti tidak pernah diulang otomatis', inboxNeedsRead_(
+    'kh-aistate:error\nkh-aierr:Tipe gambar tidak didukung\nkh-aierrts:0', now), false);
+  _cek_('ringkasan galat akun menyebut akun API', ringkasGalatBaca_(galatAkun).indexOf('akun API') >= 0, true);
+
   _cek_('label state dari deskripsi', inboxAiState_('kh-ai:{"a":1}'), 'done');
   _cek_('label state default', inboxAiState_(''), 'pending');
 }
@@ -934,7 +965,8 @@ function cekModulLengkap() {
                              'barisTransaksi_', 'catatanMemori_']],
     ['12_domain_cashflow', ['mapBankCashflow_', 'buildCashflowRow_', 'judulCashflowBulan_',
                             'bulanBerikut_', 'bulanSebelum_', 'pilihCashflow_', 'barisSetoranOwner_']],
-    ['13_domain_inbox', ['descGetLine_', 'descSetLine_', 'inboxNeedsRead_', 'inboxAiState_']],
+    ['13_domain_inbox', ['descGetLine_', 'descSetLine_', 'inboxNeedsRead_', 'inboxAiState_',
+                         'jenisGalatBaca_', 'jedaCobaUlang_', 'ringkasGalatBaca_']],
     ['14_domain_pos', ['posDariPenerima_', 'samakanPos_', 'posDariGrid_', 'batasPengeluaran_']],
     ['15_domain_budget', ['susunBudget_', 'barisTotalPengeluaran_', 'rentangBudget_',
                           'saldoDiBawahBuffer_', 'ringkasBuffer_']],

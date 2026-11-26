@@ -35,13 +35,15 @@ Bila ada yang belum masuk → **Lengkapi**. Idempoten: aman diulang, tidak mengg
 
 ## 5. Mengaktifkan baca-otomatis bukti
 Tab **Simpanan** → tombol **Aktifkan** (memasang trigger `autoReadInbox` tiap ±5 menit).
-Status per bukti: `… antre baca` → `⏳ dibaca` → `✓ terbaca` (atau `⚠️ gagal baca`).
+Status per bukti: `… antre baca` → `⏳ dibaca` → `✓ terbaca` (atau `⚠️ gagal baca`, dengan penyebabnya).
+Gagal karena **akun API** atau **gangguan sementara** dicoba ulang otomatis (jeda 15 mnt, berlipat
+sampai 12 jam); gagal karena **buktinya** tidak diulang otomatis.
 
 ## 6. Diagnostik dari editor Apps Script
 
 | Fungsi | Gunanya |
 |---|---|
-| `jalankanSemuaTest` | 278 test unit domain (tanpa menyentuh data nyata) + penanda versi salinan |
+| `jalankanSemuaTest` | 294 test unit domain (tanpa menyentuh data nyata) + penanda versi salinan |
 | `cekFolderPenyimpanan` | Memastikan izin Drive & folder inbox terbaca |
 | `cekDeteksiRekening` | Memastikan aturan sumber dana bekerja pada contoh bukti nyata |
 | `cekStrukturReal` | Melaporkan struktur sheet REAL + POS yang terbaca (jalankan setiap kali REAL diubah) |
@@ -53,7 +55,8 @@ Status per bukti: `… antre baca` → `⏳ dibaca` → `✓ terbaca` (atau `⚠
 |---|---|---|
 | Perubahan tidak muncul di HP | Deploy tanpa "New version" | Ulangi langkah 1 |
 | Tab Simpanan error izin | Scope Drive belum disetujui | Langkah 2 |
-| Bukti berstatus `⚠️ gagal baca` | Kuota/jaringan API | Centang bukti → **Proses terpilih** (membaca ulang manual) |
+| Spanduk "bukti gagal dibaca karena akun API Claude" | Akun Anthropic menolak (saldo/billing, batas pemakaian, organisasi diblokir) | Buka console.anthropic.com → Billing & Limits. Setelah pulih, bukti dibaca ulang otomatis; atau centang → **Proses terpilih** untuk segera |
+| Bukti `⚠️ gagal baca` dengan alasan lain | Masalah pada buktinya (mis. tipe gambar) | Centang bukti → **Proses terpilih**, atau hapus & unggah ulang |
 | Setoran Owner tidak lengkap | `CASHFLOW_URL` salah bulan | Langkah 3 lalu langkah 4 |
 | Tanggal bergeser 1 hari | Zona waktu spreadsheet ≠ WITA | Spreadsheet → File → Setelan → Zona waktu → (GMT+08:00) Makassar |
 | Bukti terhapus tak sengaja | — | Google Drive → Sampah (tersimpan 30 hari) |

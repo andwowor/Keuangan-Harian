@@ -11,7 +11,7 @@
  * ke editor Apps Script. Dicetak oleh jalankanSemuaTest agar ketahuan bila ada file
  * yang belum tersalin - gejalanya: jumlah test tidak sesuai, atau fungsi baru "not defined".
  */
-var VERSI_APP = '2026.11.25-a';
+var VERSI_APP = '2026.11.26-a';
 
 // ---------------------------------------------------------------------------
 // SINKRONISASI KODE DARI GITHUB (menu Setelan)
@@ -218,3 +218,7 @@ var INBOX_AUTOREAD_PER_RUN = 8;   // maks. bukti dibaca per satu jalannya trigge
 var INBOX_READNOW_MAX = 12;       // maks. bukti dibaca dalam satu panggilan "baca sekarang"
 var AUTOREAD_HANDLER = 'autoReadInbox';
 var INBOX_READING_STALE_MS = 10 * 60 * 1000; // status "reading" dianggap macet setelah 10 menit
+// Coba ulang otomatis bukti yang GAGAL karena akun API / gangguan sementara (bukan karena
+// buktinya). Jeda berlipat: 15 mnt, 30 mnt, 1 j, 2 j, ... paling lama 12 jam sekali.
+var INBOX_JEDA_AWAL_MS = 15 * 60 * 1000;
+var INBOX_JEDA_MAKS_MS = 12 * 60 * 60 * 1000;

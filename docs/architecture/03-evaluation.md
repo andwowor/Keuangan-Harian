@@ -27,7 +27,7 @@ Tanggal evaluasi: 2026-08-11 · Standar §2 Langkah 7, §5.9
 | # | Risiko | Dampak | Mitigasi |
 |---|---|---|---|
 | R1 | `CASHFLOW_URL` lupa diganti awal bulan | Setoran Owner masuk bulan salah | **Terjadi nyata (Juli 2026)** → audit + backfill idempoten; **ditutup pada sumbernya** (ADR-0013): spreadsheet dipilih dari tanggal transaksi, link manual tinggal cadangan bulan berjalan |
-| R2 | Kuota API Claude habis | Bukti gagal dibaca | Status `error` disimpan; tidak dibaca ulang otomatis; bisa diproses manual |
+| R2 | Kuota/akun API Claude bermasalah | Bukti gagal dibaca | **Terjadi nyata (26 Nov 2026):** 9 bukti ditolak `403 permission_error` (organisasi Anthropic diblokir). Mitigasi lama — galat tidak pernah dibaca ulang — justru membuat bukti tertahan setelah akun pulih. Kini galat digolongkan (`jenisGalatBaca_`): galat **akun** & **sementara** dicoba ulang otomatis dengan jeda berlipat 15 mnt → 12 jam; galat karena **buktinya** tidak diulang. Spanduk di Simpanan menjelaskan penyebabnya |
 | R3 | Perubahan tata letak sheet oleh pengguna | Alur tulis rusak | Terpusat di `40_adapter_sheets.gs`; daftar POS kini tahan sisip/hapus baris; diagnostik `cekStrukturReal` |
 | R4 | PIN bocor | Data biaya terekspos | Ganti `APP_PIN`; akses Drive dibatasi hanya folder inbox |
 | R5 | Salin manual 17 modul ke editor Apps Script tidak lengkap | Aplikasi rusak saat deploy | Gunakan `clasp push`; lihat `docs/runbook.md` |
