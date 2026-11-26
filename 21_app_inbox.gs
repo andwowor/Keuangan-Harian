@@ -144,8 +144,15 @@ function listInbox(pin) {
       id: f.getId(), name: f.getName(), mime: mt, size: f.getSize(),
       date: Utilities.formatDate(created, TIMEZONE, 'd MMM yyyy HH:mm'),
       ts: created.getTime(), thumb: '',
-      aiState: inboxAiState_(f.getDescription())   // done | reading | pending | error
+      aiState: inboxAiState_(f.getDescription()),  // done | reading | pending | error
+      aiErr: ''
     });
+    var o = out[out.length - 1];
+    if (o.aiState === 'error') {
+      var pesan = descGetLine_(f.getDescription(), 'kh-aierr:');
+      o.aiErr = ringkasGalatBaca_(pesan);                              // aturan domain
+      o.aiErrJenis = jenisGalatBaca_(pesan);
+    }
   }
   out.sort(function (a, b) { return b.ts - a.ts; });
   // Thumbnail hanya untuk sebagian teratas supaya pemuatan tetap cepat.
@@ -155,9 +162,11 @@ function listInbox(pin) {
   // Hanya hitung yang MASIH akan dibaca (pending/reading) — bukan 'error' —
   // supaya auto-refresh berhenti bila tak ada lagi yang sedang diproses.
   var belum = out.filter(function (o) { return o.aiState === 'pending' || o.aiState === 'reading'; }).length;
+  var galatAkun = out.filter(function (o) { return o.aiErrJenis === 'akun'; }).length;
   return {
     folderUrl: 'https://drive.google.com/drive/folders/' + INBOX_FOLDER_ID,
-    items: out, truncated: truncated, batas: INBOX_MAX_LIST, belumTerbaca: belum
+    items: out, truncated: truncated, batas: INBOX_MAX_LIST, belumTerbaca: belum,
+    galatAkun: galatAkun
   };
 }
 

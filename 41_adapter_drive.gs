@@ -84,14 +84,24 @@ function inboxSaveAi_(file, dataObj) {
   d = descSetLine_(d, 'kh-aistate:', 'done');
   d = descSetLine_(d, 'kh-aits:', null);
   d = descSetLine_(d, 'kh-aierr:', null);
+  d = descSetLine_(d, 'kh-aierrts:', null);
+  d = descSetLine_(d, 'kh-aicoba:', null);
   d = descSetLine_(d, 'kh-ai:', JSON.stringify(dataObj));
   file.setDescription(d);
 }
+/**
+ * Tandai gagal baca. Waktu & hitungan percobaan disimpan untuk jeda coba ulang otomatis
+ * (inboxNeedsRead_). Pesan disimpan sampai 400 karakter - batas lama 180 memotong bagian
+ * pesan Anthropic yang justru menjelaskan apa yang harus dilakukan.
+ */
 function inboxMarkError_(file, msg) {
   var d = file.getDescription();
+  var coba = (Number(descGetLine_(d, 'kh-aicoba:')) || 0) + 1;
   d = descSetLine_(d, 'kh-aistate:', 'error');
   d = descSetLine_(d, 'kh-aits:', null);
-  d = descSetLine_(d, 'kh-aierr:', String(msg || '').replace(/\s+/g, ' ').slice(0, 180));
+  d = descSetLine_(d, 'kh-aierr:', String(msg || '').replace(/\s+/g, ' ').slice(0, 400));
+  d = descSetLine_(d, 'kh-aierrts:', String(new Date().getTime()));
+  d = descSetLine_(d, 'kh-aicoba:', String(coba));
   file.setDescription(d);
 }
 

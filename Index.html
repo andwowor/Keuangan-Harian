@@ -1623,7 +1623,7 @@
     function setMsg(t, cls) { document.getElementById('msg').innerHTML = '<div class="msg ' + cls + '">' + t + '</div>'; }
 
     // ============ PENYIMPANAN SEMENTARA BUKTI (FOLDER DRIVE) ============
-    var inbox = { items: [], sel: {}, folderUrl: '', loaded: false, truncated: false, batas: 0, belumTerbaca: 0 };
+    var inbox = { items: [], sel: {}, folderUrl: '', loaded: false, truncated: false, batas: 0, belumTerbaca: 0, galatAkun: 0 };
 
     function ibMsg(html, cls) {
       document.getElementById('ibUpMsg').innerHTML = html ? ('<div class="msg ' + cls + '">' + html + '</div>') : '';
@@ -1782,6 +1782,7 @@
         inbox.truncated = !!(res && res.truncated);
         inbox.batas = (res && res.batas) || 0;
         inbox.belumTerbaca = (res && res.belumTerbaca) || 0;
+        inbox.galatAkun = (res && res.galatAkun) || 0;
         inbox.loaded = true;
         var ada = {};
         inbox.items.forEach(function (i) { ada[i.id] = 1; });
@@ -1905,7 +1906,16 @@
         return;
       }
       var sel = ibSelectedIds();
-      var h = '<div class="qitem" style="background:transparent;border-style:dashed" onclick="ibToggleAll()">' +
+      var h = '';
+      // Semua gagal karena AKUN, bukan karena buktinya: katakan sekali di atas daftar,
+      // supaya pemilik tidak mengira buktinya rusak lalu mengunggah ulang.
+      if (inbox.galatAkun) {
+        h += '<div class="msg err" style="margin-bottom:10px">⚠️ <b>' + inbox.galatAkun + ' bukti</b> gagal dibaca ' +
+          'karena <b>akun API Claude menolak permintaan</b> — bukan karena buktinya. Periksa ' +
+          '<b>console.anthropic.com</b> (Billing &amp; Limits). Bukti tidak hilang dan akan ' +
+          '<b>dibaca ulang otomatis</b> begitu akunnya pulih.</div>';
+      }
+      h += '<div class="qitem" style="background:transparent;border-style:dashed" onclick="ibToggleAll()">' +
         '<input type="checkbox" style="width:18px;height:18px;flex:none"' +
         (sel.length === inbox.items.length ? ' checked' : '') + ' onclick="event.stopPropagation();ibToggleAll()">' +
         '<div class="qmeta"><div class="qname">Pilih semua</div>' +
@@ -1923,7 +1933,9 @@
           '</div>' +
           '<div class="qmeta"><div class="qname">' + esc(it.name) + '</div>' +
           '<div class="ask-hint">' + esc(it.date) + ' · ' + ibSize(it.size) + '</div>' +
-          aiBadge(it.aiState) + '</div>' +
+          aiBadge(it.aiState) +
+          (it.aiErr ? '<div class="ask-hint" style="color:var(--err);margin-top:3px">' + esc(it.aiErr) + '</div>' : '') +
+          '</div>' +
           '<span class="qdel" title="Lihat penuh" onclick="event.stopPropagation();ibViewImage(\'' + it.id + '\')">⤢</span>' +
           '<span class="qdel qdel-x" title="Hapus bukti ini" onclick="event.stopPropagation();ibDeleteOne(\'' + it.id + '\')">🗑</span></div>';
       });
