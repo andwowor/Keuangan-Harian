@@ -218,16 +218,22 @@ function sheetsBacaTransaksi_(nCol) {
   var hdr = findHeaderRow_(sheet);
   var last = findLastDataRow_(sheet, hdr);
   var tz = sheet.getParent().getSpreadsheetTimeZone();
-  var rows = (last > hdr) ? sheet.getRange(hdr + 1, 1, last - hdr, nCol || TRANSAKSI_NCOL).getValues() : [];
+  var n = nCol || TRANSAKSI_NCOL, ada = Math.min(n, sheet.getMaxColumns());
+  var rows = (last > hdr) ? sheet.getRange(hdr + 1, 1, last - hdr, ada).getValues() : [];
+  // Sheet yang kolomnya lebih sedikit dari yang diminta (mis. belum ada kolom L..O) tidak boleh
+  // membuat seluruh laporan gagal: kolom yang tidak ada dibaca sebagai kosong.
+  if (ada < n) rows = rows.map(function (r) { while (r.length < n) r.push(''); return r; });
   return { hdr: hdr, last: last, tz: tz, rows: rows };
 }
 
 /** Isi satu baris TRANSAKSI (nilai + formula) sebagai data biasa. */
 function sheetsBacaBarisTransaksi_(row, nCol) {
   var sheet = getSheet_();
-  var rng = sheet.getRange(row, 1, 1, nCol || TRANSAKSI_NCOL);
-  return { values: rng.getValues()[0], formulas: rng.getFormulas()[0],
-    tz: sheet.getParent().getSpreadsheetTimeZone() };
+  var n = nCol || TRANSAKSI_NCOL, ada = Math.min(n, sheet.getMaxColumns());
+  var rng = sheet.getRange(row, 1, 1, ada);
+  var v = rng.getValues()[0], f = rng.getFormulas()[0];
+  while (v.length < n) { v.push(''); f.push(''); }
+  return { values: v, formulas: f, tz: sheet.getParent().getSpreadsheetTimeZone() };
 }
 
 /**
@@ -304,6 +310,88 @@ function sheetsDaftarKategori_() {
     out.push({ nama: n, cakupan: String(cakupan[k] || '').trim() });
   }
   return out;
+}
+
+// ============ PENGGANTIAN (kolom L..O sheet TRANSAKSI) - ADR-0015 ============
+
+/** Huruf kolom dari nomor (12 -> "L"). */
+function hurufKolom_(n) {
+  var s = '';
+  while (n > 0) { var m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); }
+  return s;
+}
+
+/**
+ * Pastikan judul kolom L..O ada. Hanya mengisi sel judul yang KOSONG; bila sudah berisi
+ * judul lain, berhenti dengan pesan - tidak pernah menimpa isi sheet milik pemilik.
+ */
+function sheetsPastikanHeaderPenggantian_() {
+  var sheet = getSheet_(), hdr = findHeaderRow_(sheet);
+  var butuh = KOLOM_PENGGANTIAN + HEADER_PENGGANTIAN.length - 1;
+  if (sheet.getMaxColumns() < butuh) sheet.insertColumnsAfter(sheet.getMaxColumns(), butuh - sheet.getMaxColumns());
+  var rng = sheet.getRange(hdr, KOLOM_PENGGANTIAN, 1, HEADER_PENGGANTIAN.length);
+  var isi = rng.getValues()[0], perlu = false;
+  for (var i = 0; i < isi.length; i++) {
+    var v = String(isi[i] == null ? '' : isi[i]).trim();
+    if (!v) { perlu = true; continue; }
+    if (v.toUpperCase() !== HEADER_PENGGANTIAN[i]) {
+      throw new Error('Kolom ' + hurufKolom_(KOLOM_PENGGANTIAN + i) + ' sheet TRANSAKSI sudah berisi "' + v +
+        '". Fitur penggantian memakai kolom L sampai O - pindahkan isi itu dulu.');
+    }
+  }
+  if (perlu) rng.setValues([HEADER_PENGGANTIAN]);
+}
+
+/** Satu baris TRANSAKSI A..O (nilai + formula) sebagai data biasa. */
+function sheetsBacaBarisPenuh_(row) {
+  return sheetsBacaBarisTransaksi_(row, TRANSAKSI_NCOL_PENUH);
+}
+
+/**
+ * Salin isi satu sel ke sel lain pada baris yang sama, PERSIS: formula berisi angka saja
+ * (mis. kurs RMB "=85,06*2747,43") ikut tersalin sebagai formula. Formula yang merujuk sel
+ * lain disalin sebagai NILAINYA, karena menyalin akan menggeser rujukannya ke kolom lain.
+ */
+function salinIsiSel_(sheet, row, dariKol, keKol) {
+  var dari = sheet.getRange(row, dariKol), ke = sheet.getRange(row, keKol);
+  var f = dari.getFormula();
+  if (f && /[A-Za-z]{1,3}\$?\d/.test(f.replace(/^=/, ''))) ke.setValue(dari.getValue());
+  else dari.copyTo(ke, { contentsOnly: true });
+}
+
+/** Tandai menunggu penggantian: NOMINAL (C) disalin apa adanya ke NOMINAL AWAL (M). */
+function sheetsTandaiPenggantian_(row) {
+  sheetsPastikanHeaderPenggantian_();
+  var sheet = getSheet_();
+  salinIsiSel_(sheet, row, 3, KOLOM_NOMINAL_AWAL);
+  sheet.getRange(row, KOLOM_PENGGANTIAN).setValue(PENGGANTIAN_MENUNGGU);
+  sheet.getRange(row, KOLOM_TOTAL_PENGGANTIAN, 1, 2).setValues([[0, '']]);
+  SpreadsheetApp.flush();
+}
+
+/**
+ * Tulis hasil penggantian: NOMINAL (C) dan kolom L, N, O.
+ * nominalBersih null = kembalikan NOMINAL dari NOMINAL AWAL apa adanya (total penggantian 0),
+ * termasuk formulanya.
+ */
+function sheetsTulisPenggantian_(row, status, total, rincian, nominalBersih) {
+  var sheet = getSheet_();
+  if (nominalBersih === null) salinIsiSel_(sheet, row, KOLOM_NOMINAL_AWAL, 3);
+  else sheet.getRange(row, 3).setValue(nominalBersih);
+  sheet.getRange(row, KOLOM_PENGGANTIAN).setValue(status);
+  sheet.getRange(row, KOLOM_TOTAL_PENGGANTIAN, 1, 2).setValues([[total, rincian]]);
+  SpreadsheetApp.flush();
+}
+
+/** Tulis NOMINAL AWAL (M) - saat nominal transaksi bertanda diedit. */
+function sheetsTulisNominalAwal_(row, nilai) {
+  getSheet_().getRange(row, KOLOM_NOMINAL_AWAL).setValue(nilai);
+}
+
+/** Lepas tanda penggantian: kosongkan L..O. NOMINAL (C) tidak disentuh di sini. */
+function sheetsLepasPenggantian_(row) {
+  getSheet_().getRange(row, KOLOM_PENGGANTIAN, 1, HEADER_PENGGANTIAN.length).clearContent();
+  SpreadsheetApp.flush();
 }
 
 /** Sheet REAL: header baris 1 + blok label/nilai, sebagai data biasa. */

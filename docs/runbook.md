@@ -43,7 +43,7 @@ sampai 12 jam); gagal karena **buktinya** tidak diulang otomatis.
 
 | Fungsi | Gunanya |
 |---|---|
-| `jalankanSemuaTest` | 294 test unit domain (tanpa menyentuh data nyata) + penanda versi salinan |
+| `jalankanSemuaTest` | 325 test unit domain (tanpa menyentuh data nyata) + penanda versi salinan |
 | `cekFolderPenyimpanan` | Memastikan izin Drive & folder inbox terbaca |
 | `cekDeteksiRekening` | Memastikan aturan sumber dana bekerja pada contoh bukti nyata |
 | `cekStrukturReal` | Melaporkan struktur sheet REAL + POS yang terbaca (jalankan setiap kali REAL diubah) |

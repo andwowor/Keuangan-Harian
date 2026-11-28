@@ -40,6 +40,7 @@ function jalankanSemuaTest() {
   testDomainReview();
   testDomainSinkron();
   testDomainKategori();
+  testDomainPenggantian();
   testDomainCashflow();
   testDomainInbox();
   // Penanda versi ikut dicetak: bila jumlah test tidak cocok dengan yang tertulis di
@@ -696,6 +697,60 @@ function testDomainKategori() {
   _cek_('kategori di luar daftar ditolak', kategoriSah_('Transport', daftar), false);
   _cek_('kategori kosong ditolak', kategoriSah_('', daftar), false);
 }
+// ============ DOMAIN: PENGGANTIAN (ADR-0015) ============
+
+function testDomainPenggantian() {
+  // --- Status kolom L ---
+  _cek_('kosong -> tidak ditandai', statusPenggantian_(''), '');
+  _cek_('huruf kecil dibakukan', statusPenggantian_('menunggu'), 'MENUNGGU');
+  _cek_('selesai', statusPenggantian_(' Selesai '), 'SELESAI');
+  _cek_('isi lain dianggap menunggu', statusPenggantian_('ya'), 'MENUNGGU');
+
+  // --- Angka rupiah dari sel ---
+  _cek_('angka apa adanya', angkaRupiah_(1250000), 1250000);
+  _cek_('teks Rp bertitik ribuan', angkaRupiah_('Rp1.000.000'), 1000000);
+  _cek_('teks minus', angkaRupiah_('-Rp50.000'), -50000);
+  _cek_('kosong -> 0', angkaRupiah_(''), 0);
+
+  // --- Rincian satu sel ---
+  var r = bacaRincianPenggantian_('2026-11-25=200000; 2026-11-20=300000; rusak; 2026-13=5');
+  _cek_('rincian: potongan rusak diabaikan', r.length, 2);
+  _cek_('rincian: nominal terbaca', r[0].nominal, 200000);
+  _cek_('tulis rincian urut tanggal', tulisRincianPenggantian_(r), '2026-11-20=300000; 2026-11-25=200000');
+  _cek_('baca-tulis bolak-balik stabil', tulisRincianPenggantian_(bacaRincianPenggantian_(tulisRincianPenggantian_(r))),
+    '2026-11-20=300000; 2026-11-25=200000');
+  _cek_('rincian kosong', bacaRincianPenggantian_('').length, 0);
+  _cek_('total penggantian', totalPenggantian_(r), 500000);
+
+  // --- Validasi ---
+  validasiPenggantian_(r, 500000);   // total = awal: sah
+  _cek_('total sama dengan awal sah', true, true);
+  _cekLempar_('total melebihi awal ditolak', function () { validasiPenggantian_(r, 400000); });
+  _cekLempar_('nominal 0 ditolak', function () { validasiPenggantian_([{ tanggal: '2026-11-20', nominal: 0 }], 1e6); });
+  _cekLempar_('tanggal kosong ditolak', function () { validasiPenggantian_([{ tanggal: '', nominal: 5 }], 1e6); });
+
+  // --- Isi NOMINAL (C) setelah penggantian, mengikuti jenis isi aslinya ---
+  _cek_('tanpa penggantian -> pulihkan isi asli (null)', isiNominalBersih_(1000000, '', 0), null);
+  _cek_('awal angka -> angka bersih', isiNominalBersih_(1000000, '', 300000), 700000);
+  _cek_('awal teks Rp -> teks Rp bersih', isiNominalBersih_('Rp1.000.000', '', 300000), 'Rp700.000');
+  _cek_('awal formula kurs -> angka bersih', isiNominalBersih_(233696, '=85,06*2747,43', 100000), 133696);
+
+  // --- Filter Riwayat Biaya ---
+  _cek_('filter semua', cocokFilterPenggantian_('', ''), true);
+  _cek_('filter ditandai: tanpa tanda tidak lolos', cocokFilterPenggantian_('', 'ditandai'), false);
+  _cek_('filter ditandai: selesai lolos', cocokFilterPenggantian_('SELESAI', 'ditandai'), true);
+  _cek_('filter menunggu', cocokFilterPenggantian_('MENUNGGU', 'menunggu'), true);
+  _cek_('filter menunggu: selesai tidak lolos', cocokFilterPenggantian_('SELESAI', 'menunggu'), false);
+  _cek_('filter selesai', cocokFilterPenggantian_('SELESAI', 'selesai'), true);
+
+  // --- Nominal untuk audit Setoran Owner: nominal ASLI, bukan bersih ---
+  var baris = ['DAILY DRIVER', 'Tiket', 700000, '', 'NOVEMBER', 2026, 'PENDAPATAN USAHA', '', '', 'Mandiri', '',
+    'MENUNGGU', 1000000, 300000, '2026-11-20=300000'];
+  _cek_('bertanda -> nominal awal', nominalAsliTransaksi_(baris), 1000000);
+  _cek_('tidak bertanda -> nominal C', nominalAsliTransaksi_(baris.slice(0, 11).concat(['', '', '', ''])), 700000);
+  _cek_('bertanda tanpa nominal awal -> nominal C',
+    nominalAsliTransaksi_(baris.slice(0, 12).concat(['', '', ''])), 700000);
+}
 // ====================== DOMAIN: CASHFLOW ======================
 
 function testDomainCashflow() {
@@ -975,12 +1030,15 @@ function cekModulLengkap() {
     ['17_domain_sinkron', ['tipeBerkasScript_', 'berkasDikelola_', 'periksaBerkasSinkron_',
                            'gabungKonten_', 'ringkasSinkron_']],
     ['18_domain_kategori', ['kataKategori_', 'modelKategori_', 'rekomendasiKategori_', 'kategoriSah_']],
+    ['19_domain_penggantian', ['statusPenggantian_', 'bacaRincianPenggantian_', 'validasiPenggantian_',
+                               'isiNominalBersih_', 'nominalAsliTransaksi_']],
     ['20_app_transaksi', ['appendTransaction', 'updateTransaction', 'lupakanCacheHistory_']],
     ['21_app_inbox', ['uploadInbox', 'listInbox', 'analyzeInboxFile', 'inboxReadOne_']],
     ['22_app_laporan', ['getBudget', 'getBudgetMonths', 'getTransaksiList', 'auditCashflowSetoran',
                         'getPeringatanSaldo', 'getReviewBiaya', 'perbaruiReviewHarian_']],
     ['23_app_sinkron', ['sinkronDariGitHub', 'sinkronSekarang']],
     ['24_app_kategori', ['rekomendasiKategori', 'daftarKategori_', 'pastikanKategoriSah_']],
+    ['25_app_penggantian', ['getPenggantian', 'simpanPenggantian', 'ringkasBarisPenggantian_']],
     ['40_adapter_sheets', ['getSheet_', 'getPosList_', 'posDariRentang_', 'sheetsBacaTransaksi_',
                            'sheetsBacaReal_', 'sheetsSiapkanBarisBaru_', 'sheetsDaftarKategori_']],
     ['41_adapter_drive', ['getInboxFolder_', 'getInboxFile_', 'inboxImageBlob_', 'inboxGetAi_',

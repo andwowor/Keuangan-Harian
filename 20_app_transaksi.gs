@@ -17,6 +17,8 @@ function appendTransaction(payload) {
   validasiTransaksi_(payload);                                   // aturan domain
   pastikanKategoriSah_(payload.kategoriBiaya);                   // dropdown kolom K
   var rekening = rekeningTransaksi_(payload.sumberDana, payload.rekening);
+  // Periksa kolom L..O SEBELUM menulis: bila tidak bisa dipakai, transaksi tidak setengah tersimpan.
+  if (payload.penggantian) sheetsPastikanHeaderPenggantian_();
 
   var slot = sheetsSiapkanBarisBaru_();                          // adapter Sheets
   var nominalValue = nilaiNominal_(payload, slot.nominalLama);   // aturan domain
@@ -24,6 +26,7 @@ function appendTransaction(payload) {
     parseIsoDate_(payload.tanggal, slot.tz));
   sheetsTulisBarisTransaksi_(slot.row,
     barisTransaksi_(payload, rekening, nominalValue, tanggalValue));
+  if (payload.penggantian) sheetsTandaiPenggantian_(slot.row);  // ADR-0015
 
   // Catat ke memori pembelajaran. Jangan sampai menggagalkan simpan.
   try { logMemory_(catatanMemori_(payload, rekening)); } catch (e) {}
@@ -66,17 +69,41 @@ function updateTransaction(payload, pin) {
   if (!(row > batas.hdr && row <= batas.last)) throw new Error('Baris transaksi tidak valid.');
 
   var rekening = rekeningTransaksi_(payload.sumberDana, payload.rekening);
-  var kini = sheetsBacaBarisTransaksi_(row);                     // adapter Sheets
+  var kini = sheetsBacaBarisPenuh_(row);                         // adapter Sheets (A..O)
+  var v = kini.values;
+
+  // Penggantian (ADR-0015). Pada transaksi bertanda, NOMINAL di form adalah NOMINAL AWAL (M);
+  // kolom C lalu dihitung ulang = awal - total penggantian.
+  var ditandai = !!statusPenggantian_(v[KOLOM_PENGGANTIAN - 1]);
+  var ingin = (payload.penggantian === undefined || payload.penggantian === null) ? ditandai : !!payload.penggantian;
+  var rincian = ditandai ? bacaRincianPenggantian_(v[KOLOM_RINCIAN_PENGGANTIAN - 1]) : [];
+  var total = totalPenggantian_(rincian);
+  if (ditandai && !ingin && total > 0) {
+    throw new Error('Transaksi ini sudah menerima penggantian ' + formatRupiah_(total) + '. Hapus dulu ' +
+      'rinciannya di jendela Penggantian sebelum melepas tanda.');
+  }
+  var acuan = (ditandai && String(v[KOLOM_NOMINAL_AWAL - 1]) !== '') ? v[KOLOM_NOMINAL_AWAL - 1] : v[2];
 
   // Pertahankan formula asli bila angkanya tidak diubah; selain itu ikut aturan domain.
-  var nominalValue = (payload.keepFormula && payload.nominalFormula)
-    ? String(payload.nominalFormula)
-    : nilaiNominal_({ nominal: payload.nominal }, kini.values[2]);
+  var dipertahankan = !!(payload.keepFormula && payload.nominalFormula);
+  var nominalValue = dipertahankan ? String(payload.nominalFormula)
+    : nilaiNominal_({ nominal: payload.nominal }, acuan);
   var tanggalValue = nilaiTanggal_(payload.tanggal, kini.values[3],
     parseIsoDate_(payload.tanggal, kini.tz));
 
+  var isiC = nominalValue;
+  if (ditandai && ingin && total > 0) {
+    var awalAngka = angkaRupiah_(dipertahankan ? acuan : payload.nominal);
+    validasiPenggantian_(rincian, awalAngka);                    // total tidak boleh > awal baru
+    var formulaAwal = /^=/.test(String(nominalValue)) ? String(nominalValue) : '';
+    isiC = isiNominalBersih_(formulaAwal ? awalAngka : nominalValue, formulaAwal, total);
+  }
+
   sheetsTulisBarisTransaksi_(row,
-    barisTransaksi_(payload, rekening, nominalValue, tanggalValue));
+    barisTransaksi_(payload, rekening, isiC, tanggalValue));
+  if (ditandai && ingin) sheetsTulisNominalAwal_(row, nominalValue);
+  else if (ditandai && !ingin) sheetsLepasPenggantian_(row);
+  else if (!ditandai && ingin) sheetsTandaiPenggantian_(row);
   lupakanCacheHistory_();
   return { ok: true, row: row };
 }
@@ -87,9 +114,16 @@ function getTransaksiRow(row, pin) {
   row = Number(row);
   var batas = sheetsBatasTransaksi_();
   if (!(row > batas.hdr && row <= batas.last)) throw new Error('Baris transaksi tidak valid.');
-  var baris = sheetsBacaBarisTransaksi_(row);                    // adapter Sheets
+  var baris = sheetsBacaBarisPenuh_(row);                        // adapter Sheets (A..O)
   var v = baris.values, fx = baris.formulas;
   if (!String(v[0]).trim()) throw new Error('Baris ini kosong.');
+  // Transaksi bertanda penggantian: yang diedit adalah NOMINAL AWAL (M), bukan nominal bersih (C).
+  var pg = ringkasBarisPenggantian_(v);
+  if (pg && String(v[KOLOM_NOMINAL_AWAL - 1]) !== '') {
+    v = v.slice(); fx = fx.slice();
+    v[2] = v[KOLOM_NOMINAL_AWAL - 1];
+    fx[2] = fx[KOLOM_NOMINAL_AWAL - 1];
+  }
   return {
     row: row,
     pos: String(v[0]).trim(),
@@ -103,7 +137,8 @@ function getTransaksiRow(row, pin) {
     budgetBulan: String(v[7]).trim().toUpperCase(),
     tahunBudget: String(v[8]).trim().replace(/\.0$/, ''),
     rekening: String(v[9]).trim(),
-    kategoriBiaya: String(v[KOLOM_KATEGORI - 1] || '').trim()
+    kategoriBiaya: String(v[KOLOM_KATEGORI - 1] || '').trim(),
+    penggantian: pg                                  // null bila tidak ditandai
   };
 }
 

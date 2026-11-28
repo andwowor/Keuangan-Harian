@@ -116,6 +116,28 @@
     .navbtn:nth-child(4), .navbtn:nth-child(5) { grid-column: span 3; }
     .navbtn.active { background: var(--accent); color: #10231F; border-color: var(--accent); }
     .card-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    /* --- Penggantian (ADR-0015) --- */
+    .cek-baris { display: flex; align-items: flex-start; gap: 10px; margin: 12px 0 0; padding: 10px 12px;
+      border: 1px dashed var(--line); border-radius: 10px; cursor: pointer; text-transform: none;
+      letter-spacing: 0; font-size: 13.5px; font-weight: 600; color: var(--ink); }
+    /* Kekhususan sengaja dinaikkan: aturan lama `.lockbox input { width:100% }` (kotak PIN)
+       ikut melebarkan kotak centang di dalam jendela modal (Edit & Penggantian). */
+    .cek-baris input[type=checkbox] { width: 18px; height: 18px; flex: none; margin: 1px 0 0; padding: 0; }
+    .cek-baris .cek-sub { display: block; font-size: 12px; font-weight: 400; color: var(--muted); margin-top: 2px; }
+    .pg-badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 999px;
+      margin-left: 4px; vertical-align: 1px; }
+    .pg-menunggu { color: var(--kuning); background: rgba(254,185,90,.12); border: 1px solid rgba(254,185,90,.35); }
+    .pg-selesai { color: var(--hijau); background: rgba(95,214,138,.12); border: 1px solid rgba(95,214,138,.35); }
+    .pg-ring { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 10px 0; }
+    .pg-ring div { background: var(--card-2); border-radius: 10px; padding: 8px 10px; }
+    .pg-ring span { display: block; font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+    .pg-ring b { font-size: 14px; font-variant-numeric: tabular-nums; }
+    .pg-baris { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 0;
+      border-top: 1px solid var(--line-2); font-size: 13.5px; }
+    .pg-baris button { width: auto; padding: 2px 9px; font-size: 13px; background: none; color: var(--err);
+      border: 1px solid rgba(255,138,138,.35); }
+    .pg-tambah { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: end; }
+    .pg-tambah button { grid-column: 1 / -1; padding: 11px 14px; }
     .card-head label { margin: 0; }
     .btn-kecil { width: auto; padding: 6px 10px; font-size: 12px; }
 
@@ -384,6 +406,9 @@
         <input id="nominal" type="text" inputmode="numeric" placeholder="0" oninput="onNominalInput()">
       </div>
       <div id="kursNote" class="note hidden" style="color:var(--muted)"></div>
+      <label class="cek-baris"><input type="checkbox" id="penggantian">
+        <span>↩︎ Akan ada penggantian
+          <span class="cek-sub">Nominal berkurang otomatis saat penggantian masuk — dicatat dari menu Riwayat Biaya.</span></span></label>
 
       <label>TANGGAL <span style="color:var(--muted);font-weight:400">(dari bukti)</span></label>
       <input id="tanggal" type="date" onchange="onTanggalChange()">
@@ -460,6 +485,9 @@
 
         <label>NOMINAL</label>
         <div class="nominal-prefix"><span>Rp</span><input id="mNominal" type="text" inputmode="numeric" placeholder="0" oninput="mOnNominalInput()"></div>
+        <label class="cek-baris"><input type="checkbox" id="mPenggantian">
+          <span>↩︎ Akan ada penggantian
+            <span class="cek-sub">Nominal berkurang otomatis saat penggantian masuk — dicatat dari menu Riwayat Biaya.</span></span></label>
 
         <label>TANGGAL</label>
         <input id="mTanggal" type="date">
@@ -548,6 +576,13 @@
         <input id="dfKeterangan" type="text" autocomplete="off" placeholder="cari keterangan…" oninput="loadDaftarDebounced()">
         <label>Sumber Dana</label>
         <select id="dfSumber" onchange="loadDaftar()"></select>
+        <label>Penggantian</label>
+        <select id="dfPenggantian" onchange="loadDaftar()">
+          <option value="">Semua transaksi</option>
+          <option value="ditandai">↩︎ Ditandai penggantian</option>
+          <option value="menunggu">↩︎ Menunggu penggantian</option>
+          <option value="selesai">✓ Penggantian selesai</option>
+        </select>
         <button class="btn-ghost" style="margin-top:12px" onclick="resetDaftar()">Reset filter tambahan</button>
       </div>
       <div id="daftarView"></div>
@@ -606,6 +641,39 @@
       </div>
     </div>
 
+    <div id="pgModal" class="lock" style="display:none;z-index:60">
+      <div class="lockbox" style="max-width:460px;text-align:left;max-height:92vh;overflow:auto">
+        <div class="card-head">
+          <div style="font-weight:700;font-size:15px">↩︎ Penggantian</div>
+          <button class="btn-ghost btn-kecil" onclick="pgEditTransaksi()">✏️ Edit transaksi</button>
+        </div>
+        <div id="pgInfo" class="ask-hint" style="margin-top:4px"></div>
+        <div id="pgRing" class="pg-ring"></div>
+
+        <div class="ask-hint" style="font-weight:600;margin-top:4px">Penggantian yang sudah masuk</div>
+        <div id="pgDaftar"></div>
+
+        <div class="pg-tambah" style="margin-top:10px">
+          <div><label>Nominal masuk</label>
+            <div class="nominal-prefix"><span>Rp</span><input id="pgNominal" type="text" inputmode="numeric" placeholder="0" oninput="pgOnNominalInput()"></div></div>
+          <div><label>Tanggal masuk</label><input id="pgTanggal" type="date"></div>
+          <button class="btn-ghost" onclick="pgTambah()">+ Tambah</button>
+        </div>
+        <div id="pgErr" class="ask-hint" style="color:var(--err);margin-top:6px"></div>
+
+        <label class="cek-baris"><input type="checkbox" id="pgSelesai">
+          <span>Penggantian sudah selesai
+            <span class="cek-sub">Tidak ada lagi penggantian yang akan masuk untuk transaksi ini.</span></span></label>
+
+        <div class="ask-hint" style="margin-top:10px">NOMINAL transaksi di sheet otomatis menjadi
+          <b>nominal awal − total penggantian</b>, sehingga budget di REAL ikut terkoreksi.</div>
+        <div class="row-btns">
+          <button class="btn-ghost" onclick="pgTutup()">Batal</button>
+          <button id="pgBtnSimpan" class="btn-primary" onclick="pgSimpan()">Simpan</button>
+        </div>
+      </div>
+    </div>
+
     <div id="editModal" class="lock" style="display:none;z-index:60">
       <div class="lockbox" style="max-width:460px;text-align:left;max-height:92vh;overflow:auto">
         <div style="font-weight:700;font-size:15px;margin-bottom:2px">✏️ Edit transaksi</div>
@@ -628,6 +696,9 @@
         <label>NOMINAL</label>
         <div class="nominal-prefix"><span>Rp</span><input id="edNominal" type="text" inputmode="numeric" placeholder="0" oninput="edOnNominalInput()"></div>
         <div id="edFormulaNote" class="note hidden" style="color:var(--muted)"></div>
+        <label class="cek-baris"><input type="checkbox" id="edPenggantian">
+          <span>↩︎ Akan ada penggantian
+            <span class="cek-sub" id="edPgNote">Nominal berkurang otomatis saat penggantian masuk.</span></span></label>
 
         <label>TANGGAL</label>
         <input id="edTanggal" type="date">
@@ -1322,6 +1393,7 @@
         tahunBudget: document.getElementById('tahunBudget').value,
         rekening: (sd === CFG.sumberDanaRekening) ? document.getElementById('rekening').value : '',
         kategoriBiaya: document.getElementById('kategori').value,
+        penggantian: document.getElementById('penggantian').checked,
         mataUang: window._mataUang,
         nominalAsli: window._nominalAsli,
         kurs: window._kurs,
@@ -1406,7 +1478,8 @@
         '<br>Biaya: ' + esc(payload.biayaBulan) + ' ' + esc(String(payload.tahunBiaya)) +
         '<br>Sumber Dana: ' + esc(payload.sumberDana) +
         '<br>Budget: ' + esc(payload.budgetBulan) + ' ' + esc(String(payload.tahunBudget)) +
-        '<br>Rekening: ' + esc(payload.rekening || '(kosong)') + '</div>';
+        '<br>Rekening: ' + esc(payload.rekening || '(kosong)') +
+        (payload.penggantian ? '<br>Penggantian: <b>↩︎ ditandai — menunggu penggantian</b>' : '') + '</div>';
       if (cf) {
         h += '<div class="card" style="padding:10px;margin:0"><b>' + esc(cf.title) + ' — ' + esc(cf.sheet) +
           '</b> (baris ' + cf.targetRow + ')<br>' +
@@ -1531,6 +1604,7 @@
         tahunBudget: document.getElementById('mTahunBudget').value,
         rekening: (sd === CFG.sumberDanaRekening) ? document.getElementById('mRekening').value : '',
         kategoriBiaya: document.getElementById('mKategori').value,
+        penggantian: document.getElementById('mPenggantian').checked,
         mataUang: 'IDR', nominalAsli: 0, kurs: 0,
         pin: window._pin,
         meta: { merchant: document.getElementById('mKeterangan').value.trim() }
@@ -1563,6 +1637,7 @@
       document.getElementById('mNominal').value = '';
       document.getElementById('mSumberDana').value = '';
       document.getElementById('mKetChips').innerHTML = '';
+      document.getElementById('mPenggantian').checked = false;
       katReset('m');
       document.getElementById('mRekWrap').classList.add('hidden');
       document.getElementById('mRekening').value = '';
@@ -1586,6 +1661,7 @@
       document.getElementById('tanggal').value = '';
       document.getElementById('formCard').classList.add('hidden');
       document.getElementById('ketChips').innerHTML = '';
+      document.getElementById('penggantian').checked = false;
       katReset('');
       document.getElementById('rekWrap').classList.add('hidden');
       document.getElementById('bocNote').classList.add('hidden');
@@ -2119,7 +2195,8 @@
         tanggal: document.getElementById('dfTanggal').value,
         pos: document.getElementById('dfPos').value,
         keterangan: document.getElementById('dfKeterangan').value.trim(),
-        sumber: document.getElementById('dfSumber').value
+        sumber: document.getElementById('dfSumber').value,
+        penggantian: document.getElementById('dfPenggantian').value
       };
       document.getElementById('daftarView').innerHTML = '<div class="ask-hint"><span class="spin"></span> Memuat…</div>';
       google.script.run.withSuccessHandler(renderDaftar).withFailureHandler(function (e) {
@@ -2132,6 +2209,7 @@
       document.getElementById('dfPos').value = '';
       document.getElementById('dfKeterangan').value = '';
       document.getElementById('dfSumber').value = '';
+      document.getElementById('dfPenggantian').value = '';
       loadDaftar();
     }
 
@@ -2146,6 +2224,8 @@
       if (v('dfPos')) p.push(v('dfPos'));
       if (v('dfKeterangan').trim()) p.push('"' + v('dfKeterangan').trim() + '"');
       if (v('dfSumber')) p.push(v('dfSumber'));
+      if (v('dfPenggantian')) p.push({ ditandai: 'ditandai penggantian', menunggu: 'menunggu penggantian',
+        selesai: 'penggantian selesai' }[v('dfPenggantian')]);
       return p.length ? p.join(' · ') : 'Semua';
     }
 
@@ -2156,19 +2236,107 @@
         h += '<div class="card"><div class="ask-hint">Tidak ada biaya pada filter ini.</div></div>';
         document.getElementById('daftarView').innerHTML = h; return;
       }
-      h += '<div class="ask-hint" style="margin:0 2px 8px">Ketuk transaksi untuk <b>edit</b>.</div>';
+      h += '<div class="ask-hint" style="margin:0 2px 8px">Ketuk transaksi untuk <b>edit</b>; ' +
+        'transaksi bertanda <b>↩︎</b> membuka jendela <b>penggantian</b>.</div>';
       h += '<div class="card"><table class="bt">';
       d.items.forEach(function (it) {
         var sub = [it.ket, formatTglShort(it.tgl), it.sumber].filter(Boolean).join(' · ');
-        h += '<tr onclick="daftarEdit(' + it.row + ')" style="cursor:pointer">' +
+        var pg = it.penggantian;
+        h += '<tr onclick="' + (pg ? 'bukaPenggantian(' : 'daftarEdit(') + it.row + ')" style="cursor:pointer">' +
           '<td><div style="font-weight:600">' + esc(it.pos) +
-          ' <span style="color:var(--muted);font-weight:400;font-size:11px">✏️</span></div>' +
-          '<div class="ask-hint" style="margin-top:2px">' + esc(sub) + '</div></td>' +
+          (pg ? pgBadge(pg) : ' <span style="color:var(--muted);font-weight:400;font-size:11px">✏️</span>') + '</div>' +
+          '<div class="ask-hint" style="margin-top:2px">' + esc(sub) + '</div>' +
+          (pg && pg.total > 0 ? '<div class="ask-hint" style="margin-top:2px">awal ' + rp(pg.awal) +
+            ' − diganti ' + rp(pg.total) + ' (' + pg.jumlah + '×)</div>' : '') + '</td>' +
           '<td class="num">' + rp(it.nominal) + '</td></tr>';
       });
       h += '</table></div>';
       document.getElementById('daftarView').innerHTML = h;
     }
+
+    // ===================== PENGGANTIAN (ADR-0015) =====================
+    function pgBadge(pg) {
+      if (pg.status === 'SELESAI') return ' <span class="pg-badge pg-selesai">✓ diganti</span>';
+      return ' <span class="pg-badge pg-menunggu">↩︎ ' + (pg.total > 0 ? 'sebagian diganti' : 'menunggu') + '</span>';
+    }
+
+    var _pg = null;   // { row, awal, rincian:[{tanggal,nominal}], ... } yang sedang dibuka
+
+    function bukaPenggantian(row) {
+      showInfo('Memuat penggantian…');
+      google.script.run.withSuccessHandler(function (d) {
+        clearMsg();
+        _pg = d; _pg.rincian = (d.rincian || []).slice();
+        document.getElementById('pgInfo').textContent = d.pos + (d.ket ? ' · ' + d.ket : '') +
+          ' · ' + formatTglShort(d.tgl) + (d.sumber ? ' · ' + d.sumber : '');
+        document.getElementById('pgSelesai').checked = d.status === 'SELESAI';
+        document.getElementById('pgNominal').value = '';
+        document.getElementById('pgTanggal').value = CFG.today;
+        document.getElementById('pgErr').textContent = '';
+        pgRender();
+        document.getElementById('pgModal').style.display = 'flex';
+      }).withFailureHandler(function (e) { showErr(e.message || e); }).getPenggantian(row, window._pin);
+    }
+
+    function pgTotal() { return _pg.rincian.reduce(function (t, p) { return t + p.nominal; }, 0); }
+
+    function pgRender() {
+      var total = pgTotal();
+      document.getElementById('pgRing').innerHTML =
+        '<div><span>Nominal awal</span><b>' + rp(_pg.awal) + '</b></div>' +
+        '<div><span>Penggantian</span><b style="color:var(--hijau)">' + rp(total) + '</b></div>' +
+        '<div><span>Nominal bersih</span><b>' + rp(_pg.awal - total) + '</b></div>';
+      var box = document.getElementById('pgDaftar');
+      if (!_pg.rincian.length) {
+        box.innerHTML = '<div class="ask-hint" style="padding:8px 0">Belum ada penggantian yang masuk.</div>';
+        return;
+      }
+      box.innerHTML = _pg.rincian.map(function (p, i) {
+        return '<div class="pg-baris"><span>' + esc(formatTglShort(p.tanggal)) + '</span><b class="num">' + rp(p.nominal) +
+          '</b><button title="Hapus" onclick="pgHapus(' + i + ')">✕</button></div>';
+      }).join('');
+    }
+
+    function pgOnNominalInput() { var el = document.getElementById('pgNominal'); el.value = groupThousands(el.value); }
+
+    function pgTambah() {
+      var err = document.getElementById('pgErr'); err.textContent = '';
+      var nominal = Number(document.getElementById('pgNominal').value.replace(/[^\d]/g, ''));
+      var tanggal = document.getElementById('pgTanggal').value;
+      if (!(nominal > 0)) { err.textContent = 'Isi nominal penggantian lebih dari 0.'; return; }
+      if (!tanggal) { err.textContent = 'Isi tanggal penggantian masuk.'; return; }
+      if (pgTotal() + nominal > _pg.awal) {
+        err.textContent = 'Total penggantian akan melebihi nominal awal (' + rp(_pg.awal) + ').'; return;
+      }
+      _pg.rincian.push({ tanggal: tanggal, nominal: nominal });
+      _pg.rincian.sort(function (a, b) { return a.tanggal < b.tanggal ? -1 : (a.tanggal > b.tanggal ? 1 : 0); });
+      document.getElementById('pgNominal').value = '';
+      pgRender();
+    }
+
+    function pgHapus(i) { _pg.rincian.splice(i, 1); pgRender(); }
+
+    function pgTutup() { document.getElementById('pgModal').style.display = 'none'; _pg = null; }
+
+    function pgSimpan() {
+      if (!_pg) return;
+      // Nominal yang sudah diketik tapi belum ditambahkan ikut disimpan - jangan sampai hilang diam-diam.
+      if (document.getElementById('pgNominal').value.trim()) { pgTambah(); if (document.getElementById('pgErr').textContent) return; }
+      var btn = document.getElementById('pgBtnSimpan');
+      btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Menyimpan…';
+      google.script.run.withSuccessHandler(function (d) {
+        btn.disabled = false; btn.textContent = 'Simpan';
+        pgTutup();
+        showOk('✅ Penggantian tersimpan: ' + rp(d.total) + ' · nominal bersih ' + rp(d.bersih) +
+          (d.status === 'SELESAI' ? ' · selesai' : '') + '.');
+        loadDaftar();
+      }).withFailureHandler(function (e) {
+        btn.disabled = false; btn.textContent = 'Simpan';
+        document.getElementById('pgErr').textContent = e.message || e;
+      }).simpanPenggantian(_pg.row, _pg.rincian, document.getElementById('pgSelesai').checked, window._pin);
+    }
+
+    function pgEditTransaksi() { var row = _pg && _pg.row; pgTutup(); if (row) daftarEdit(row); }
 
     // ===================== EDIT TRANSAKSI (dari Daftar) =====================
     var _editRow = null, _editNominalFormula = '', _editNominalOrig = 0;
@@ -2206,6 +2374,12 @@
         setSelect('edSumberDana', d.sumberDana);
         edOnSumberDanaChange();
         if (d.rekening) document.getElementById('edRekening').value = d.rekening;
+        var pg = d.penggantian;
+        document.getElementById('edPenggantian').checked = !!pg;
+        document.getElementById('edPgNote').textContent = (pg && pg.total > 0)
+          ? 'NOMINAL di atas adalah nominal AWAL. Sudah diganti ' + rp(pg.total) + ' → bersih ' + rp(pg.bersih) +
+            '. Tanda tidak bisa dilepas selama masih ada rincian penggantian.'
+          : 'Nominal berkurang otomatis saat penggantian masuk.';
         // Kategori yang sudah tercatat dihormati: saran hanya ditampilkan, tidak menimpa.
         katReset('ed');
         setSelect('edKategori', d.kategoriBiaya || '');
@@ -2242,6 +2416,7 @@
         tahunBudget: document.getElementById('edTahunBudget').value,
         rekening: (sd === CFG.sumberDanaRekening) ? document.getElementById('edRekening').value : '',
         kategoriBiaya: document.getElementById('edKategori').value,
+        penggantian: document.getElementById('edPenggantian').checked,
         keepFormula: keepFormula,
         nominalFormula: _editNominalFormula,
         pin: window._pin

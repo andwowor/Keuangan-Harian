@@ -89,7 +89,7 @@ Di editor Apps Script, pilih fungsi lalu **Run** (hasil di *Execution log*):
 
 | Fungsi | Cakupan |
 |---|---|
-| `jalankanSemuaTest` | **294 test unit domain** — murni, tidak menyentuh data nyata. Hasilnya mencetak **penanda versi** (`VERSI_APP`, saat ini `2026.11.26-a`); bila jumlah test atau versinya tidak cocok dengan baris ini, ada file yang belum tersalin ke Apps Script. |
+| `jalankanSemuaTest` | **325 test unit domain** — murni, tidak menyentuh data nyata. Hasilnya mencetak **penanda versi** (`VERSI_APP`, saat ini `2026.11.27-a`); bila jumlah test atau versinya tidak cocok dengan baris ini, ada file yang belum tersalin ke Apps Script. |
 | `cekFolderPenyimpanan` | Integrasi: izin Drive & folder inbox |
 | `cekDeteksiRekening` | Aturan sumber dana pada contoh bukti nyata |
 
@@ -308,6 +308,15 @@ Menampilkan tiap transaksi (POS, keterangan, tanggal, sumber dana, nominal) **ur
 plus jumlah transaksi & total nominal sesuai filter. Tombol **Reset filter tambahan** mengosongkan
 filter tanggal/POS/keterangan/sumber. Tombol **↻ Muat ulang** mengambil ulang data dengan filter yang
 sedang dipilih — mis. setelah menyimpan transaksi baru dari menu Input.
+
+**Penggantian (reimburse):** centang **↩︎ Akan ada penggantian** saat input (atau di Edit)
+untuk biaya yang nanti akan diganti. Transaksi itu tampil dengan lencana **↩︎ menunggu** /
+**✓ diganti** dan bisa difilter lewat **Penggantian**. Ketuk transaksinya untuk membuka jendela
+**Penggantian**: tambahkan setiap penggantian yang masuk (nominal + tanggal, boleh berkali-kali),
+centang **sudah selesai** bila tidak ada lagi yang ditunggu. NOMINAL di sheet otomatis menjadi
+**nominal awal − total penggantian**, jadi budget di REAL ikut terkoreksi; nominal awal, total,
+dan rinciannya tersimpan di kolom **L–O** sheet TRANSAKSI
+([ADR-0015](docs/architecture/adr/ADR-0015-penggantian-transaksi.md)).
 
 **Edit manual transaksi:** ketuk salah satu transaksi (ikon ✏️) untuk membuka form edit —
 POS BIAYA (combobox), KETERANGAN, NOMINAL, TANGGAL, BIAYA BULAN/TAHUN, SUMBER DANA (+Rekening
