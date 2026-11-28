@@ -24,6 +24,12 @@
  *   sheetsBacaReal_(barisAwal, jml, kolom)   : { header:Array, labels:Array, values:Array }
  *   sheetsBacaMemori_()                      : Array<Array>   (sheet AI_MEMORY)
  *   sheetsDaftarKategori_()                  : [{ nama, cakupan }]  dari ATURAN DROPDOWN kolom K
+ *   sheetsBacaBarisPenuh_(row)               : { values, formulas, tz }  A..O
+ *   sheetsPastikanHeaderPenggantian_()       : void  isi judul L..O yang kosong; tolak menimpa judul lain
+ *   sheetsTandaiPenggantian_(row)            : void  C disalin persis ke M, L=MENUNGGU
+ *   sheetsTulisPenggantian_(row, st, tot, rinc, bersih) : void  bersih null = pulihkan C dari M
+ *   sheetsTulisNominalAwal_(row, nilai)      : void
+ *   sheetsLepasPenggantian_(row)             : void  kosongkan L..O
  *   sheetsBacaCashflowSetoran_(ssId?)        : { id, tz, title, rows:Array<Array> }  kolom A..D
  *   logMemory_(catatan)                      : void
  *   writeCashflow_(payload, ssId?)           : { row, sumberDana, title }

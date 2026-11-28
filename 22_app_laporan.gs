@@ -217,9 +217,10 @@ function getTransaksiFilters() {
 /** Daftar biaya dengan filter gabungan (semua opsional). filter = {bulan,tahun,tanggal,pos,keterangan,sumber}. */
 function getTransaksiList(filter) {
   filter = filter || {};
-  var data = sheetsBacaTransaksi_(7);                  // adapter Sheets (A..G)
+  var data = sheetsBacaTransaksi_(TRANSAKSI_NCOL_PENUH); // adapter Sheets (A..O)
   var hdr = data.hdr;
   var out = [], total = 0;
+  var fPg = String(filter.penggantian || '');                         // L PENGGANTIAN
   var bU = String(filter.bulan || '').trim().toUpperCase();          // E BIAYA BULAN
   var tY = String(filter.tahun || '').trim().replace(/\.0$/, '');    // F TAHUN BIAYA
   var fTgl = String(filter.tanggal || '').trim();                    // D TANGGAL (yyyy-MM-dd)
@@ -237,7 +238,8 @@ function getTransaksiList(filter) {
       if (fPos && String(r[0]).trim() !== fPos) continue;
       if (fKet && String(r[1]).toLowerCase().indexOf(fKet) < 0) continue;
       if (fSum && String(r[6]).trim() !== fSum) continue;
-      var nom = Number(r[2]) || 0;                                   // C NOMINAL
+      if (!cocokFilterPenggantian_(statusPenggantian_(r[KOLOM_PENGGANTIAN - 1]), fPg)) continue;
+      var nom = Number(r[2]) || 0;                                   // C NOMINAL (bersih)
       total += nom;
       out.push({
         row: hdr + 1 + i,                                           // baris asli di sheet (untuk edit)
@@ -245,7 +247,8 @@ function getTransaksiList(filter) {
         ket: String(r[1]).trim(),
         nominal: nom,
         tgl: tglIso,
-        sumber: String(r[6]).trim()
+        sumber: String(r[6]).trim(),
+        penggantian: ringkasBarisPenggantian_(r)                    // null bila tidak ditandai
       });
     }
   }
@@ -453,7 +456,7 @@ function auditCashflowSetoran(bulan, tahun, pin) {
     }
   }
 
-  var data = sheetsBacaTransaksi_(10);                     // adapter Sheets (A..J)
+  var data = sheetsBacaTransaksi_(TRANSAKSI_NCOL_PENUH);    // adapter Sheets (A..O)
   var hdr = data.hdr, tz = data.tz;
   var missing = [], total = 0, matched = 0, matchedBerikut = 0, salahBulan = 0;
   var rows = data.rows;
@@ -466,7 +469,8 @@ function auditCashflowSetoran(bulan, tahun, pin) {
     if (bulanU && BULAN_UPPER[Number(iso.slice(5, 7)) - 1] !== bulanU) continue;
     if (tahunS && iso.slice(0, 4) !== tahunS) continue;
     total++;
-    var nom = Math.round(Number(row[2]) || 0);             // C NOMINAL
+    // Nominal ASLI, bukan bersih: Setoran Owner dicatat sebelum ada penggantian (ADR-0015).
+    var nom = Math.round(nominalAsliTransaksi_(row));
     var key = iso + '|' + nom;
     if (have[key] > 0) { have[key]--; matched++; continue; }
     if (haveBerikut[key] > 0) { haveBerikut[key]--; matchedBerikut++; continue; }

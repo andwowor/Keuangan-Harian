@@ -11,7 +11,7 @@
  * ke editor Apps Script. Dicetak oleh jalankanSemuaTest agar ketahuan bila ada file
  * yang belum tersalin - gejalanya: jumlah test tidak sesuai, atau fungsi baru "not defined".
  */
-var VERSI_APP = '2026.11.26-a';
+var VERSI_APP = '2026.11.27-a';
 
 // ---------------------------------------------------------------------------
 // SINKRONISASI KODE DARI GITHUB (menu Setelan)
@@ -135,6 +135,16 @@ var KOLOM_KATEGORI = 11;
 var KATEGORI_SHEET_CADANGAN = 'KATEGORI BIAYA';
 // Umur cache model rekomendasi (detik). Dibuang otomatis setiap ada transaksi tersimpan.
 var KATEGORI_CACHE_DETIK = 3600;
+
+// ---------------------------------------------------------------------------
+// PENGGANTIAN (kolom L..O sheet TRANSAKSI) - lihat ADR-0015
+// ---------------------------------------------------------------------------
+var KOLOM_PENGGANTIAN = 12;          // L  status: MENUNGGU | SELESAI ('' = tidak ditandai)
+var KOLOM_NOMINAL_AWAL = 13;         // M  isi NOMINAL sebelum penggantian (formula/angka asli)
+var KOLOM_TOTAL_PENGGANTIAN = 14;    // N  jumlah seluruh penggantian
+var KOLOM_RINCIAN_PENGGANTIAN = 15;  // O  "2026-11-20=300000; 2026-11-25=200000"
+var TRANSAKSI_NCOL_PENUH = 15;       // A..O
+var HEADER_PENGGANTIAN = ['PENGGANTIAN', 'NOMINAL AWAL', 'TOTAL PENGGANTIAN', 'RINCIAN PENGGANTIAN'];
 var CASHFLOW_SUMBER_OPTIONS = ['KAS TUNAI MAUMBI', 'KAS TUNAI PERKAMIL', 'BCA', 'BRI', 'BNI',
   'MANDIRI', 'BCA MEGA', 'BRI MEGA', 'MANDIRI MEGA', 'KAS SEWA GEDUNG',
   'KAS BIAYA DITAHAN TUNAI', 'KAS BIAYA DITAHAN BANK'];
